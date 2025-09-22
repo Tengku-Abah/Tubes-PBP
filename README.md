@@ -1,24 +1,169 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# UMKM Store - Platform E-commerce
 
-## Getting Started
+Platform e-commerce modern yang dibangun dengan Next.js 14, menampilkan manajemen produk, autentikasi pengguna, dan fungsionalitas keranjang belanja.
 
-First, run the development server:
+## 🚀 Fitur
 
+- **Katalog Produk**: Jelajahi dan cari berbagai produk
+- **Autentikasi Pengguna**: Sistem login dan registrasi dengan peran admin/pengguna
+- **Keranjang Belanja**: Tambah, hapus, dan kelola item keranjang
+- **Panel Admin**: Dashboard admin untuk mengelola produk dan pengguna
+- **Desain Responsif**: Interface yang ramah mobile
+- **UI Modern**: Desain bersih dan profesional dengan Tailwind CSS
+
+## 📋 Persyaratan
+
+Sebelum menjalankan proyek ini, pastikan Anda telah menginstal:
+
+- **Node.js** (versi 18.0 atau lebih tinggi)
+- **npm** atau **yarn** package manager
+
+## 🛠️ Instalasi & Setup
+
+### 1. Clone Repository
+```bash
+git clone <your-repository-url>
+cd projek-bpb
+```
+
+### 2. Install Dependencies
+```bash
+npm install
+# atau
+yarn install
+```
+
+### 3. Install Dependencies Tambahan
+```bash
+npm install bcryptjs @types/bcryptjs
+# atau
+yarn add bcryptjs @types/bcryptjs
+```
+
+## 🏃‍♂️ Menjalankan Aplikasi
+
+### Mode Development
 ```bash
 npm run dev
-# or
+# atau
 yarn dev
-# or
+# atau
 pnpm dev
-# or
+# atau
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000) di browser untuk melihat hasilnya.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build Production
+```bash
+npm run build
+npm start
+# atau
+yarn build
+yarn start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## 🔑 Kredensial Demo
+
+### Akun Admin
+- **Email**: `admin@gmail.com`
+- **Password**: `admin2123`
+
+### Akun Pengguna Biasa
+- **Email**: `user@gmail.com`
+- **Password**: `password123`
+
+## 📁 Struktur Proyek
+
+```
+projek-bpb/
+├── src/
+│   ├── app/
+│   │   ├── (auth)/
+│   │   │   ├── Login/
+│   │   │   └── Register/
+│   │   ├── Admin/
+│   │   ├── api/
+│   │   │   ├── product/
+│   │   │   ├── user/
+│   │   │   └── cart/
+│   │   ├── cart/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   └── lib/
+├── public/
+├── package.json
+└── README.md
+```
+
+## 🎯 Rute yang Tersedia
+
+- **Home**: `/` - Katalog produk dan pencarian
+- **Login**: `/Login` - Autentikasi pengguna
+- **Register**: `/Register` - Registrasi pengguna
+- **Cart**: `/cart` - Manajemen keranjang belanja
+- **Admin**: `/admin` - Dashboard admin (hanya admin)
+
+## 🔧 API Endpoints
+
+### Produk
+- `GET /api/product` - Ambil semua produk
+- `GET /api/product?search=keyword` - Cari produk
+- `GET /api/product?category=category` - Filter berdasarkan kategori
+
+### Pengguna
+- `POST /api/user` - Login pengguna
+- `GET /api/user` - Ambil semua pengguna (hanya admin)
+- `PUT /api/user` - Update pengguna
+- `DELETE /api/user` - Hapus pengguna
+
+### Keranjang
+- `GET /api/cart` - Ambil item keranjang
+- `POST /api/cart` - Tambah item ke keranjang
+- `PUT /api/cart` - Update jumlah item keranjang
+- `DELETE /api/cart` - Hapus item dari keranjang
+
+## 🎨 Teknologi yang Digunakan
+
+- **Next.js 14** - Framework React
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **bcryptjs** - Password hashing
+- **REST API** - Backend endpoints
+
+## 🚀 Deployment
+
+### Deploy di Vercel
+1. Push kode Anda ke GitHub
+2. Hubungkan repository Anda ke Vercel
+3. Deploy otomatis
+
+### Deploy di Platform Lain
+```bash
+npm run build
+npm start
+```
+
+## 📝 Catatan Development
+
+- Proyek menggunakan Next.js App Router
+- API routes berada di `src/app/api/`
+- Komponen berada di `src/components/`
+- Semua styling menggunakan Tailwind CSS classes
+- Data mock digunakan untuk tujuan demonstrasi
+
+## 🤝 Kontribusi
+
+1. Fork repository
+2. Buat feature branch
+3. Lakukan perubahan Anda
+4. Submit pull request
+
+## 📄 Lisensi
+
+Proyek ini dilisensikan di bawah MIT License.
 
 ## Learn More
 
