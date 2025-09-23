@@ -11,6 +11,7 @@ interface Stats {
   totalRevenue: number
 }
 
+
 interface Order {
   id: number
   customerName: string
@@ -337,12 +338,26 @@ export default function AdminPage() {
         {/* Other Tabs Content */}
         {activeTab === 'products' && (
           <div className="bg-white rounded-2xl shadow-xl p-6">
-            <h2 className="text-xl font-semibold text-slate-800 mb-6">Manajemen Produk</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-slate-800">Manajemen Produk</h2>
+              <button
+                onClick={() => alert('Fitur tambah produk akan segera hadir!')}
+                className="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed flex items-center gap-2"
+                disabled
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Tambah Produk
+              </button>
+            </div>
+            
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl">📦</span>
               </div>
-              <p className="text-slate-600">Fitur manajemen produk akan segera hadir</p>
+              <p className="text-slate-600 mb-4">Total {stats.totalProducts} produk tersedia</p>
+              <p className="text-slate-500 text-sm">Klik "Tambah Produk" untuk menambah produk baru</p>
             </div>
           </div>
         )}
@@ -383,6 +398,7 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
     </div>
   )
 }

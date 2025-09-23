@@ -1,8 +1,0 @@
-# Database
-DATABASE_URL="mysql://username:password@localhost:3306/umkm_store"
-
-# Replace the following with your actual MySQL credentials:
-# username: your MySQL username (usually 'root' for local development)
-# password: your MySQL password
-# localhost:3306: your MySQL server host and port
-# umkm_store: your database name

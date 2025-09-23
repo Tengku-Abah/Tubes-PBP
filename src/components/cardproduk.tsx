@@ -1,35 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Product } from '@/lib/api'
-
-// Simple toast function since react-hot-toast might not be installed
-const toast = {
-  success: (message: string) => console.log('✅', message),
-  error: (message: string) => console.log('❌', message)
-}
 
 interface ProductCardProps {
   product: Product
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const [addingToCart, setAddingToCart] = useState(false)
-  const router = useRouter()
-
-  const handleAddToCart = async () => {
-    setAddingToCart(true)
-    try {
-      // Simulate adding to cart
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      toast.success('Added to cart!')
-    } catch (error: any) {
-      toast.error('Failed to add to cart')
-    } finally {
-      setAddingToCart(false)
-    }
-  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -105,17 +83,16 @@ export default function ProductCard({ product }: ProductCardProps) {
           <span className="text-2xl font-bold text-gray-900 dark:text-white">
             {formatPrice(product.price)}
           </span>
-          <button
-            onClick={handleAddToCart}
-            disabled={addingToCart || product.stock === 0}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+          <Link
+            href={`/Detail?id=${product.id}`}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors text-center ${
               product.stock > 0
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
             }`}
           >
-            {addingToCart ? 'Adding...' : (product.stock > 0 ? 'Add to Cart' : 'Sold Out')}
-          </button>
+            Detail Produk
+          </Link>
         </div>
       </div>
     </div>

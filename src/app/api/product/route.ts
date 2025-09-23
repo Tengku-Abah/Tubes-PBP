@@ -114,10 +114,29 @@ const dummyProducts = [
   }
 ];
 
-// GET endpoint untuk mengambil semua produk
+// GET endpoint untuk mengambil semua produk atau detail produk berdasarkan ID
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    // Jika ada parameter id, kembalikan detail produk
+    if (id) {
+      const product = dummyProducts.find(p => p.id === parseInt(id));
+      if (product) {
+        return NextResponse.json({
+          success: true,
+          data: product
+        });
+      } else {
+        return NextResponse.json(
+          { success: false, message: 'Product not found' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Jika tidak ada id, kembalikan semua produk dengan filter
     const category = searchParams.get('category');
     const search = searchParams.get('search');
     const minPrice = searchParams.get('minPrice');
