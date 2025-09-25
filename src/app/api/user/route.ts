@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import { supabase } from '../../../lib/supabase';
 
-// Dummy user data
+// Dummy user data (akan diganti dengan database)
 const dummyUsers = [
   {
     id: 1,
     email: 'admin@gmail.com',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // admin2123
+    password: '$2b$10$voXgrTXntv2g17ERAGbfo.VdpIWNwn9PIb29g8M3FvOTlxP3.nrMi', // Admin08
     name: 'Admin User',
     role: 'admin',
     createdAt: new Date().toISOString(),
@@ -17,19 +18,177 @@ const dummyUsers = [
     email: 'user@gmail.com',
     password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password123
     name: 'Regular User',
-    role: 'user',
+    role: 'pembeli',
     createdAt: new Date().toISOString(),
     isActive: true
   }
 ];
 
-// POST endpoint untuk login
+// Helper function untuk menambahkan admin user ke database
+async function addAdminUserToDatabase() {
+  try {
+    const adminData = {
+      email: 'admin@gmail.com',
+      password: '$2b$10$voXgrTXntv2g17ERAGbfo.VdpIWNwn9PIb29g8M3FvOTlxP3.nrMi',
+      name: 'Admin User',
+      role: 'admin'
+    };
+
+    // Cek apakah admin sudah ada
+    const { data: existingAdmin } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', 'admin@gmail.com')
+      .single();
+
+    if (!existingAdmin) {
+      // Tambahkan admin ke database
+      const { data, error } = await supabase
+        .from('users')
+        .insert(adminData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Failed to add admin user:', error);
+      } else {
+        console.log('Admin user added to database:', data);
+      }
+    }
+  } catch (error) {
+    console.error('Error adding admin user:', error);
+  }
+}
+
+// POST endpoint untuk login dan registrasi
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { email, password, name, action } = body;
 
-    // Validasi input
+    // Jika action adalah 'register', lakukan registrasi
+    if (action === 'register') {
+      // Pastikan admin user ada di database
+      await addAdminUserToDatabase();
+      
+      // Validasi input untuk registrasi
+      if (!email || !password || !name) {
+        return NextResponse.json(
+          { success: false, message: 'Name, email and password are required' },
+          { status: 400 }
+        );
+      }
+
+      // Validasi email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return NextResponse.json(
+          { success: false, message: 'Please enter a valid email address' },
+          { status: 400 }
+        );
+      }
+
+      // Validasi password length
+      if (password.length < 6) {
+        return NextResponse.json(
+          { success: false, message: 'Password must be at least 6 characters' },
+          { status: 400 }
+        );
+      }
+
+      // Debug: Cek koneksi Supabase
+      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+      console.log('Supabase Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not set');
+
+      // Cek apakah email sudah ada di database
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email.toLowerCase())
+        .single();
+
+      console.log('Check existing user result:', { existingUser, checkError });
+
+      // Jika database error, fallback ke dummy data
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.warn('Database check failed, using dummy data fallback:', checkError);
+        const dummyUser = dummyUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+        if (dummyUser) {
+          return NextResponse.json(
+            { success: false, message: 'Email already registered' },
+            { status: 409 }
+          );
+        }
+      } else if (existingUser) {
+        return NextResponse.json(
+          { success: false, message: 'Email already registered' },
+          { status: 409 }
+        );
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Buat user baru untuk database
+      const newUserData = {
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        name: name,
+        role: 'pembeli' // Default role untuk user yang registrasi
+        // is_active: true // Kolom ini belum ada di database
+      };
+
+      // Simpan ke database
+      console.log('Inserting user data:', newUserData);
+      const { data: newUser, error: insertError } = await supabase
+        .from('users')
+        .insert(newUserData)
+        .select()
+        .single();
+
+      console.log('Insert result:', { newUser, insertError });
+
+      if (insertError) {
+        console.error('Database insert error, using dummy data fallback:', insertError);
+        
+        // Fallback ke dummy data jika database error
+        const newId = Math.max(...dummyUsers.map(u => u.id)) + 1;
+        const fallbackUser = {
+          id: newId,
+          email: email.toLowerCase(),
+          password: hashedPassword,
+          name: name,
+          role: 'pembeli', // Default role untuk user yang registrasi
+          createdAt: new Date().toISOString(),
+          isActive: true
+        };
+        
+        dummyUsers.push(fallbackUser);
+        
+        const { password: _, ...userWithoutPassword } = fallbackUser;
+        
+        return NextResponse.json({
+          success: true,
+          data: {
+            user: userWithoutPassword,
+            message: 'Registration successful (using fallback storage)'
+          }
+        });
+      }
+
+      // Return user data tanpa password
+      const { password: _, ...userWithoutPassword } = newUser;
+      
+      return NextResponse.json({
+        success: true,
+        data: {
+          user: userWithoutPassword,
+          message: 'Registration successful'
+        }
+      });
+    }
+
+    // Jika action adalah 'login' atau tidak ada action, lakukan login
     if (!email || !password) {
       return NextResponse.json(
         { success: false, message: 'Email and password are required' },
@@ -37,10 +196,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cari user berdasarkan email
-    const user = dummyUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+    // Cari user berdasarkan email di database
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .single();
     
-    if (!user) {
+    let userData = user;
+    
+    // Jika database error, fallback ke dummy data
+    if (userError && userError.code !== 'PGRST116') {
+      console.warn('Database login failed, using dummy data fallback:', userError);
+      userData = dummyUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+    }
+    
+    if (!userData) {
       return NextResponse.json(
         { success: false, message: 'Invalid email or password' },
         { status: 401 }
@@ -48,7 +219,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verifikasi password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, userData.password);
     
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -58,7 +229,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Cek apakah user aktif
-    if (!user.isActive) {
+    const isActive = userData.is_active !== undefined ? userData.is_active : userData.isActive;
+    if (!isActive) {
       return NextResponse.json(
         { success: false, message: 'Account is deactivated' },
         { status: 401 }
@@ -66,7 +238,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Return user data (tanpa password)
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, ...userWithoutPassword } = userData;
     
     return NextResponse.json({
       success: true,
@@ -79,7 +251,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Authentication error:', error);
     return NextResponse.json(
       { success: false, message: 'Internal server error' },
       { status: 500 }

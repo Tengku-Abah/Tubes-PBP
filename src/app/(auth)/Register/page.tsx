@@ -72,13 +72,30 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      // For demo purposes, we'll simulate registration
-      // In a real app, you'd call a registration API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      toast.success('Registration successful! Please login.')
-      router.push('/Login')
+      // Call registration API
+      const response = await fetch('/api/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          action: 'register'
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success('Registration successful! Please login.')
+        router.push('/Login')
+      } else {
+        toast.error(data.message || 'Registration failed. Please try again.')
+      }
     } catch (error: any) {
+      console.error('Registration error:', error)
       toast.error('Registration failed. Please try again.')
     } finally {
       setLoading(false)

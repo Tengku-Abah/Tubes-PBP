@@ -94,24 +94,30 @@ export interface Database {
         Row: {
           id: string
           email: string
-          full_name: string
-          avatar_url: string
+          password: string
+          name: string
+          role: 'admin' | 'pembeli'
+          is_active: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
-          id: string
+          id?: string
           email: string
-          full_name: string
-          avatar_url?: string
+          password: string
+          name: string
+          role?: 'admin' | 'pembeli'
+          is_active?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           email?: string
-          full_name?: string
-          avatar_url?: string
+          password?: string
+          name?: string
+          role?: 'admin' | 'pembeli'
+          is_active?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -158,6 +164,27 @@ export const dbHelpers = {
     // Untuk sekarang return dummy data
     // Nanti akan diganti dengan: return await supabase.from('reviews').insert(review)
     return { data: null, error: null }
+  },
+
+  // Users
+  async registerUser(userData: Database['public']['Tables']['users']['Insert']) {
+    try {
+      // Untuk sekarang return dummy data
+      // Nanti akan diganti dengan: return await supabase.from('users').insert(userData)
+      return { data: userData, error: null }
+    } catch (error) {
+      return { data: null, error: error }
+    }
+  },
+
+  async getUserByEmail(email: string) {
+    try {
+      // Untuk sekarang return dummy data
+      // Nanti akan diganti dengan: return await supabase.from('users').select('*').eq('email', email).single()
+      return { data: null, error: null }
+    } catch (error) {
+      return { data: null, error: error }
+    }
   }
 }
 
