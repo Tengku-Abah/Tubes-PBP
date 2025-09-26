@@ -68,7 +68,7 @@ export default function HomePage() {
     const cachedProducts = sessionStorage.getItem('cachedProducts')
     const cacheTime = sessionStorage.getItem('productsCacheTime')
     const now = Date.now()
-    
+
     // Use cache if it's less than 5 minutes old and no search term
     if (cachedProducts && cacheTime && (now - parseInt(cacheTime)) < 300000 && !searchTerm.trim()) {
       console.log('Using cached products')
@@ -80,7 +80,7 @@ export default function HomePage() {
     try {
       setLoading(true)
       console.log('Fetching products from Supabase...')
-      
+
       let query = supabase
         .from('products')
         .select('*')
@@ -99,7 +99,7 @@ export default function HomePage() {
       } else {
         console.log('Products loaded:', data?.length || 0, 'products')
         setProducts(data || [])
-        
+
         // Cache products if no search term
         if (!searchTerm.trim()) {
           sessionStorage.setItem('cachedProducts', JSON.stringify(data || []))
@@ -120,10 +120,10 @@ export default function HomePage() {
       try {
         const parsedUser = JSON.parse(userData)
         const userChanged = !user || user.id !== parsedUser.id
-        
+
         setUser(parsedUser)
         setIsLoggedIn(true)
-        
+
         // Only fetch cart count if user changed or forced
         if (userChanged || forceCartUpdate) {
           fetchCartCount(parsedUser)
@@ -151,7 +151,7 @@ export default function HomePage() {
     try {
       const response = await fetch(`/api/cart?user_id=${currentUser.id}`)
       const data = await response.json()
-      
+
       if (data.success && data.data) {
         const totalItems = data.data.reduce((sum: number, item: any) => sum + item.quantity, 0)
         setCartCount(totalItems)
@@ -188,7 +188,7 @@ export default function HomePage() {
               </div>
             )}
           </div>
-          
+
           {/* Search and Action Buttons Row */}
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <form onSubmit={handleSearch} className="flex-1 max-w-md">
@@ -208,7 +208,7 @@ export default function HomePage() {
                 </button>
               </div>
             </form>
-            
+
             {/* Cart and Login Buttons */}
             <div className="flex gap-3">
               <Link
@@ -220,7 +220,7 @@ export default function HomePage() {
                 </svg>
                 Cart ({cartCount})
               </Link>
-              
+
               {isLoggedIn ? (
                 <div className="flex gap-3">
                   {user?.role === 'admin' && (
@@ -252,7 +252,7 @@ export default function HomePage() {
                 </div>
               ) : (
                 <Link
-                  href="/login"
+                  href="/Login"
                   className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,11 +265,11 @@ export default function HomePage() {
           </div>
         </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
 
         {products.length === 0 && !loading && (
           <div className="text-center py-12">
