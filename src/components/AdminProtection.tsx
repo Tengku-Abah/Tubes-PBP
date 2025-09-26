@@ -85,7 +85,7 @@ export default function AdminProtection({ children }: AdminProtectionProps) {
               Access Denied
             </h2>
             <p className="text-gray-600 mb-6">
-              You don't have admin privileges to access this page.
+              You do not have admin privileges to access this page.
             </p>
             <div className="flex gap-3">
               <button
