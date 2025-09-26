@@ -160,6 +160,7 @@ export default function ProductDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'user-id': user?.id || ''
         },
         body: JSON.stringify({
           productId: product?.id,

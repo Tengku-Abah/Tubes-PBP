@@ -15,7 +15,7 @@ interface Product {
   category: string
   stock: number
   rating: number
-  reviews_count: number
+  reviews: number
   created_at: string
   updated_at: string
 }
@@ -31,8 +31,7 @@ export default function HomePage() {
   useEffect(() => {
     fetchProducts()
     checkLoginStatus()
-    fetchCartCount()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refetch products when search term changes
   useEffect(() => {
@@ -41,35 +40,43 @@ export default function HomePage() {
     }, 500) // Debounce search
 
     return () => clearTimeout(timeoutId)
-  }, [searchTerm])
+  }, [searchTerm]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for storage changes (when user logs in from another tab)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'user') {
         checkLoginStatus()
-        fetchCartCount()
       }
     }
 
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Check login status when component becomes visible (user might have logged in)
+  // Fetch cart count when user changes
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        checkLoginStatus()
-        fetchCartCount()
-      }
+    if (isLoggedIn && user?.id) {
+      fetchCartCount()
+    } else {
+      setCartCount(0)
     }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [])
+  }, [isLoggedIn, user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchProducts = async () => {
+    // Check if products are cached in session storage
+    const cachedProducts = sessionStorage.getItem('cachedProducts')
+    const cacheTime = sessionStorage.getItem('productsCacheTime')
+    const now = Date.now()
+    
+    // Use cache if it's less than 5 minutes old and no search term
+    if (cachedProducts && cacheTime && (now - parseInt(cacheTime)) < 300000 && !searchTerm.trim()) {
+      console.log('Using cached products')
+      setProducts(JSON.parse(cachedProducts))
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       console.log('Fetching products from Supabase...')
@@ -92,6 +99,12 @@ export default function HomePage() {
       } else {
         console.log('Products loaded:', data?.length || 0, 'products')
         setProducts(data || [])
+        
+        // Cache products if no search term
+        if (!searchTerm.trim()) {
+          sessionStorage.setItem('cachedProducts', JSON.stringify(data || []))
+          sessionStorage.setItem('productsCacheTime', now.toString())
+        }
       }
     } catch (error) {
       console.error('Error fetching products:', error)
@@ -101,30 +114,42 @@ export default function HomePage() {
     }
   }
 
-  const checkLoginStatus = () => {
+  const checkLoginStatus = (forceCartUpdate = false) => {
     const userData = localStorage.getItem('user')
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData)
+        const userChanged = !user || user.id !== parsedUser.id
+        
         setUser(parsedUser)
         setIsLoggedIn(true)
+        
+        // Only fetch cart count if user changed or forced
+        if (userChanged || forceCartUpdate) {
+          fetchCartCount(parsedUser)
+        }
       } catch (error) {
         console.error('Error parsing user data:', error)
         setIsLoggedIn(false)
+        setUser(null)
+        setCartCount(0)
       }
     } else {
       setIsLoggedIn(false)
+      setUser(null)
+      setCartCount(0)
     }
   }
 
-  const fetchCartCount = async () => {
-    if (!isLoggedIn) {
+  const fetchCartCount = async (userData?: any) => {
+    const currentUser = userData || user
+    if (!currentUser?.id) {
       setCartCount(0)
       return
     }
 
     try {
-      const response = await fetch('/api/cart')
+      const response = await fetch(`/api/cart?user_id=${currentUser.id}`)
       const data = await response.json()
       
       if (data.success && data.data) {
@@ -200,7 +225,7 @@ export default function HomePage() {
                 <div className="flex gap-3">
                   {user?.role === 'admin' && (
                     <Link
-                      href="/Admin"
+                      href="/admin"
                       className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-md"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,7 +251,7 @@ export default function HomePage() {
                 </div>
               ) : (
                 <Link
-                  href="/Login"
+                  href="/login"
                   className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

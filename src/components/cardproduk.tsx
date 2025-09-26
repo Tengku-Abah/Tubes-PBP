@@ -1,7 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { Product } from '@/lib/api'
+
+interface Product {
+  id: number
+  name: string
+  price: number
+  description: string
+  image: string
+  category: string
+  stock: number
+  rating: number
+  reviews: number
+}
 
 interface ProductCardProps {
   product: Product

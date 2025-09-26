@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '../../../lib/supabase';
 
 // Cart item interface
 interface CartItem {
@@ -17,46 +18,68 @@ interface CartItem {
   quantity: number;
 }
 
-// Mock cart data
-let cartItems: CartItem[] = [
-  {
-    id: 1,
-    product: {
-      id: 1,
-      name: "iPhone 15 Pro",
-      price: 15999000,
-      description: "iPhone 15 Pro dengan chip A17 Pro dan kamera 48MP",
-      image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=500",
-      category: "Smartphone",
-      stock: 25,
-      rating: 4.8,
-      reviews: 1247
-    },
-    quantity: 2
-  },
-  {
-    id: 2,
-    product: {
-      id: 5,
-      name: "AirPods Pro 2",
-      price: 3999000,
-      description: "AirPods Pro generasi kedua dengan Active Noise Cancellation",
-      image: "https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=500",
-      category: "Audio",
-      stock: 45,
-      rating: 4.8,
-      reviews: 2156
-    },
-    quantity: 1
-  }
-];
+// Cart data now comes from Supabase database
 
 // GET endpoint untuk mengambil semua cart items
 export async function GET(request: NextRequest) {
   try {
+    // Get user ID from request headers or query params
+    const userId = request.headers.get('user-id') || request.nextUrl.searchParams.get('user_id');
+    
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: 'User ID is required' },
+        { status: 401 }
+      );
+    }
+    
+    const { data, error } = await supabase
+      .from('cart_items')
+      .select(`
+        id,
+        quantity,
+        products (
+          id,
+          name,
+          price,
+          description,
+          image,
+          category,
+          stock,
+          rating,
+          reviews_count
+        )
+      `)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to fetch cart items' },
+        { status: 500 }
+      );
+    }
+
+    // Transform data to match expected format
+    const transformedData = data?.map(item => ({
+      id: item.id,
+      product: {
+        id: (item.products as any)?.id,
+        name: (item.products as any)?.name,
+        price: (item.products as any)?.price,
+        description: (item.products as any)?.description,
+        image: (item.products as any)?.image,
+        category: (item.products as any)?.category,
+        stock: (item.products as any)?.stock,
+        rating: (item.products as any)?.rating,
+        reviews: (item.products as any)?.reviews_count
+      },
+      quantity: item.quantity
+    })) || [];
+
     return NextResponse.json({
       success: true,
-      data: cartItems,
+      data: transformedData,
       message: 'Cart items retrieved successfully'
     });
   } catch (error) {
@@ -82,36 +105,98 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cek apakah item sudah ada di cart
-    const existingItem = cartItems.find(item => item.product.id === productId);
+    // Get user ID from request headers or query params
+    const userId = request.headers.get('user-id') || request.nextUrl.searchParams.get('user_id');
     
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: 'User ID is required' },
+        { status: 401 }
+      );
+    }
+
+    // Cek apakah item sudah ada di cart
+    const { data: existingItem } = await supabase
+      .from('cart_items')
+      .select('id, quantity')
+      .eq('user_id', userId)
+      .eq('product_id', productId)
+      .single();
+
     if (existingItem) {
       // Update quantity jika item sudah ada
-      existingItem.quantity += quantity;
+      const { data, error } = await supabase
+        .from('cart_items')
+        .update({ quantity: existingItem.quantity + quantity })
+        .eq('id', existingItem.id)
+        .select();
+
+      if (error) {
+        console.error('Update cart error:', error);
+        return NextResponse.json(
+          { success: false, message: 'Failed to update cart item' },
+          { status: 500 }
+        );
+      }
     } else {
       // Tambah item baru ke cart
-      // In a real app, you would fetch product data from product API
-      const newItem: CartItem = {
-        id: cartItems.length + 1,
-        product: {
-          id: productId,
-          name: `Product ${productId}`,
-          price: 1000000,
-          description: `Description for product ${productId}`,
-          image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500",
-          category: "Other",
-          stock: 10,
-          rating: 4.0,
-          reviews: 0
-        },
-        quantity: quantity
-      };
-      cartItems.push(newItem);
+      const { data, error } = await supabase
+        .from('cart_items')
+        .insert({
+          user_id: userId,
+          product_id: productId,
+          quantity: quantity
+        })
+        .select();
+
+      if (error) {
+        console.error('Insert cart error:', error);
+        return NextResponse.json(
+          { success: false, message: 'Failed to add item to cart' },
+          { status: 500 }
+        );
+      }
     }
+
+    // Return updated cart items
+    const { data: cartData } = await supabase
+      .from('cart_items')
+      .select(`
+        id,
+        quantity,
+        products (
+          id,
+          name,
+          price,
+          description,
+          image,
+          category,
+          stock,
+          rating,
+          reviews_count
+        )
+      `)
+      .eq('user_id', userId);
+
+    const transformedData = cartData?.map(item => ({
+      id: item.id,
+      product: {
+        id: (item.products as any)?.id,
+        name: (item.products as any)?.name,
+        price: (item.products as any)?.price,
+        description: (item.products as any)?.description,
+        image: (item.products as any)?.image,
+        category: (item.products as any)?.category,
+        stock: (item.products as any)?.stock,
+        rating: (item.products as any)?.rating,
+        reviews: (item.products as any)?.reviews_count
+      },
+      quantity: item.quantity
+    })) || [];
 
     return NextResponse.json({
       success: true,
-      data: cartItems,
+      data: transformedData,
       message: 'Item added to cart successfully'
     });
 
@@ -138,26 +223,38 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const itemIndex = cartItems.findIndex(item => item.id === itemId);
-    
-    if (itemIndex === -1) {
-      return NextResponse.json(
-        { success: false, message: 'Cart item not found' },
-        { status: 404 }
-      );
-    }
-
     if (quantity <= 0) {
       // Remove item if quantity is 0 or negative
-      cartItems.splice(itemIndex, 1);
+      const { error } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Delete cart item error:', error);
+        return NextResponse.json(
+          { success: false, message: 'Failed to remove cart item' },
+          { status: 500 }
+        );
+      }
     } else {
       // Update quantity
-      cartItems[itemIndex].quantity = quantity;
+      const { error } = await supabase
+        .from('cart_items')
+        .update({ quantity })
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Update cart item error:', error);
+        return NextResponse.json(
+          { success: false, message: 'Failed to update cart item' },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({
       success: true,
-      data: cartItems,
       message: 'Cart updated successfully'
     });
 
@@ -183,20 +280,21 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const itemIndex = cartItems.findIndex(item => item.id === parseInt(itemId));
-    
-    if (itemIndex === -1) {
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('id', itemId);
+
+    if (error) {
+      console.error('Delete cart item error:', error);
       return NextResponse.json(
-        { success: false, message: 'Cart item not found' },
-        { status: 404 }
+        { success: false, message: 'Failed to remove cart item' },
+        { status: 500 }
       );
     }
 
-    const deletedItem = cartItems.splice(itemIndex, 1)[0];
-
     return NextResponse.json({
       success: true,
-      data: cartItems,
       message: 'Item removed from cart successfully'
     });
 

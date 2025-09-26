@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Product } from '../../lib/api'
 
 // Cart item interface
 interface CartItem {
@@ -25,15 +24,47 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
-  // Fetch cart items on component mount
+  // Check login status
   useEffect(() => {
-    fetchCartItems()
+    checkLoginStatus()
   }, [])
 
-  const fetchCartItems = async () => {
+  // Fetch cart items when user is logged in
+  useEffect(() => {
+    if (isLoggedIn && user?.id) {
+      fetchCartItems()
+    } else {
+      setCartItems([])
+      setInitialLoading(false)
+    }
+  }, [isLoggedIn, user])
+
+  const checkLoginStatus = () => {
     try {
-      const response = await fetch('/api/cart')
+      const userData = localStorage.getItem('user')
+      if (userData) {
+        const parsedUser = JSON.parse(userData)
+        setUser(parsedUser)
+        setIsLoggedIn(true)
+      } else {
+        setIsLoggedIn(false)
+        setUser(null)
+      }
+    } catch (error) {
+      console.error('Error checking login status:', error)
+      setIsLoggedIn(false)
+      setUser(null)
+    }
+  }
+
+  const fetchCartItems = async () => {
+    if (!user?.id) return
+    
+    try {
+      const response = await fetch(`/api/cart?user_id=${user.id}`)
       const data = await response.json()
       
       if (data.success) {
@@ -71,7 +102,8 @@ export default function CartPage() {
       
       const data = await response.json()
       if (data.success) {
-        setCartItems(data.data)
+        // Refresh cart items after update
+        fetchCartItems()
       }
     } catch (error) {
       console.error('Error updating quantity:', error)
@@ -86,7 +118,8 @@ export default function CartPage() {
       
       const data = await response.json()
       if (data.success) {
-        setCartItems(data.data)
+        // Refresh cart items after deletion
+        fetchCartItems()
       }
     } catch (error) {
       console.error('Error removing item:', error)
@@ -94,6 +127,7 @@ export default function CartPage() {
   }
 
   const calculateSubtotal = () => {
+    if (!cartItems || cartItems.length === 0) return 0
     return cartItems.reduce((total, item) => total + (item.product.price * item.quantity), 0)
   }
 
@@ -124,7 +158,53 @@ export default function CartPage() {
     )
   }
 
-  if (cartItems.length === 0) {
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
+        <div className="container mx-auto px-4 py-8">
+          {/* Back to Home Button */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors mb-8"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span className="font-medium">Back to Home</span>
+          </Link>
+
+          {/* Login Required */}
+          <div className="text-center py-16">
+            <div className="mx-auto h-24 w-24 bg-orange-100 rounded-full flex items-center justify-center mb-6">
+              <svg className="h-12 w-12 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-4">Login Required</h2>
+            <p className="text-slate-600 mb-8 max-w-md mx-auto">
+              You need to be logged in to view your cart. Please login to continue shopping.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Link
+                href="/Login"
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Login
+              </Link>
+              <Link
+                href="/Register"
+                className="px-6 py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                Register
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!cartItems || cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
         <div className="container mx-auto px-4 py-8">
@@ -147,7 +227,7 @@ export default function CartPage() {
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-slate-800 mb-4">Your cart is empty</h1>
-            <p className="text-slate-600 mb-8">Looks like you haven't added any items to your cart yet.</p>
+            <p className="text-slate-600 mb-8">Looks like you haven&apos;t added any items to your cart yet.</p>
             <Link
               href="/"
               className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
