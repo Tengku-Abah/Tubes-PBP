@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
 
 // Interface untuk pesanan
 interface Order {
@@ -28,145 +29,7 @@ interface Order {
   notes?: string;
 }
 
-// Dummy data pesanan
-let orders: Order[] = [
-  {
-    id: 1,
-    customerName: 'John Doe',
-    customerEmail: 'john@example.com',
-    customerPhone: '081234567890',
-    items: [
-      {
-        productId: 1,
-        productName: 'iPhone 15 Pro',
-        quantity: 1,
-        price: 15999000
-      },
-      {
-        productId: 5,
-        productName: 'AirPods Pro 2',
-        quantity: 1,
-        price: 3999000
-      }
-    ],
-    totalAmount: 19999000,
-    status: 'delivered',
-    shippingAddress: {
-      street: 'Jl. Sudirman No. 123',
-      city: 'Jakarta',
-      postalCode: '12190',
-      province: 'DKI Jakarta'
-    },
-    paymentMethod: 'credit_card',
-    paymentStatus: 'paid',
-    orderDate: '2024-01-15T10:30:00Z',
-    shippingDate: '2024-01-16T09:00:00Z',
-    deliveryDate: '2024-01-18T14:30:00Z',
-    notes: 'Please deliver after 2 PM'
-  },
-  {
-    id: 2,
-    customerName: 'Jane Smith',
-    customerEmail: 'jane@example.com',
-    customerPhone: '081234567891',
-    items: [
-      {
-        productId: 3,
-        productName: 'MacBook Pro M3',
-        quantity: 1,
-        price: 24999000
-      }
-    ],
-    totalAmount: 24999000,
-    status: 'shipped',
-    shippingAddress: {
-      street: 'Jl. Thamrin No. 456',
-      city: 'Jakarta',
-      postalCode: '10350',
-      province: 'DKI Jakarta'
-    },
-    paymentMethod: 'bank_transfer',
-    paymentStatus: 'paid',
-    orderDate: '2024-01-14T15:45:00Z',
-    shippingDate: '2024-01-17T08:00:00Z'
-  },
-  {
-    id: 3,
-    customerName: 'Bob Johnson',
-    customerEmail: 'bob@example.com',
-    customerPhone: '081234567892',
-    items: [
-      {
-        productId: 2,
-        productName: 'Samsung Galaxy S24 Ultra',
-        quantity: 2,
-        price: 18999000
-      }
-    ],
-    totalAmount: 37998000,
-    status: 'processing',
-    shippingAddress: {
-      street: 'Jl. Gatot Subroto No. 789',
-      city: 'Bandung',
-      postalCode: '40112',
-      province: 'Jawa Barat'
-    },
-    paymentMethod: 'cash_on_delivery',
-    paymentStatus: 'pending',
-    orderDate: '2024-01-13T11:20:00Z'
-  },
-  {
-    id: 4,
-    customerName: 'Alice Brown',
-    customerEmail: 'alice@example.com',
-    customerPhone: '081234567893',
-    items: [
-      {
-        productId: 6,
-        productName: 'Sony WH-1000XM5',
-        quantity: 1,
-        price: 4999000
-      }
-    ],
-    totalAmount: 4999000,
-    status: 'pending',
-    shippingAddress: {
-      street: 'Jl. Malioboro No. 321',
-      city: 'Yogyakarta',
-      postalCode: '55111',
-      province: 'DI Yogyakarta'
-    },
-    paymentMethod: 'credit_card',
-    paymentStatus: 'pending',
-    orderDate: '2024-01-12T16:15:00Z'
-  },
-  {
-    id: 5,
-    customerName: 'Charlie Wilson',
-    customerEmail: 'charlie@example.com',
-    customerPhone: '081234567894',
-    items: [
-      {
-        productId: 7,
-        productName: 'iPad Pro 12.9',
-        quantity: 1,
-        price: 17999000
-      }
-    ],
-    totalAmount: 17999000,
-    status: 'cancelled',
-    shippingAddress: {
-      street: 'Jl. Diponegoro No. 654',
-      city: 'Surabaya',
-      postalCode: '60241',
-      province: 'Jawa Timur'
-    },
-    paymentMethod: 'bank_transfer',
-    paymentStatus: 'refunded',
-    orderDate: '2024-01-11T09:30:00Z',
-    notes: 'Customer requested cancellation'
-  }
-];
+// Data sekarang diambil dari database Supabase, bukan dummy data
 
 // GET endpoint untuk mengambil semua pesanan
 export async function GET(request: NextRequest) {
@@ -177,27 +40,74 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    let filteredOrders = [...orders];
+    console.log('Fetching orders from database...');
+
+    // Query builder untuk mengambil data dari database
+    let query = supabase
+      .from('orders')
+      .select(`
+        id,
+        user_id,
+        order_number,
+        total_amount,
+        status,
+        shipping_address,
+        payment_method,
+        created_at,
+        updated_at,
+        users(name, email)
+      `)
+      .order('created_at', { ascending: false });
 
     // Filter berdasarkan status
     if (status) {
-      filteredOrders = filteredOrders.filter(order => order.status === status);
+      query = query.eq('status', status);
     }
 
     // Filter berdasarkan email customer
     if (customerEmail) {
-      filteredOrders = filteredOrders.filter(order => 
-        order.customerEmail.toLowerCase().includes(customerEmail.toLowerCase())
+      query = query.ilike('users.email', `%${customerEmail}%`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { success: false, message: `Database error: ${error.message}` },
+        { status: 500 }
       );
     }
 
-    // Sort berdasarkan tanggal terbaru
-    filteredOrders.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
+    // Transform data dari database ke format yang diharapkan frontend
+    const transformedOrders = data?.map(order => ({
+      id: order.id,
+      customerName: (order.users as any)?.name || 'Unknown',
+      customerEmail: (order.users as any)?.email || '',
+      customerPhone: '', // Phone tidak tersedia di tabel users
+      items: [], // TODO: Implement order items relationship
+      totalAmount: order.total_amount,
+      status: order.status,
+      shippingAddress: {
+        street: order.shipping_address || '',
+        city: '',
+        postalCode: '',
+        province: ''
+      },
+      paymentMethod: order.payment_method,
+      paymentStatus: 'pending', // TODO: Add payment_status field
+      orderDate: order.created_at,
+      shippingDate: null,
+      deliveryDate: null,
+      notes: null
+    })) || [];
 
     // Pagination
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
-    const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+    const paginatedOrders = transformedOrders.slice(startIndex, endIndex);
+
+    console.log(`Retrieved ${transformedOrders.length} orders from database`);
 
     return NextResponse.json({
       success: true,
@@ -205,10 +115,10 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        total: filteredOrders.length,
-        totalPages: Math.ceil(filteredOrders.length / limit)
+        total: transformedOrders.length,
+        totalPages: Math.ceil(transformedOrders.length / limit)
       },
-      message: 'Orders retrieved successfully'
+      message: 'Orders retrieved successfully from database'
     });
 
   } catch (error) {
@@ -252,23 +162,28 @@ export async function POST(request: NextRequest) {
     // Hitung total amount
     const totalAmount = items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
-    // Buat pesanan baru
-    const newOrder: Order = {
-      id: orders.length + 1,
-      customerName,
-      customerEmail,
-      customerPhone,
-      items,
-      totalAmount,
-      status: 'pending',
-      shippingAddress,
-      paymentMethod: paymentMethod || 'cash_on_delivery',
-      paymentStatus: 'pending',
-      orderDate: new Date().toISOString(),
-      notes
-    };
+    // Buat pesanan baru di database
+    const { data: newOrder, error } = await supabase
+      .from('orders')
+      .insert({
+        user_id: 'a4bc7b55-bee9-4f13-8486-9cb8bb92be29', // TODO: Get from auth
+        order_number: `ORD-${Date.now()}`,
+        total_amount: totalAmount,
+        status: 'pending',
+        shipping_address: `${shippingAddress.street}, ${shippingAddress.city}`,
+        payment_method: paymentMethod || 'cash_on_delivery',
+        notes: notes
+      })
+      .select()
+      .single();
 
-    orders.push(newOrder);
+    if (error) {
+      console.error('Database insert error:', error);
+      return NextResponse.json(
+        { success: false, message: `Database error: ${error.message}` },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -299,29 +214,81 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const orderIndex = orders.findIndex(order => order.id === parseInt(id));
-    
-    if (orderIndex === -1) {
+    console.log('Updating order in database:', { id, status, paymentStatus });
+
+    // Update data di database
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (status) updateData.status = status;
+    if (paymentStatus) updateData.payment_status = paymentStatus;
+    if (shippingDate) updateData.shipping_date = shippingDate;
+    if (deliveryDate) updateData.delivery_date = deliveryDate;
+    if (notes !== undefined) updateData.notes = notes;
+
+    const { data, error } = await supabase
+      .from('orders')
+      .update(updateData)
+      .eq('id', id)
+      .select(`
+        id,
+        user_id,
+        order_number,
+        total_amount,
+        status,
+        shipping_address,
+        payment_method,
+        created_at,
+        updated_at,
+        users(name, email)
+      `)
+      .single();
+
+    if (error) {
+      console.error('Database update error:', error);
+      return NextResponse.json(
+        { success: false, message: `Database error: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
+    if (!data) {
       return NextResponse.json(
         { success: false, message: 'Order not found' },
         { status: 404 }
       );
     }
 
-    // Update pesanan
-    orders[orderIndex] = {
-      ...orders[orderIndex],
-      ...(status && { status }),
-      ...(paymentStatus && { paymentStatus }),
-      ...(shippingDate && { shippingDate }),
-      ...(deliveryDate && { deliveryDate }),
-      ...(notes !== undefined && { notes })
+    // Transform data untuk response
+    const transformedOrder = {
+      id: data.id,
+      customerName: (data.users as any)?.name || 'Unknown',
+      customerEmail: (data.users as any)?.email || '',
+      customerPhone: (data.users as any)?.phone || '',
+      items: [], // TODO: Implement order items relationship
+      totalAmount: data.total_amount,
+      status: data.status,
+      shippingAddress: {
+        street: data.shipping_address || '',
+        city: '',
+        postalCode: '',
+        province: ''
+      },
+      paymentMethod: data.payment_method,
+      paymentStatus: 'pending', // TODO: Add payment_status field
+      orderDate: data.created_at,
+      shippingDate: null,
+      deliveryDate: null,
+      notes: null
     };
+
+    console.log('Order updated successfully in database');
 
     return NextResponse.json({
       success: true,
-      data: orders[orderIndex],
-      message: 'Order updated successfully'
+      data: transformedOrder,
+      message: 'Order updated successfully in database'
     });
 
   } catch (error) {
@@ -346,21 +313,37 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const orderIndex = orders.findIndex(order => order.id === parseInt(id));
-    
-    if (orderIndex === -1) {
+    console.log('Deleting order from database:', id);
+
+    // Hapus dari database
+    const { data, error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Database delete error:', error);
+      return NextResponse.json(
+        { success: false, message: `Database error: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
+    if (!data) {
       return NextResponse.json(
         { success: false, message: 'Order not found' },
         { status: 404 }
       );
     }
 
-    const deletedOrder = orders.splice(orderIndex, 1)[0];
+    console.log('Order deleted successfully from database');
 
     return NextResponse.json({
       success: true,
-      data: deletedOrder,
-      message: 'Order deleted successfully'
+      data: data,
+      message: 'Order deleted successfully from database'
     });
 
   } catch (error) {

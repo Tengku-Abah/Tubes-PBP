@@ -115,7 +115,7 @@ export default function HomePage() {
   }
 
   const checkLoginStatus = (forceCartUpdate = false) => {
-    const userData = localStorage.getItem('user')
+    const userData = sessionStorage.getItem('user')
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData)
@@ -236,7 +236,8 @@ export default function HomePage() {
                   )}
                   <button
                     onClick={() => {
-                      localStorage.removeItem('user')
+                      sessionStorage.clear()
+                      document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
                       setIsLoggedIn(false)
                       setUser(null)
                       setCartCount(0)

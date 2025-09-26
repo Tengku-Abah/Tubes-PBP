@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import PopupAlert from '../../components/PopupAlert';
 import { usePopupAlert } from '../../hooks/usePopupAlert';
+import AdminProtection from '../../components/AdminProtection';
 
 // Define types
 interface Product {
@@ -63,6 +64,8 @@ const AdminPanel = () => {
 
   // State untuk orders
   const [orders, setOrders] = useState<Order[]>([]);
+  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
+  
   
   // Popup Alert
   const { alertState, showSuccess, showError, showWarning, showConfirm, hideAlert } = usePopupAlert();
@@ -77,17 +80,13 @@ const AdminPanel = () => {
     try {
       console.log('Loading products from Supabase...');
       
-      // Try to authenticate as admin first
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: 'admin@gmail.com',
-        password: 'Admin08'
-      });
-
-      if (authError) {
-        console.error('Auth error:', authError);
-        // Continue without auth for now
+      // Check if user is already authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('No authenticated user, loading products without auth');
       } else {
-        console.log('Authenticated as admin:', authData);
+        console.log('User authenticated:', user.email);
       }
 
       const { data, error } = await supabase
@@ -199,17 +198,13 @@ const AdminPanel = () => {
     if (!validateForm()) return;
     
     try {
-      // Try to authenticate as admin first
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: 'admin@gmail.com',
-        password: 'Admin08'
-      });
-
-      if (authError) {
-        console.error('Auth error:', authError);
-        // Continue without auth for now
+      // Check if user is already authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('No authenticated user, proceeding without auth');
       } else {
-        console.log('Authenticated as admin:', authData);
+        console.log('User authenticated:', user.email);
       }
 
       const { data, error } = await supabase
@@ -258,17 +253,13 @@ const AdminPanel = () => {
         description: productForm.description.trim() || ''
       });
 
-      // Try to authenticate as admin first
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: 'admin@gmail.com',
-        password: 'Admin08'
-      });
-
-      if (authError) {
-        console.error('Auth error:', authError);
-        // Continue without auth for now
+      // Check if user is already authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('No authenticated user, proceeding without auth');
       } else {
-        console.log('Authenticated as admin:', authData);
+        console.log('User authenticated:', user.email);
       }
 
       const { data, error } = await supabase
@@ -347,6 +338,9 @@ const AdminPanel = () => {
 
   const handleUpdateOrderStatus = async (orderId: number, newStatus: string) => {
     try {
+      setUpdatingStatus(orderId);
+      console.log('Updating order status:', { orderId, newStatus });
+      
       const response = await fetch('/api/orders', {
         method: 'PUT',
         headers: {
@@ -358,14 +352,21 @@ const AdminPanel = () => {
         }),
       });
 
+      console.log('API response status:', response.status);
       const result = await response.json();
+      console.log('API response data:', result);
 
       if (result.success) {
-        setOrders(orders.map(order => 
-          order.id === orderId 
-            ? { ...order, status: newStatus }
-            : order
-        ));
+        // Update state dengan data terbaru dari server
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === orderId 
+              ? { ...order, status: newStatus }
+              : order
+          )
+        );
+        // Reload data untuk memastikan sinkronisasi
+        await loadOrders();
         showSuccess('Status order berhasil diupdate');
       } else {
         console.error('Error updating order status:', result.message);
@@ -373,7 +374,9 @@ const AdminPanel = () => {
       }
     } catch (error) {
       console.error('Error updating order status:', error);
-      showError('Gagal mengupdate status order');
+      showError('Gagal mengupdate status order: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -684,6 +687,7 @@ const AdminPanel = () => {
                     <select
                       value={order.status}
                       onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                      disabled={updatingStatus === order.id}
                       className={`px-3 py-1 rounded-full text-xs font-medium border-0 ${
                         order.status === 'completed' ? 'bg-green-100 text-green-800' :
                         order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
@@ -691,7 +695,7 @@ const AdminPanel = () => {
                         order.status === 'delivered' ? 'bg-green-100 text-green-800' :
                         order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
                         'bg-yellow-100 text-yellow-800'
-                      }`}
+                      } ${updatingStatus === order.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <option value="pending">Pending</option>
                       <option value="processing">Processing</option>
@@ -719,8 +723,10 @@ const AdminPanel = () => {
     </div>
   );
 
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <AdminProtection>
+      <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -728,6 +734,20 @@ const AdminPanel = () => {
             <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
             <div className="flex items-center space-x-4">
               <span className="text-gray-600">Selamat datang, Admin</span>
+              <button
+                onClick={() => {
+                  // Clear sessionStorage and cookie
+                  sessionStorage.clear()
+                  document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+                  window.location.href = '/Login'
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
             </div>
           </div>
         </div>
@@ -1044,6 +1064,7 @@ const AdminPanel = () => {
         autoCloseDelay={alertState.autoCloseDelay}
       />
     </div>
+    </AdminProtection>
   );
 };
 

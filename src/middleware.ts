@@ -1,0 +1,42 @@
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Check if accessing admin routes
+  if (pathname.startsWith('/Admin')) {
+    // Get auth token from cookie
+    const authToken = request.cookies.get('auth-token')?.value
+    
+    if (!authToken) {
+      // No auth token, redirect to login
+      return NextResponse.redirect(new URL('/Login', request.url))
+    }
+    
+    try {
+      // Parse user data from cookie
+      const user = JSON.parse(authToken)
+      
+      // Check if user has admin role
+      if (user.role !== 'admin') {
+        // Not admin, redirect to home
+        return NextResponse.redirect(new URL('/', request.url))
+      }
+      
+      // User is admin, allow access
+      return NextResponse.next()
+    } catch (error) {
+      // Invalid cookie, redirect to login
+      return NextResponse.redirect(new URL('/Login', request.url))
+    }
+  }
+
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: [
+    '/Admin/:path*',
+  ]
+}

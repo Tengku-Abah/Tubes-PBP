@@ -13,7 +13,7 @@ const toast = {
 // Simple cookie function
 const Cookies = {
   set: (name: string, value: string, options: any) => {
-    localStorage.setItem(name, value)
+    sessionStorage.setItem(name, value)
   }
 }
 
@@ -55,8 +55,11 @@ export default function LoginPage() {
       if (data.success && data.data) {
         const { user } = data.data
 
-        // Store user data in localStorage
-        localStorage.setItem('user', JSON.stringify(user))
+        // Store user data in sessionStorage
+        sessionStorage.setItem('user', JSON.stringify(user))
+        
+        // Set auth cookie
+        document.cookie = `auth-token=${JSON.stringify(user)}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`
         
         toast.success('Login successful!')
         

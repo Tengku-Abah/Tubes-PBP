@@ -100,11 +100,11 @@ export async function POST(request: NextRequest) {
       console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
       console.log('Supabase Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not set');
 
-      // Cek apakah email sudah ada di database
+      // Cek apakah email sudah ada di database (case-sensitive)
       const { data: existingUser, error: checkError } = await supabase
         .from('users')
         .select('id')
-        .eq('email', email.toLowerCase())
+        .eq('email', email)
         .single();
 
       console.log('Check existing user result:', { existingUser, checkError });
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       // Jika database error, fallback ke dummy data
       if (checkError && checkError.code !== 'PGRST116') {
         console.warn('Database check failed, using dummy data fallback:', checkError);
-        const dummyUser = dummyUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+        const dummyUser = dummyUsers.find(u => u.email === email);
         if (dummyUser) {
           return NextResponse.json(
             { success: false, message: 'Email already registered' },
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
       // Buat user baru untuk database
       const newUserData = {
-        email: email.toLowerCase(),
+        email: email,
         password: hashedPassword,
         name: name,
         role: 'pembeli' // Default role untuk user yang registrasi
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         const newId = Math.max(...dummyUsers.map(u => u.id)) + 1;
         const fallbackUser = {
           id: newId,
-          email: email.toLowerCase(),
+          email: email,
           password: hashedPassword,
           name: name,
           role: 'pembeli', // Default role untuk user yang registrasi
@@ -196,11 +196,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cari user berdasarkan email di database
+    // Cari user berdasarkan email di database (case-sensitive)
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
-      .eq('email', email.toLowerCase())
+      .eq('email', email)
       .single();
     
     let userData = user;
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
     // Jika database error, fallback ke dummy data
     if (userError && userError.code !== 'PGRST116') {
       console.warn('Database login failed, using dummy data fallback:', userError);
-      userData = dummyUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+      userData = dummyUsers.find(u => u.email === email);
     }
     
     if (!userData) {

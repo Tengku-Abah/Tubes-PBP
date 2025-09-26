@@ -13,7 +13,7 @@ const toast = {
 // Simple cookie function
 const Cookies = {
   set: (name: string, value: string, options: any) => {
-    localStorage.setItem(name, value)
+    sessionStorage.setItem(name, value)
   }
 }
 

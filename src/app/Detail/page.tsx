@@ -61,7 +61,7 @@ export default function ProductDetailPage() {
   }, [productId])
 
   const checkLoginStatus = () => {
-    const userData = localStorage.getItem('user')
+    const userData = sessionStorage.getItem('user')
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData)

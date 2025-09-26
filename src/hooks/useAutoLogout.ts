@@ -19,6 +19,9 @@ export const useAutoLogout = (options: UseAutoLogoutOptions = {}) => {
     
     timeoutRef.current = setTimeout(async () => {
       try {
+        // Clear sessionStorage untuk keamanan
+        sessionStorage.clear();
+        
         // Logout dari Supabase
         await supabase.auth.signOut();
         
