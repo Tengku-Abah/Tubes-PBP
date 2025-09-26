@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import LoadingSpinner from '../../components/LoadingSpinner'
@@ -30,7 +30,7 @@ interface Review {
 }
 
 
-export default function ProductDetailPage() {
+function ProductDetailPageContent() {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [addingToCart, setAddingToCart] = useState(false)
@@ -655,5 +655,13 @@ export default function ProductDetailPage() {
         autoCloseDelay={alertState.autoCloseDelay}
       />
     </div>
+  )
+}
+
+export default function ProductDetailPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <ProductDetailPageContent />
+    </Suspense>
   )
 }
