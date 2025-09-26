@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import PopupAlert from '../../components/PopupAlert'
+import { usePopupAlert } from '../../hooks/usePopupAlert'
 
 interface Product {
   id: number
@@ -41,16 +43,62 @@ export default function ProductDetailPage() {
     averageRating: 0,
     ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
   })
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [user, setUser] = useState<any>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
   const productId = searchParams.get('id')
+  
+  // Popup Alert
+  const { alertState, showSuccess, showError, showWarning, showConfirm, hideAlert } = usePopupAlert()
 
   useEffect(() => {
     if (productId) {
       fetchProductDetail()
       fetchReviews()
     }
+    checkLoginStatus()
   }, [productId])
+
+  const checkLoginStatus = () => {
+    const userData = localStorage.getItem('user')
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData)
+        setUser(parsedUser)
+        setIsLoggedIn(true)
+      } catch (error) {
+        console.error('Error parsing user data:', error)
+        setIsLoggedIn(false)
+      }
+    } else {
+      setIsLoggedIn(false)
+    }
+  }
+
+  // Listen for storage changes (when user logs in from another tab)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user') {
+        checkLoginStatus()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
+  // Check login status when component becomes visible (user might have logged in)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkLoginStatus()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   const fetchProductDetail = async () => {
     try {
@@ -89,13 +137,46 @@ export default function ProductDetailPage() {
   }
 
   const handleAddToCart = async () => {
+    // Cek apakah user sudah login
+    if (!isLoggedIn) {
+      showConfirm(
+        'Anda harus login terlebih dahulu untuk menambahkan produk ke keranjang. Apakah Anda ingin login sekarang?',
+        'Login Diperlukan',
+        () => {
+          router.push('/Login')
+        },
+        () => {
+          // User memilih tidak login
+        },
+        'Login',
+        'Nanti'
+      )
+      return
+    }
+
     setAddingToCart(true)
     try {
-      // Simulate adding to cart
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      alert('Produk berhasil ditambahkan ke keranjang!')
+      const response = await fetch('/api/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId: product?.id,
+          quantity: quantity
+        }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        showSuccess('Produk berhasil ditambahkan ke keranjang!')
+      } else {
+        showError(data.message || 'Gagal menambahkan ke keranjang')
+      }
     } catch (error) {
-      alert('Gagal menambahkan ke keranjang')
+      console.error('Error adding to cart:', error)
+      showError('Gagal menambahkan ke keranjang')
     } finally {
       setAddingToCart(false)
     }
@@ -312,6 +393,32 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
 
+                {/* Login Status Indicator */}
+                {!isLoggedIn && (
+                  <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className="text-yellow-600">⚠️</div>
+                      <div>
+                        <p className="text-yellow-800 font-medium">Login Diperlukan</p>
+                        <p className="text-yellow-700 text-sm">Anda harus login untuk menambahkan produk ke keranjang</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* User Info */}
+                {isLoggedIn && user && (
+                  <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className="text-green-600">✅</div>
+                      <div>
+                        <p className="text-green-800 font-medium">Selamat datang, {user.name}!</p>
+                        <p className="text-green-700 text-sm">Anda dapat menambahkan produk ke keranjang</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Action Buttons dengan desain yang lebih menarik */}
                 <div className="flex gap-4 mb-8">
                   <button
@@ -319,11 +426,16 @@ export default function ProductDetailPage() {
                     disabled={addingToCart || product.stock === 0}
                     className={`flex-1 py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 transform ${
                       product.stock > 0
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1'
+                        ? isLoggedIn
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1'
+                          : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   >
-                    {addingToCart ? 'Menambahkan...' : (product.stock > 0 ? '🛒 Tambah ke Keranjang' : 'Stok Habis')}
+                    {addingToCart ? 'Menambahkan...' : 
+                     product.stock > 0 ? 
+                       (isLoggedIn ? '🛒 Tambah ke Keranjang' : '🔐 Login untuk Menambah ke Keranjang') : 
+                       'Stok Habis'}
                   </button>
                   
                   <button className="px-6 py-4 border-2 border-blue-600 text-blue-600 rounded-2xl font-semibold hover:bg-blue-50 transition-all duration-300 hover:scale-105">
@@ -524,6 +636,23 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+      
+      {/* Popup Alert */}
+      <PopupAlert
+        isOpen={alertState.isOpen}
+        onClose={hideAlert}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+        showConfirmButton={alertState.showConfirmButton}
+        confirmText={alertState.confirmText}
+        onConfirm={alertState.onConfirm}
+        showCancelButton={alertState.showCancelButton}
+        cancelText={alertState.cancelText}
+        onCancel={alertState.onCancel}
+        autoClose={alertState.autoClose}
+        autoCloseDelay={alertState.autoCloseDelay}
+      />
     </div>
   )
 }

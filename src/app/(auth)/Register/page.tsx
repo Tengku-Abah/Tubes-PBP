@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { userAPI } from '../../../lib/api'
 
 // Simple toast function since react-hot-toast might not be installed
 const toast = {

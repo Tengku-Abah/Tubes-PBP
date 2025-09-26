@@ -1,35 +1,141 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { productAPI, Product } from '../lib/api'
+import { supabase } from '../lib/supabase'
 import ProductCard from '../components/cardproduk'
 import LoadingSpinner from '../components/LoadingSpinner'
 import Link from 'next/link'
+
+interface Product {
+  id: number
+  name: string
+  price: number
+  description: string
+  image: string
+  category: string
+  stock: number
+  rating: number
+  reviews_count: number
+  created_at: string
+  updated_at: string
+}
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [cartCount, setCartCount] = useState(0)
 
   useEffect(() => {
     fetchProducts()
+    checkLoginStatus()
+    fetchCartCount()
+  }, [])
+
+  // Refetch products when search term changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchProducts()
+    }, 500) // Debounce search
+
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm])
+
+  // Listen for storage changes (when user logs in from another tab)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user') {
+        checkLoginStatus()
+        fetchCartCount()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
+  // Check login status when component becomes visible (user might have logged in)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkLoginStatus()
+        fetchCartCount()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
   const fetchProducts = async () => {
     try {
       setLoading(true)
-      const response = await productAPI.getAll({ search: searchTerm })
+      console.log('Fetching products from Supabase...')
       
-      if (response.success && response.data) {
-        setProducts(response.data)
-      } else {
+      let query = supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      // Add search filter if searchTerm exists
+      if (searchTerm.trim()) {
+        query = query.or(`name.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error fetching products:', error)
         setProducts([])
+      } else {
+        console.log('Products loaded:', data?.length || 0, 'products')
+        setProducts(data || [])
       }
     } catch (error) {
       console.error('Error fetching products:', error)
       setProducts([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const checkLoginStatus = () => {
+    const userData = localStorage.getItem('user')
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData)
+        setUser(parsedUser)
+        setIsLoggedIn(true)
+      } catch (error) {
+        console.error('Error parsing user data:', error)
+        setIsLoggedIn(false)
+      }
+    } else {
+      setIsLoggedIn(false)
+    }
+  }
+
+  const fetchCartCount = async () => {
+    if (!isLoggedIn) {
+      setCartCount(0)
+      return
+    }
+
+    try {
+      const response = await fetch('/api/cart')
+      const data = await response.json()
+      
+      if (data.success && data.data) {
+        const totalItems = data.data.reduce((sum: number, item: any) => sum + item.quantity, 0)
+        setCartCount(totalItems)
+      } else {
+        setCartCount(0)
+      }
+    } catch (error) {
+      console.error('Error fetching cart count:', error)
+      setCartCount(0)
     }
   }
 
@@ -46,9 +152,17 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-800 mb-4">
-            Welcome to UMKM Store
-          </h1>
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-3xl font-bold text-slate-800">
+              Welcome to UMKM Store
+            </h1>
+            {isLoggedIn && user && (
+              <div className="text-right">
+                <p className="text-slate-600">Selamat datang, <span className="font-semibold text-blue-600">{user.name}</span>!</p>
+                <p className="text-sm text-slate-500">{user.role === 'admin' ? 'Admin' : 'Customer'}</p>
+              </div>
+            )}
+          </div>
           
           {/* Search and Action Buttons Row */}
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
@@ -79,18 +193,48 @@ export default function HomePage() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
                 </svg>
-                Cart (0)
+                Cart ({cartCount})
               </Link>
               
-              <Link
-                href="/Login"
-                className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Login
-              </Link>
+              {isLoggedIn ? (
+                <div className="flex gap-3">
+                  {user?.role === 'admin' && (
+                    <Link
+                      href="/Admin"
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-md"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Admin Panel
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('user')
+                      setIsLoggedIn(false)
+                      setUser(null)
+                      setCartCount(0)
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/Login"
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Login
+                </Link>
+              )}
             </div>
           </div>
         </div>

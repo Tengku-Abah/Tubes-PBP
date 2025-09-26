@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { userAPI } from '../../../lib/api'
 
 // Simple toast function since react-hot-toast might not be installed
 const toast = {
@@ -39,13 +38,25 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const response = await userAPI.login(formData.email, formData.password)
-      
-      if (response.success && response.data) {
-        const { token, user } = response.data
+      const response = await fetch('/api/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          action: 'login'
+        }),
+      })
 
-        // Store token in localStorage
-        Cookies.set('token', token, { expires: 7 })
+      const data = await response.json()
+      
+      if (data.success && data.data) {
+        const { user } = data.data
+
+        // Store user data in localStorage
+        localStorage.setItem('user', JSON.stringify(user))
         
         toast.success('Login successful!')
         
@@ -56,9 +67,10 @@ export default function LoginPage() {
           router.push('/')
         }
       } else {
-        toast.error('Login failed')
+        toast.error(data.message || 'Login failed')
       }
     } catch (error: any) {
+      console.error('Login error:', error)
       toast.error('Login failed')
     } finally {
       setLoading(false)

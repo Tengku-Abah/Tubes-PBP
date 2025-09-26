@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 const BUCKET_NAME = 'product-images'
 
 // Allowed file types
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png']
 
 // Maximum file size (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024
