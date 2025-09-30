@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
 
     // Filter berdasarkan productId jika ada
     if (productId) {
-      filteredReviews = filteredReviews.filter(review => 
+      filteredReviews = filteredReviews.filter(review =>
         review.productId === parseInt(productId)
       );
     }
@@ -198,8 +198,8 @@ export async function GET(request: NextRequest) {
     });
 
     const totalReviews = filteredReviews.length;
-    const averageRating = totalReviews > 0 
-      ? filteredReviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews 
+    const averageRating = totalReviews > 0
+      ? filteredReviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
       : 0;
 
     return NextResponse.json({

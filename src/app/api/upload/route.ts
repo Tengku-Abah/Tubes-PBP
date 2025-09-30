@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+// Create Supabase client with service role key for server-side operations
+const supabaseUrl = 'https://ieuvqzaywgsifrfgagld.supabase.co'
+const supabaseServiceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlldXZxemF5d2dzaWZyZmdhZ2xkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODg2ODY3NSwiZXhwIjoyMDc0NDQ0Njc1fQ.Gni2eIu7uojWhtFNU6osyAqivSbcb5fGwaDAhoK1yLs'
+
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
 // Storage bucket name
 const BUCKET_NAME = 'product-images'
 
 // Allowed file types
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png']
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
 
 // Maximum file size (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024

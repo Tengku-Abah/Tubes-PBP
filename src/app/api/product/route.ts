@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+
     // Jika ada parameter id, kembalikan detail produk
     if (id) {
       const { data, error } = await supabase

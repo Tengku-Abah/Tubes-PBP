@@ -25,14 +25,14 @@ export async function GET(request: NextRequest) {
   try {
     // Get user ID from request headers or query params
     const userId = request.headers.get('user-id') || request.nextUrl.searchParams.get('user_id');
-    
+
     if (!userId) {
       return NextResponse.json(
         { success: false, message: 'User ID is required' },
         { status: 401 }
       );
     }
-    
+
     const { data, error } = await supabase
       .from('cart_items')
       .select(`
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     // Get user ID from request headers or query params
     const userId = request.headers.get('user-id') || request.nextUrl.searchParams.get('user_id');
-    
+
     if (!userId) {
       return NextResponse.json(
         { success: false, message: 'User ID is required' },

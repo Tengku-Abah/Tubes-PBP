@@ -65,8 +65,8 @@ const AdminPanel = () => {
   // State untuk orders
   const [orders, setOrders] = useState<Order[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
-  
-  
+
+
   // Popup Alert
   const { alertState, showSuccess, showError, showWarning, showConfirm, hideAlert } = usePopupAlert();
 
@@ -79,14 +79,19 @@ const AdminPanel = () => {
   const loadProducts = async () => {
     try {
       console.log('Loading products from Supabase...');
-      
-      // Check if user is already authenticated
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('No authenticated user, loading products without auth');
+
+      // Authenticate as admin first
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: 'admin@gmail.com',
+        password: 'Admin08'
+      });
+
+      if (authError) {
+        console.error('Auth error:', authError);
+        showError('Authentication failed. Please try again.');
+        return;
       } else {
-        console.log('User authenticated:', user.email);
+        console.log('Authenticated as admin:', authData.user?.email);
       }
 
       const { data, error } = await supabase
@@ -162,7 +167,7 @@ const AdminPanel = () => {
     const totalOrders = orders.length;
     const totalRevenue = orders.filter(order => order.status === 'completed').reduce((sum, order) => sum + order.total, 0);
     const lowStockProducts = products.filter(product => product.stock <= 10).length;
-    
+
     return { totalProducts, totalStock, totalOrders, totalRevenue, lowStockProducts };
   };
 
@@ -171,7 +176,7 @@ const AdminPanel = () => {
   // Validasi form
   const validateForm = () => {
     console.log('Validating form:', productForm);
-    
+
     if (!productForm.name.trim()) {
       showWarning('Nama produk harus diisi');
       return false;
@@ -188,7 +193,7 @@ const AdminPanel = () => {
       showWarning('Kategori harus dipilih');
       return false;
     }
-    
+
     console.log('Form validation passed');
     return true;
   };
@@ -196,15 +201,20 @@ const AdminPanel = () => {
   // CRUD Functions untuk produk
   const handleAddProduct = async () => {
     if (!validateForm()) return;
-    
+
     try {
-      // Check if user is already authenticated
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('No authenticated user, proceeding without auth');
+      // Authenticate as admin first
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: 'admin@gmail.com',
+        password: 'Admin08'
+      });
+
+      if (authError) {
+        console.error('Auth error:', authError);
+        showError('Authentication failed. Please try again.');
+        return;
       } else {
-        console.log('User authenticated:', user.email);
+        console.log('Authenticated as admin:', authData.user?.email);
       }
 
       const { data, error } = await supabase
@@ -222,7 +232,7 @@ const AdminPanel = () => {
 
       if (error) {
         console.error('Error adding product:', error);
-        showError('Gagal menambahkan produk');
+        showError(`Gagal menambahkan produk: ${error.message}`);
       } else {
         setProducts([data, ...products]);
         resetForm();
@@ -241,7 +251,7 @@ const AdminPanel = () => {
       return;
     }
     if (!validateForm()) return;
-    
+
     try {
       console.log('Updating product with ID:', selectedItem.id);
       console.log('Update data:', {
@@ -253,13 +263,18 @@ const AdminPanel = () => {
         description: productForm.description.trim() || ''
       });
 
-      // Check if user is already authenticated
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('No authenticated user, proceeding without auth');
+      // Authenticate as admin first
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: 'admin@gmail.com',
+        password: 'Admin08'
+      });
+
+      if (authError) {
+        console.error('Auth error:', authError);
+        showError('Authentication failed. Please try again.');
+        return;
       } else {
-        console.log('User authenticated:', user.email);
+        console.log('Authenticated as admin:', authData.user?.email);
       }
 
       const { data, error } = await supabase
@@ -281,7 +296,7 @@ const AdminPanel = () => {
         console.error('Error updating product:', error);
         showError(`Gagal mengupdate produk: ${error.message}`);
       } else if (data && data.length > 0) {
-        setProducts(products.map(product => 
+        setProducts(products.map(product =>
           product.id === selectedItem.id ? data[0] : product
         ));
         resetForm();
@@ -340,7 +355,7 @@ const AdminPanel = () => {
     try {
       setUpdatingStatus(orderId);
       console.log('Updating order status:', { orderId, newStatus });
-      
+
       const response = await fetch('/api/orders', {
         method: 'PUT',
         headers: {
@@ -358,9 +373,9 @@ const AdminPanel = () => {
 
       if (result.success) {
         // Update state dengan data terbaru dari server
-        setOrders(prevOrders => 
-          prevOrders.map(order => 
-            order.id === orderId 
+        setOrders(prevOrders =>
+          prevOrders.map(order =>
+            order.id === orderId
               ? { ...order, status: newStatus }
               : order
           )
@@ -386,7 +401,7 @@ const AdminPanel = () => {
     setShowModal(true);
     setIsDragOver(false);
     setUploadingImage(false);
-    
+
     if (item && 'name' in item) {
       // It's a Product
       console.log('Setting product form for edit:', item);
@@ -434,16 +449,16 @@ const AdminPanel = () => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
-        setProductForm({...productForm, image: data.url});
+        setProductForm({ ...productForm, image: data.url });
         showSuccess('Gambar berhasil diupload!');
       } else {
         showError('Gagal mengupload gambar: ' + data.message);
@@ -553,11 +568,10 @@ const AdminPanel = () => {
                   <p className="font-medium text-gray-800">{order.customerName}</p>
                   <p className="text-sm text-gray-600">{order.date}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                  order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                      'bg-yellow-100 text-yellow-800'
+                  }`}>
                   {order.status}
                 </span>
               </div>
@@ -621,9 +635,8 @@ const AdminPanel = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(product.price)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      product.stock <= 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock <= 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                      }`}>
                       {product.stock}
                     </span>
                   </td>
@@ -656,7 +669,7 @@ const AdminPanel = () => {
   const Orders = () => (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800">Manajemen Order</h2>
-      
+
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -677,7 +690,7 @@ const AdminPanel = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{order.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.customerName}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {order.products.length > 0 
+                    {order.products.length > 0
                       ? order.products.map((p: any) => `${p.productName || p.name} (${p.quantity})`).join(', ')
                       : 'No items'
                     }
@@ -688,14 +701,13 @@ const AdminPanel = () => {
                       value={order.status}
                       onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
                       disabled={updatingStatus === order.id}
-                      className={`px-3 py-1 rounded-full text-xs font-medium border-0 ${
-                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      } ${updatingStatus === order.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border-0 ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                              order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                  'bg-yellow-100 text-yellow-800'
+                        } ${updatingStatus === order.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <option value="pending">Pending</option>
                       <option value="processing">Processing</option>
@@ -727,343 +739,340 @@ const AdminPanel = () => {
   return (
     <AdminProtection>
       <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-600">Selamat datang, Admin</span>
-              <button
-                onClick={() => {
-                  // Clear sessionStorage and cookie
-                  sessionStorage.clear()
-                  document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-                  window.location.href = '/Login'
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Logout
-              </button>
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-600">Selamat datang, Admin</span>
+                <button
+                  onClick={() => {
+                    // Clear sessionStorage and cookie
+                    sessionStorage.clear()
+                    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+                    window.location.href = '/Login'
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Navigation Tabs */}
+          <div className="mb-8">
+            <nav className="flex space-x-8">
+              {[
+                { key: 'dashboard', label: 'Dashboard', icon: TrendingUp },
+                { key: 'products', label: 'Produk', icon: Package },
+                { key: 'orders', label: 'Order', icon: ShoppingCart },
+              ].map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === key
+                      ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                  <Icon className="mr-2" size={18} />
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Content */}
+          <div>
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="text-lg text-gray-600">Loading...</div>
+              </div>
+            ) : (
+              <>
+                {activeTab === 'dashboard' && <Dashboard />}
+                {activeTab === 'products' && <Products />}
+                {activeTab === 'orders' && <Orders />}
+              </>
+            )}
+          </div>
         </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Navigation Tabs */}
-        <div className="mb-8">
-          <nav className="flex space-x-8">
-            {[
-              { key: 'dashboard', label: 'Dashboard', icon: TrendingUp },
-              { key: 'products', label: 'Produk', icon: Package },
-              { key: 'orders', label: 'Order', icon: ShoppingCart },
-            ].map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  activeTab === key
-                    ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Icon className="mr-2" size={18} />
-                {label}
-              </button>
-            ))}
-          </nav>
-        </div>
+        {/* Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">
+                  {modalType === 'add' ? 'Tambah Produk' :
+                    modalType === 'edit' ? 'Edit Produk' : 'Detail Order'}
+                </h3>
+                <button
+                  onClick={() => {
+                    resetForm();
+                    setShowModal(false);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
 
-        {/* Content */}
-        <div>
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="text-lg text-gray-600">Loading...</div>
-            </div>
-          ) : (
-            <>
-              {activeTab === 'dashboard' && <Dashboard />}
-              {activeTab === 'products' && <Products />}
-              {activeTab === 'orders' && <Orders />}
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">
-                {modalType === 'add' ? 'Tambah Produk' : 
-                 modalType === 'edit' ? 'Edit Produk' : 'Detail Order'}
-              </h3>
-              <button 
-                onClick={() => {
-                  resetForm();
-                  setShowModal(false);
-                }} 
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            {(modalType === 'add' || modalType === 'edit') && (
-              <div className="space-y-6">
-                {/* Row 1: Nama Produk dan Harga */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Nama Produk */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nama Produk *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Masukkan nama produk"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={productForm.name}
-                      onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                    />
-                  </div>
-
-                  {/* Harga */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Harga (Rp) *
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="Masukkan harga produk"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={productForm.price}
-                      onChange={(e) => setProductForm({...productForm, price: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                {/* Row 2: Stok dan Kategori */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Stok */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Stok *
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="Masukkan jumlah stok"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={productForm.stock}
-                      onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
-                    />
-                  </div>
-
-                  {/* Kategori */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Kategori *
-                    </label>
-                    <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={productForm.category}
-                      onChange={(e) => setProductForm({...productForm, category: e.target.value})}
-                    >
-                      <option value="">Pilih Kategori</option>
-                      <option value="Electronics">Electronics</option>
-                      <option value="Fashion">Fashion</option>
-                      <option value="Audio">Audio</option>
-                      <option value="Accessories">Accessories</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Row 3: Upload Gambar dan Deskripsi */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Upload Gambar */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Gambar Produk
-                    </label>
-                    
-                    {/* Drag & Drop Area */}
-                    <div
-                      className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-                        isDragOver 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                    >
-                      {productForm.image ? (
-                        <div className="space-y-2">
-                          <img 
-                            src={productForm.image} 
-                            alt="Preview" 
-                            className="mx-auto h-20 w-20 object-cover rounded-lg"
-                          />
-                          <p className="text-xs text-gray-600">Gambar saat ini</p>
-                          <button
-                            type="button"
-                            onClick={() => setProductForm({...productForm, image: ''})}
-                            className="text-red-600 text-xs hover:text-red-800"
-                          >
-                            Hapus Gambar
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="text-3xl text-gray-400">📷</div>
-                          <p className="text-xs text-gray-600">
-                            Drag & drop atau klik untuk memilih
-                          </p>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileSelect}
-                            className="hidden"
-                            id="image-upload"
-                          />
-                          <label
-                            htmlFor="image-upload"
-                            className="inline-block px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 cursor-pointer"
-                          >
-                            {uploadingImage ? 'Mengupload...' : 'Pilih Gambar'}
-                          </label>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* URL Input sebagai alternatif */}
-                    <div className="mt-2">
-                      <label className="block text-xs text-gray-500 mb-1">
-                        Atau masukkan URL gambar:
+              {(modalType === 'add' || modalType === 'edit') && (
+                <div className="space-y-6">
+                  {/* Row 1: Nama Produk dan Harga */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Nama Produk */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nama Produk *
                       </label>
                       <input
-                        type="url"
-                        placeholder="https://example.com/image.jpg"
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                        value={productForm.image}
-                        onChange={(e) => setProductForm({...productForm, image: e.target.value})}
+                        type="text"
+                        placeholder="Masukkan nama produk"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={productForm.name}
+                        onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                      />
+                    </div>
+
+                    {/* Harga */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Harga (Rp) *
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Masukkan harga produk"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={productForm.price}
+                        onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
                       />
                     </div>
                   </div>
 
-                  {/* Deskripsi */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Deskripsi Produk
-                    </label>
-                    <textarea
-                      placeholder="Masukkan deskripsi produk (opsional)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows={4}
-                      value={productForm.description}
-                      onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                    />
-                  </div>
-                </div>
-                {/* Tombol Aksi */}
-                <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-                  <button
-                    onClick={modalType === 'add' ? handleAddProduct : handleEditProduct}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
-                  >
-                    {modalType === 'add' ? 'Tambah' : 'Update'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      resetForm();
-                      setShowModal(false);
-                    }}
-                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md transition-colors"
-                  >
-                    Batal
-                  </button>
-                </div>
-              </div>
-            )}
+                  {/* Row 2: Stok dan Kategori */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Stok */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Stok *
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Masukkan jumlah stok"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={productForm.stock}
+                        onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                      />
+                    </div>
 
-            {modalType === 'view' && selectedItem && 'customerName' in selectedItem && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p><strong>Customer:</strong> {selectedItem.customerName}</p>
-                    <p><strong>Total:</strong> {formatCurrency(selectedItem.total)}</p>
+                    {/* Kategori */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Kategori *
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={productForm.category}
+                        onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                      >
+                        <option value="">Pilih Kategori</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Fashion">Fashion</option>
+                        <option value="Audio">Audio</option>
+                        <option value="Accessories">Accessories</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <p><strong>Status:</strong> 
-                      <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                        selectedItem.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        selectedItem.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                        selectedItem.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                        selectedItem.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                        selectedItem.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {selectedItem.status}
-                      </span>
-                    </p>
-                    <p><strong>Tanggal:</strong> {selectedItem.date}</p>
+
+                  {/* Row 3: Upload Gambar dan Deskripsi */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Upload Gambar */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Gambar Produk
+                      </label>
+
+                      {/* Drag & Drop Area */}
+                      <div
+                        className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${isDragOver
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-300 hover:border-gray-400'
+                          }`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                      >
+                        {productForm.image ? (
+                          <div className="space-y-2">
+                            <img
+                              src={productForm.image}
+                              alt="Preview"
+                              className="mx-auto h-20 w-20 object-cover rounded-lg"
+                            />
+                            <p className="text-xs text-gray-600">Gambar saat ini</p>
+                            <button
+                              type="button"
+                              onClick={() => setProductForm({ ...productForm, image: '' })}
+                              className="text-red-600 text-xs hover:text-red-800"
+                            >
+                              Hapus Gambar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="text-3xl text-gray-400">📷</div>
+                            <p className="text-xs text-gray-600">
+                              Drag & drop atau klik untuk memilih
+                            </p>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileSelect}
+                              className="hidden"
+                              id="image-upload"
+                            />
+                            <label
+                              htmlFor="image-upload"
+                              className="inline-block px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 cursor-pointer"
+                            >
+                              {uploadingImage ? 'Mengupload...' : 'Pilih Gambar'}
+                            </label>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* URL Input sebagai alternatif */}
+                      <div className="mt-2">
+                        <label className="block text-xs text-gray-500 mb-1">
+                          Atau masukkan URL gambar:
+                        </label>
+                        <input
+                          type="url"
+                          placeholder="https://example.com/image.jpg"
+                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                          value={productForm.image}
+                          onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Deskripsi */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Deskripsi Produk
+                      </label>
+                      <textarea
+                        placeholder="Masukkan deskripsi produk (opsional)"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows={4}
+                        value={productForm.description}
+                        onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  {/* Tombol Aksi */}
+                  <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+                    <button
+                      onClick={modalType === 'add' ? handleAddProduct : handleEditProduct}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+                    >
+                      {modalType === 'add' ? 'Tambah' : 'Update'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        resetForm();
+                        setShowModal(false);
+                      }}
+                      className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md transition-colors"
+                    >
+                      Batal
+                    </button>
                   </div>
                 </div>
-                
-                <div>
-                  <strong>Produk:</strong>
-                  {selectedItem.products && selectedItem.products.length > 0 ? (
-                    <ul className="mt-2 space-y-1">
-                      {selectedItem.products.map((product: any, index: number) => (
-                        <li key={index} className="text-sm text-gray-600 flex justify-between">
-                          <span>{product.productName || product.name} x {product.quantity}</span>
-                          <span>{formatCurrency(product.price * product.quantity)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-gray-500">Tidak ada produk dalam order ini</p>
-                  )}
+              )}
+
+              {modalType === 'view' && selectedItem && 'customerName' in selectedItem && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p><strong>Customer:</strong> {selectedItem.customerName}</p>
+                      <p><strong>Total:</strong> {formatCurrency(selectedItem.total)}</p>
+                    </div>
+                    <div>
+                      <p><strong>Status:</strong>
+                        <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${selectedItem.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            selectedItem.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                              selectedItem.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                                selectedItem.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                  selectedItem.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                    'bg-yellow-100 text-yellow-800'
+                          }`}>
+                          {selectedItem.status}
+                        </span>
+                      </p>
+                      <p><strong>Tanggal:</strong> {selectedItem.date}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <strong>Produk:</strong>
+                    {selectedItem.products && selectedItem.products.length > 0 ? (
+                      <ul className="mt-2 space-y-1">
+                        {selectedItem.products.map((product: any, index: number) => (
+                          <li key={index} className="text-sm text-gray-600 flex justify-between">
+                            <span>{product.productName || product.name} x {product.quantity}</span>
+                            <span>{formatCurrency(product.price * product.quantity)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 text-gray-500">Tidak ada produk dalam order ini</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-            
-            {modalType === 'view' && (!selectedItem || !('customerName' in selectedItem)) && (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Tidak ada data order yang dipilih</p>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="mt-4 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-                >
-                  Tutup
-                </button>
-              </div>
-            )}
+              )}
+
+              {modalType === 'view' && (!selectedItem || !('customerName' in selectedItem)) && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Tidak ada data order yang dipilih</p>
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="mt-4 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-      
-      {/* Popup Alert */}
-      <PopupAlert
-        isOpen={alertState.isOpen}
-        onClose={hideAlert}
-        title={alertState.title}
-        message={alertState.message}
-        type={alertState.type}
-        showConfirmButton={alertState.showConfirmButton}
-        confirmText={alertState.confirmText}
-        onConfirm={alertState.onConfirm}
-        showCancelButton={alertState.showCancelButton}
-        cancelText={alertState.cancelText}
-        onCancel={alertState.onCancel}
-        autoClose={alertState.autoClose}
-        autoCloseDelay={alertState.autoCloseDelay}
-      />
-    </div>
+        )}
+
+        {/* Popup Alert */}
+        <PopupAlert
+          isOpen={alertState.isOpen}
+          onClose={hideAlert}
+          title={alertState.title}
+          message={alertState.message}
+          type={alertState.type}
+          showConfirmButton={alertState.showConfirmButton}
+          confirmText={alertState.confirmText}
+          onConfirm={alertState.onConfirm}
+          showCancelButton={alertState.showCancelButton}
+          cancelText={alertState.cancelText}
+          onCancel={alertState.onCancel}
+          autoClose={alertState.autoClose}
+          autoCloseDelay={alertState.autoCloseDelay}
+        />
+      </div>
     </AdminProtection>
   );
 };

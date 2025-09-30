@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     if (action === 'register') {
       // Pastikan admin user ada di database
       await addAdminUserToDatabase();
-      
+
       // Validasi input untuk registrasi
       if (!email || !password || !name) {
         return NextResponse.json(
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
 
       if (insertError) {
         console.error('Database insert error, using dummy data fallback:', insertError);
-        
+
         // Fallback ke dummy data jika database error
         const newId = Math.max(...dummyUsers.map(u => u.id)) + 1;
         const fallbackUser = {
@@ -162,11 +162,11 @@ export async function POST(request: NextRequest) {
           createdAt: new Date().toISOString(),
           isActive: true
         };
-        
+
         dummyUsers.push(fallbackUser);
-        
+
         const { password: _, ...userWithoutPassword } = fallbackUser;
-        
+
         return NextResponse.json({
           success: true,
           data: {
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
 
       // Return user data tanpa password
       const { password: _, ...userWithoutPassword } = newUser;
-      
+
       return NextResponse.json({
         success: true,
         data: {
@@ -202,15 +202,15 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('email', email)
       .single();
-    
+
     let userData = user;
-    
+
     // Jika database error, fallback ke dummy data
     if (userError && userError.code !== 'PGRST116') {
       console.warn('Database login failed, using dummy data fallback:', userError);
       userData = dummyUsers.find(u => u.email === email);
     }
-    
+
     if (!userData) {
       return NextResponse.json(
         { success: false, message: 'Invalid email or password' },
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
 
     // Verifikasi password
     const isPasswordValid = await bcrypt.compare(password, userData.password);
-    
+
     if (!isPasswordValid) {
       return NextResponse.json(
         { success: false, message: 'Invalid email or password' },
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
 
     // Return user data (tanpa password)
     const { password: _, ...userWithoutPassword } = userData;
-    
+
     return NextResponse.json({
       success: true,
       data: {
@@ -264,7 +264,7 @@ export async function GET(request: NextRequest) {
   try {
     // In production, verify JWT token here
     const authHeader = request.headers.get('authorization');
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { success: false, message: 'Authorization token required' },
@@ -274,7 +274,7 @@ export async function GET(request: NextRequest) {
 
     // Return users without passwords
     const usersWithoutPasswords = dummyUsers.map(({ password, ...user }) => user);
-    
+
     return NextResponse.json({
       success: true,
       data: usersWithoutPasswords,
@@ -305,7 +305,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const userIndex = dummyUsers.findIndex(u => u.id === parseInt(id));
-    
+
     if (userIndex === -1) {
       return NextResponse.json(
         { success: false, message: 'User not found' },
@@ -353,7 +353,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const userIndex = dummyUsers.findIndex(u => u.id === parseInt(id));
-    
+
     if (userIndex === -1) {
       return NextResponse.json(
         { success: false, message: 'User not found' },
