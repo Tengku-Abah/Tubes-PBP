@@ -40,7 +40,6 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    console.log('Fetching orders from database...');
 
     const { data, error } = await dbHelpers.getOrders({
       status: status || undefined,
@@ -85,7 +84,6 @@ export async function GET(request: NextRequest) {
     const endIndex = startIndex + limit;
     const paginatedOrders = transformedOrders.slice(startIndex, endIndex);
 
-    console.log(`Retrieved ${transformedOrders.length} orders from database`);
 
     return NextResponse.json({
       success: true,
@@ -188,7 +186,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log('Updating order in database:', { id, status, paymentStatus });
 
     // Update data di database
     const updateData: any = {};
@@ -238,7 +235,6 @@ export async function PUT(request: NextRequest) {
       notes: null
     };
 
-    console.log('Order updated successfully in database');
 
     return NextResponse.json({
       success: true,
@@ -268,7 +264,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('Deleting order from database:', id);
 
     // Hapus dari database
     const { data, error } = await dbHelpers.deleteOrder(parseInt(id));
@@ -288,7 +283,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('Order deleted successfully from database');
 
     return NextResponse.json({
       success: true,

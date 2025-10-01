@@ -44,7 +44,6 @@ async function addAdminUserToDatabase() {
       if (error) {
         console.error('Failed to add admin user:', error);
       } else {
-        console.log('Admin user added to database:', data);
       }
     }
   } catch (error) {
@@ -88,14 +87,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Debug: Cek koneksi Supabase
-      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-      console.log('Supabase Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not set');
-
       // Cek apakah email sudah ada di database (case-sensitive)
       const { data: existingUser, error: checkError } = await dbHelpers.getUserByEmail(email);
-
-      console.log('Check existing user result:', { existingUser, checkError });
 
       // Jika database error, fallback ke dummy data
       if (checkError && (checkError as any).code !== 'PGRST116') {
@@ -127,10 +120,7 @@ export async function POST(request: NextRequest) {
       };
 
       // Simpan ke database
-      console.log('Inserting user data:', newUserData);
       const { data: newUser, error: insertError } = await dbHelpers.registerUser(newUserData);
-
-      console.log('Insert result:', { newUser, insertError });
 
       if (insertError) {
         console.error('Database insert error, using dummy data fallback:', insertError);

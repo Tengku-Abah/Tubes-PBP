@@ -7,8 +7,8 @@ import { Mail, Lock, Eye, EyeOff, ShoppingCart } from 'lucide-react'
 
 // Simple toast function since react-hot-toast might not be installed
 const toast = {
-  success: (message: string) => console.log('✅', message),
-  error: (message: string) => console.log('❌', message)
+  success: (message: string) => alert(message),
+  error: (message: string) => alert(message)
 }
 
 

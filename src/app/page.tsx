@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import ProductCard from '../components/cardproduk'
+import ProductFilter from '../components/ProductFilter'
 import LoadingSpinner from '../components/LoadingSpinner'
 import Link from 'next/link'
 
@@ -22,16 +23,50 @@ interface Product {
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([])
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchLoading, setSearchLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [cartCount, setCartCount] = useState(0)
+  
+  // Filter states
+  const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const [priceSort, setPriceSort] = useState<string>('')
+  const [minRating, setMinRating] = useState<number>(0)
+  const [ratingSort, setRatingSort] = useState<string>('')
+  const [categories, setCategories] = useState<string[]>([])
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const productsPerPage = 20
+
+  // Load categories from cache on component mount
+  useEffect(() => {
+    const cachedCategories = sessionStorage.getItem('cachedCategories')
+    if (cachedCategories) {
+      setCategories(JSON.parse(cachedCategories))
+    }
+  }, [])
 
   useEffect(() => {
     fetchProducts()
     checkLoginStatus()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fallback categories if none are loaded after 1 second
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (categories.length === 0) {
+        const fallbackCategories = ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books']
+        setCategories(fallbackCategories)
+        sessionStorage.setItem('cachedCategories', JSON.stringify(fallbackCategories))
+      }
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [categories.length])
 
   // Refetch products when search term changes
   useEffect(() => {
@@ -41,6 +76,11 @@ export default function HomePage() {
 
     return () => clearTimeout(timeoutId)
   }, [searchTerm]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Apply filters when products or filter states change
+  useEffect(() => {
+    applyFilters()
+  }, [products, selectedCategory, priceSort, minRating, ratingSort]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for storage changes (when user logs in from another tab)
   useEffect(() => {
@@ -69,18 +109,31 @@ export default function HomePage() {
     const cacheTime = sessionStorage.getItem('productsCacheTime')
     const now = Date.now()
 
-    // Use cache if it's less than 5 minutes old and no search term
-    if (cachedProducts && cacheTime && (now - parseInt(cacheTime)) < 300000 && !searchTerm.trim()) {
-      console.log('Using cached products')
-      setProducts(JSON.parse(cachedProducts))
+    // Use cache if it's less than 10 minutes old and no search term
+    if (cachedProducts && cacheTime && (now - parseInt(cacheTime)) < 600000 && !searchTerm.trim()) {
+      const parsedProducts = JSON.parse(cachedProducts)
+      setProducts(parsedProducts)
+      
+      // Extract categories from cached data
+      const categoryList = parsedProducts?.map((product: any) => product.category) || []
+      const uniqueCategories = Array.from(new Set(categoryList.filter((cat: any) => cat && cat.trim() !== '')))
+      if (uniqueCategories.length > 0) {
+        setCategories(uniqueCategories as string[])
+      } else {
+        setCategories(['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books'])
+      }
+      
       setLoading(false)
       return
     }
 
     try {
-      setLoading(true)
-      console.log('Fetching products from Supabase...')
-
+      // Show different loading states
+      if (searchTerm.trim()) {
+        setSearchLoading(true)
+      } else {
+        setLoading(true)
+      }
       let query = supabase
         .from('products')
         .select('*')
@@ -94,11 +147,29 @@ export default function HomePage() {
       const { data, error } = await query
 
       if (error) {
-        console.error('Error fetching products:', error)
         setProducts([])
       } else {
-        console.log('Products loaded:', data?.length || 0, 'products')
         setProducts(data || [])
+
+        // Extract unique categories
+        const categoryList = data?.map(product => product.category) || []
+        const uniqueCategories = Array.from(new Set(categoryList.filter(cat => cat && cat.trim() !== '')))
+        
+        // Fallback categories if none found
+        let finalCategories = uniqueCategories
+        if (uniqueCategories.length === 0) {
+          finalCategories = ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books']
+        }
+        
+        // Force update categories even if empty
+        if (uniqueCategories.length === 0 && (!data || data.length === 0)) {
+          finalCategories = ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books']
+        }
+        
+        setCategories(finalCategories)
+        
+        // Cache categories for faster loading
+        sessionStorage.setItem('cachedCategories', JSON.stringify(finalCategories))
 
         // Cache products if no search term
         if (!searchTerm.trim()) {
@@ -107,10 +178,10 @@ export default function HomePage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching products:', error)
       setProducts([])
     } finally {
       setLoading(false)
+      setSearchLoading(false)
     }
   }
 
@@ -129,7 +200,6 @@ export default function HomePage() {
           fetchCartCount(parsedUser)
         }
       } catch (error) {
-        console.error('Error parsing user data:', error)
         setIsLoggedIn(false)
         setUser(null)
         setCartCount(0)
@@ -159,9 +229,59 @@ export default function HomePage() {
         setCartCount(0)
       }
     } catch (error) {
-      console.error('Error fetching cart count:', error)
       setCartCount(0)
     }
+  }
+
+  const applyFilters = () => {
+    let filtered = [...products]
+
+    // Filter by category
+    if (selectedCategory) {
+      filtered = filtered.filter(product => product.category === selectedCategory)
+    }
+
+    // Filter by minimum rating
+    if (minRating > 0) {
+      filtered = filtered.filter(product => product.rating >= minRating)
+    }
+
+    // Sort by price
+    if (priceSort === 'low-to-high') {
+      filtered.sort((a, b) => a.price - b.price)
+    } else if (priceSort === 'high-to-low') {
+      filtered.sort((a, b) => b.price - a.price)
+    }
+
+    // Sort by rating
+    if (ratingSort === 'low-to-high') {
+      filtered.sort((a, b) => a.rating - b.rating)
+    } else if (ratingSort === 'high-to-low') {
+      filtered.sort((a, b) => b.rating - a.rating)
+    }
+
+    setFilteredProducts(filtered)
+    setCurrentPage(1) // Reset to first page when filters change
+  }
+
+  const resetFilters = () => {
+    setSelectedCategory('')
+    setPriceSort('')
+    setMinRating(0)
+    setRatingSort('')
+    setCurrentPage(1)
+  }
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage)
+  const startIndex = (currentPage - 1) * productsPerPage
+  const endIndex = startIndex + productsPerPage
+  const currentProducts = filteredProducts.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    // Scroll to top of products
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleSearch = (e: React.FormEvent) => {
@@ -193,18 +313,26 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <form onSubmit={handleSearch} className="flex-1 max-w-md">
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-slate-200 bg-white text-slate-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                />
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 bg-white text-slate-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                  />
+                  {searchLoading && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+                  disabled={searchLoading}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Search
+                  {searchLoading ? 'Searching...' : 'Search'}
                 </button>
               </div>
             </form>
@@ -265,17 +393,110 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {/* Main Content with Sidebar */}
+        <div className="flex gap-6">
+          {/* Filter Sidebar */}
+          <ProductFilter
+            categories={categories}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            priceSort={priceSort}
+            setPriceSort={setPriceSort}
+            ratingSort={ratingSort}
+            setRatingSort={setRatingSort}
+            filteredCount={filteredProducts.length}
+            totalCount={products.length}
+            onReset={resetFilters}
+          />
 
-        {products.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <p className="text-slate-500 text-lg">No products found</p>
+          {/* Products Grid */}
+          <div className="flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
+              {currentProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+
+            {filteredProducts.length === 0 && !loading && (
+              <div className="text-center py-12">
+                <p className="text-slate-500 text-lg">Tidak ada produk yang ditemukan</p>
+                <p className="text-slate-400 text-sm mt-2">Coba ubah filter atau kata kunci pencarian</p>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {filteredProducts.length > 0 && totalPages > 1 && (
+              <div className="mt-8 flex justify-center">
+                <div className="flex items-center gap-2">
+                  {/* Previous Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Sebelumnya
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      // Show first page, last page, current page, and pages around current
+                      const showPage = page === 1 || page === totalPages || 
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      
+                      if (!showPage) {
+                        // Show ellipsis for gaps
+                        if (page === 2 && currentPage > 4) {
+                          return <span key={`ellipsis-${page}`} className="px-2 text-gray-500">...</span>
+                        }
+                        if (page === totalPages - 1 && currentPage < totalPages - 3) {
+                          return <span key={`ellipsis-${page}`} className="px-2 text-gray-500">...</span>
+                        }
+                        return null
+                      }
+
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Next Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Selanjutnya
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Page Info */}
+            {filteredProducts.length > 0 && (
+              <div className="mt-4 text-center text-sm text-gray-600">
+                Menampilkan {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} dari {filteredProducts.length} produk
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

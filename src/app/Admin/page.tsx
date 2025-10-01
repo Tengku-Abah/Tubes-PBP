@@ -78,7 +78,6 @@ const AdminPanel = () => {
 
   const loadProducts = async () => {
     try {
-      console.log('Loading products from Supabase...');
 
       // Authenticate as admin first
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -91,7 +90,6 @@ const AdminPanel = () => {
         showError('Authentication failed. Please try again.');
         return;
       } else {
-        console.log('Authenticated as admin:', authData.user?.email);
       }
 
       const { data, error } = await supabase
@@ -99,14 +97,12 @@ const AdminPanel = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      console.log('Products loaded:', { data, error });
 
       if (error) {
         console.error('Error loading products:', error);
         showError(`Error loading products: ${error.message}`);
       } else {
         setProducts(data || []);
-        console.log('Products set in state:', data?.length || 0, 'products');
       }
     } catch (error) {
       console.error('Error loading products:', error);
@@ -175,7 +171,6 @@ const AdminPanel = () => {
 
   // Validasi form
   const validateForm = () => {
-    console.log('Validating form:', productForm);
 
     if (!productForm.name.trim()) {
       showWarning('Nama produk harus diisi');
@@ -194,7 +189,6 @@ const AdminPanel = () => {
       return false;
     }
 
-    console.log('Form validation passed');
     return true;
   };
 
@@ -214,7 +208,6 @@ const AdminPanel = () => {
         showError('Authentication failed. Please try again.');
         return;
       } else {
-        console.log('Authenticated as admin:', authData.user?.email);
       }
 
       const { data, error } = await supabase
@@ -253,15 +246,6 @@ const AdminPanel = () => {
     if (!validateForm()) return;
 
     try {
-      console.log('Updating product with ID:', selectedItem.id);
-      console.log('Update data:', {
-        name: productForm.name.trim(),
-        price: parseFloat(productForm.price),
-        stock: parseInt(productForm.stock),
-        category: productForm.category,
-        image: productForm.image,
-        description: productForm.description.trim() || ''
-      });
 
       // Authenticate as admin first
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -274,7 +258,6 @@ const AdminPanel = () => {
         showError('Authentication failed. Please try again.');
         return;
       } else {
-        console.log('Authenticated as admin:', authData.user?.email);
       }
 
       const { data, error } = await supabase
@@ -290,7 +273,6 @@ const AdminPanel = () => {
         .eq('id', selectedItem.id)
         .select();
 
-      console.log('Update result:', { data, error });
 
       if (error) {
         console.error('Error updating product:', error);
@@ -328,7 +310,6 @@ const AdminPanel = () => {
             console.error('Auth error:', authError);
             // Continue without auth for now
           } else {
-            console.log('Authenticated as admin:', authData);
           }
 
           const { error } = await supabase
@@ -354,7 +335,6 @@ const AdminPanel = () => {
   const handleUpdateOrderStatus = async (orderId: number, newStatus: string) => {
     try {
       setUpdatingStatus(orderId);
-      console.log('Updating order status:', { orderId, newStatus });
 
       const response = await fetch('/api/orders', {
         method: 'PUT',
@@ -367,9 +347,7 @@ const AdminPanel = () => {
         }),
       });
 
-      console.log('API response status:', response.status);
       const result = await response.json();
-      console.log('API response data:', result);
 
       if (result.success) {
         // Update state dengan data terbaru dari server
@@ -396,7 +374,6 @@ const AdminPanel = () => {
   };
 
   const openModal = (type: string, item: Product | Order | null = null) => {
-    console.log('Opening modal:', { type, item });
     setModalType(type as 'add' | 'edit' | 'view');
     setShowModal(true);
     setIsDragOver(false);
@@ -404,7 +381,6 @@ const AdminPanel = () => {
 
     if (item && 'name' in item) {
       // It's a Product
-      console.log('Setting product form for edit:', item);
       setSelectedItem(item);
       setProductForm({
         name: item.name || '',
@@ -416,10 +392,8 @@ const AdminPanel = () => {
       });
     } else if (item && 'customerName' in item) {
       // It's an Order
-      console.log('Setting order for view:', item);
       setSelectedItem(item);
     } else {
-      console.log('Setting empty form for add');
       setProductForm({ name: '', price: '', stock: '', category: '', image: '', description: '' });
     }
   };

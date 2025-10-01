@@ -13,7 +13,6 @@ export default function AutoLogoutWrapper({ children }: AutoLogoutWrapperProps) 
   const { resetTimer, clearTimer } = useAutoLogout({
     timeout: 5 * 60 * 1000, // 5 menit
     onLogout: () => {
-      console.log('User automatically logged out due to inactivity');
     }
   });
 
