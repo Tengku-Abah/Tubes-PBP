@@ -8,26 +8,49 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith('/Admin')) {
     // Get auth token from cookie
     const authToken = request.cookies.get('auth-token')?.value
-    
+
     if (!authToken) {
       // No auth token, redirect to login
       return NextResponse.redirect(new URL('/Login', request.url))
     }
-    
+
     try {
       // Parse user data from cookie
       const user = JSON.parse(authToken)
-      
+
       // Check if user has admin role
       if (user.role !== 'admin') {
         // Not admin, redirect to home
         return NextResponse.redirect(new URL('/', request.url))
       }
-      
+
       // User is admin, allow access
       return NextResponse.next()
     } catch (error) {
       // Invalid cookie, redirect to login
+      console.error('Invalid auth token:', error)
+      return NextResponse.redirect(new URL('/Login', request.url))
+    }
+  }
+
+  // Check if accessing protected routes (cart, etc.)
+  if (pathname.startsWith('/cart') || pathname.startsWith('/Detail')) {
+    const authToken = request.cookies.get('auth-token')?.value
+
+    if (!authToken) {
+      // No auth token, redirect to login
+      return NextResponse.redirect(new URL('/Login', request.url))
+    }
+
+    try {
+      // Parse user data from cookie
+      const user = JSON.parse(authToken)
+
+      // User is authenticated, allow access
+      return NextResponse.next()
+    } catch (error) {
+      // Invalid cookie, redirect to login
+      console.error('Invalid auth token:', error)
       return NextResponse.redirect(new URL('/Login', request.url))
     }
   }
@@ -38,5 +61,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/Admin/:path*',
+    '/cart/:path*',
+    '/Detail/:path*',
   ]
 }

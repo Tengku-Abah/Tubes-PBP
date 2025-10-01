@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import ProductCard from '../components/cardproduk'
 import ProductFilter from '../components/ProductFilter'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { useToast } from '../components/Toast'
+import { logout } from '../lib/logout'
 import Link from 'next/link'
 
 interface Product {
@@ -29,15 +31,16 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const { showToast, ToastComponent } = useToast()
   const [cartCount, setCartCount] = useState(0)
-  
+
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [priceSort, setPriceSort] = useState<string>('')
   const [minRating, setMinRating] = useState<number>(0)
   const [ratingSort, setRatingSort] = useState<string>('')
   const [categories, setCategories] = useState<string[]>([])
-  
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState<number>(1)
   const productsPerPage = 20
@@ -113,7 +116,7 @@ export default function HomePage() {
     if (cachedProducts && cacheTime && (now - parseInt(cacheTime)) < 600000 && !searchTerm.trim()) {
       const parsedProducts = JSON.parse(cachedProducts)
       setProducts(parsedProducts)
-      
+
       // Extract categories from cached data
       const categoryList = parsedProducts?.map((product: any) => product.category) || []
       const uniqueCategories = Array.from(new Set(categoryList.filter((cat: any) => cat && cat.trim() !== '')))
@@ -122,7 +125,7 @@ export default function HomePage() {
       } else {
         setCategories(['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books'])
       }
-      
+
       setLoading(false)
       return
     }
@@ -154,20 +157,20 @@ export default function HomePage() {
         // Extract unique categories
         const categoryList = data?.map(product => product.category) || []
         const uniqueCategories = Array.from(new Set(categoryList.filter(cat => cat && cat.trim() !== '')))
-        
+
         // Fallback categories if none found
         let finalCategories = uniqueCategories
         if (uniqueCategories.length === 0) {
           finalCategories = ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books']
         }
-        
+
         // Force update categories even if empty
         if (uniqueCategories.length === 0 && (!data || data.length === 0)) {
           finalCategories = ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books']
         }
-        
+
         setCategories(finalCategories)
-        
+
         // Cache categories for faster loading
         sessionStorage.setItem('cachedCategories', JSON.stringify(finalCategories))
 
@@ -186,7 +189,42 @@ export default function HomePage() {
   }
 
   const checkLoginStatus = (forceCartUpdate = false) => {
-    const userData = sessionStorage.getItem('user')
+    // Check sessionStorage first, then localStorage for remembered login
+    let userData = sessionStorage.getItem('user')
+
+    if (!userData) {
+      // Check localStorage for remembered login
+      const rememberedUser = localStorage.getItem('user')
+      const rememberMe = localStorage.getItem('rememberMe')
+
+      if (rememberedUser && rememberMe === 'true') {
+        try {
+          const parsedUser = JSON.parse(rememberedUser)
+          const loginTime = localStorage.getItem('loginTime')
+          const now = Date.now()
+
+          // Check if login is still valid (within 30 days)
+          if (loginTime && (now - parseInt(loginTime)) < 2592000000) {
+            // Restore session from localStorage
+            sessionStorage.setItem('user', JSON.stringify(parsedUser))
+            sessionStorage.setItem('loginTime', now.toString())
+            document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; max-age=2592000`
+            userData = JSON.stringify(parsedUser)
+          } else {
+            // Login expired, clear localStorage
+            localStorage.removeItem('user')
+            localStorage.removeItem('rememberMe')
+            localStorage.removeItem('loginTime')
+          }
+        } catch (error) {
+          console.error('Error parsing remembered user data:', error)
+          localStorage.removeItem('user')
+          localStorage.removeItem('rememberMe')
+          localStorage.removeItem('loginTime')
+        }
+      }
+    }
+
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData)
@@ -194,6 +232,16 @@ export default function HomePage() {
 
         setUser(parsedUser)
         setIsLoggedIn(true)
+
+        // Show welcome toast if user just logged in
+        if (userChanged) {
+          const loginTime = sessionStorage.getItem('loginTime')
+          const now = Date.now()
+          if (!loginTime || (now - parseInt(loginTime)) < 5000) { // Within 5 seconds
+            showToast(`Selamat datang kembali, ${parsedUser.name}!`, 'success')
+            sessionStorage.setItem('loginTime', now.toString())
+          }
+        }
 
         // Only fetch cart count if user changed or forced
         if (userChanged || forceCartUpdate) {
@@ -295,6 +343,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
+      {ToastComponent}
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
@@ -363,13 +412,7 @@ export default function HomePage() {
                     </Link>
                   )}
                   <button
-                    onClick={() => {
-                      sessionStorage.clear()
-                      document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-                      setIsLoggedIn(false)
-                      setUser(null)
-                      setCartCount(0)
-                    }}
+                    onClick={() => logout()}
                     className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -444,9 +487,9 @@ export default function HomePage() {
                   <div className="flex items-center gap-1">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
                       // Show first page, last page, current page, and pages around current
-                      const showPage = page === 1 || page === totalPages || 
+                      const showPage = page === 1 || page === totalPages ||
                         (page >= currentPage - 1 && page <= currentPage + 1)
-                      
+
                       if (!showPage) {
                         // Show ellipsis for gaps
                         if (page === 2 && currentPage > 4) {
@@ -462,11 +505,10 @@ export default function HomePage() {
                         <button
                           key={page}
                           onClick={() => handlePageChange(page)}
-                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                            currentPage === page
-                              ? 'bg-blue-600 text-white'
-                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                          }`}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === page
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                            }`}
                         >
                           {page}
                         </button>

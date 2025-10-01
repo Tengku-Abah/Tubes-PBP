@@ -171,15 +171,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Cari user berdasarkan email di database (case-sensitive)
-    const { data: user, error: userError } = await dbHelpers.getUserByEmail(email);
+    let userData: any = null;
 
-    let userData = user;
-
-    // Jika database error, fallback ke dummy data
-    if (userError && (userError as any).code !== 'PGRST116') {
-      console.warn('Database login failed, using dummy data fallback:', userError);
-      userData = dummyUsers.find(u => u.email === email);
-    }
+    // Skip database call for now to reduce delay - use dummy data directly
+    console.log('Using dummy data for login to reduce delay');
+    userData = dummyUsers.find(u => u.email === email);
 
     if (!userData) {
       return NextResponse.json(
@@ -214,7 +210,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         user: userWithoutPassword,
-        token: 'dummy-jwt-token-' + user.id, // In production, use real JWT
+        token: 'dummy-jwt-token-' + userData.id, // Fixed: use userData instead of user
         expiresIn: '24h'
       },
       message: 'Login successful'

@@ -1,14 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Supabase configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ickulgsxwndqrighdaku.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlja3VsZ3N4d25kcXJpZ2hkYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0NjA0NjIsImV4cCI6MjA3NDAzNjQ2Mn0.R1HZa_kk9D6x_cwQh60MoR3FROliwbqAAQq1eB8YjTg'
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
-}
-
-// Create Supabase client
+// Create Supabase client with fallback
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Database types
@@ -574,7 +570,7 @@ export const dbHelpers = {
   async uploadFile(file: File, folder: string = 'products') {
     try {
       const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
-      
+
       // Generate unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -617,7 +613,7 @@ export const dbHelpers = {
   async deleteFile(filePath: string) {
     try {
       const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
-      
+
       const { error } = await supabase.storage
         .from(BUCKET_NAME)
         .remove([filePath]);
@@ -634,12 +630,12 @@ export const checkSupabaseConnection = async () => {
   try {
     // Test connection dengan query sederhana
     const { data, error } = await supabase.from('products').select('count').limit(1)
-    
+
     if (error) {
       console.warn('Supabase connection failed:', error.message)
       return { connected: false, error: error.message }
     }
-    
+
     return { connected: true, error: null }
   } catch (error) {
     console.warn('Supabase connection test failed:', error)

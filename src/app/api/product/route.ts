@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbHelpers, ApiResponse, Product } from '../../../lib/supabase';
+import { requireApiAdmin, getCookieUser } from '../../../lib/api-auth';
 
 // Product data now comes from Supabase database
 
