@@ -245,8 +245,8 @@ const AdminPanel = () => {
             id: 1,
             customerName: "John Doe",
             products: [
-              { id: 1, name: "iPhone 15 Pro", quantity: 1 },
-              { id: 2, name: "MacBook Air M2", quantity: 1 }
+              { id: 1, name: "iPhone 15 Pro", quantity: 1, price: 15000000 },
+              { id: 2, name: "MacBook Air M2", quantity: 1, price: 18000000 }
             ],
             total: 33000000,
             status: "completed",
@@ -256,7 +256,7 @@ const AdminPanel = () => {
             id: 2,
             customerName: "Jane Smith",
             products: [
-              { id: 3, name: "AirPods Pro", quantity: 2 }
+              { id: 3, name: "AirPods Pro", quantity: 2, price: 3500000 }
             ],
             total: 7000000,
             status: "processing",
@@ -266,7 +266,7 @@ const AdminPanel = () => {
             id: 3,
             customerName: "Bob Johnson",
             products: [
-              { id: 1, name: "iPhone 15 Pro", quantity: 1 }
+              { id: 1, name: "iPhone 15 Pro", quantity: 1, price: 15000000 }
             ],
             total: 15000000,
             status: "pending",
@@ -284,7 +284,8 @@ const AdminPanel = () => {
         products: order.order_items?.map((item: any) => ({
           id: item.product_id,
           name: item.products?.name || 'Unknown Product',
-          quantity: item.quantity
+          quantity: item.quantity,
+          price: item.products?.price || 0
         })) || [],
         total: order.total_amount || 0,
         status: order.status || 'pending',
