@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../lib/supabase';
+import { dbHelpers, ApiResponse, Product } from '../../../lib/supabase';
 
 // Product data now comes from Supabase database
 
@@ -11,11 +11,7 @@ export async function GET(request: NextRequest) {
 
     // Jika ada parameter id, kembalikan detail produk
     if (id) {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', parseInt(id))
-        .single();
+      const { data, error } = await dbHelpers.getProductById(parseInt(id));
 
       if (error) {
         console.error('Database error:', error);
@@ -26,7 +22,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (data) {
-        return NextResponse.json({
+        const response: ApiResponse<Product> = {
           success: true,
           data: {
             id: data.id,
@@ -37,14 +33,18 @@ export async function GET(request: NextRequest) {
             category: data.category,
             stock: data.stock,
             rating: data.rating,
-            reviews: data.reviews_count
+            reviews_count: data.reviews_count,
+            created_at: data.created_at,
+            updated_at: data.updated_at
           }
-        });
+        };
+        return NextResponse.json(response);
       } else {
-        return NextResponse.json(
-          { success: false, message: 'Product not found' },
-          { status: 404 }
-        );
+        const response: ApiResponse = {
+          success: false,
+          message: 'Product not found'
+        };
+        return NextResponse.json(response, { status: 404 });
       }
     }
 
@@ -56,36 +56,14 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    let query = supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    // Filter berdasarkan kategori
-    if (category) {
-      query = query.eq('category', category);
-    }
-
-    // Filter berdasarkan pencarian
-    if (search) {
-      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
-    }
-
-    // Filter berdasarkan harga
-    if (minPrice) {
-      query = query.gte('price', parseInt(minPrice));
-    }
-
-    if (maxPrice) {
-      query = query.lte('price', parseInt(maxPrice));
-    }
-
-    // Pagination
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    query = query.range(startIndex, endIndex - 1);
-
-    const { data, error, count } = await query;
+    const { data, error, count } = await dbHelpers.getProducts({
+      category: category || undefined,
+      search: search || undefined,
+      minPrice: minPrice ? parseInt(minPrice) : undefined,
+      maxPrice: maxPrice ? parseInt(maxPrice) : undefined,
+      page,
+      limit
+    });
 
     if (error) {
       console.error('Database error:', error);
@@ -104,10 +82,12 @@ export async function GET(request: NextRequest) {
       category: product.category,
       stock: product.stock,
       rating: product.rating,
-      reviews: product.reviews_count
+      reviews_count: product.reviews_count,
+      created_at: product.created_at,
+      updated_at: product.updated_at
     })) || [];
 
-    return NextResponse.json({
+    const response: ApiResponse<Product[]> = {
       success: true,
       data: transformedData,
       pagination: {
@@ -116,7 +96,9 @@ export async function GET(request: NextRequest) {
         total: count || 0,
         totalPages: Math.ceil((count || 0) / limit)
       }
-    });
+    };
+
+    return NextResponse.json(response);
 
   } catch (error) {
     return NextResponse.json(

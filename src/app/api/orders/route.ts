@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { dbHelpers, ApiResponse } from '../../../lib/supabase';
 
-// Interface untuk pesanan
-interface Order {
+// Interface untuk pesanan response
+interface OrderResponse {
   id: number;
   customerName: string;
   customerEmail: string;
@@ -42,39 +42,17 @@ export async function GET(request: NextRequest) {
 
     console.log('Fetching orders from database...');
 
-    // Query builder untuk mengambil data dari database
-    let query = supabase
-      .from('orders')
-      .select(`
-        id,
-        user_id,
-        order_number,
-        total_amount,
-        status,
-        shipping_address,
-        payment_method,
-        created_at,
-        updated_at,
-        users(name, email)
-      `)
-      .order('created_at', { ascending: false });
-
-    // Filter berdasarkan status
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    // Filter berdasarkan email customer
-    if (customerEmail) {
-      query = query.ilike('users.email', `%${customerEmail}%`);
-    }
-
-    const { data, error } = await query;
+    const { data, error } = await dbHelpers.getOrders({
+      status: status || undefined,
+      customerEmail: customerEmail || undefined,
+      page,
+      limit
+    });
 
     if (error) {
       console.error('Database error:', error);
       return NextResponse.json(
-        { success: false, message: `Database error: ${error.message}` },
+        { success: false, message: `Database error: ${error}` },
         { status: 500 }
       );
     }
@@ -163,24 +141,20 @@ export async function POST(request: NextRequest) {
     const totalAmount = items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
     // Buat pesanan baru di database
-    const { data: newOrder, error } = await supabase
-      .from('orders')
-      .insert({
-        user_id: 'a4bc7b55-bee9-4f13-8486-9cb8bb92be29', // TODO: Get from auth
-        order_number: `ORD-${Date.now()}`,
-        total_amount: totalAmount,
-        status: 'pending',
-        shipping_address: `${shippingAddress.street}, ${shippingAddress.city}`,
-        payment_method: paymentMethod || 'cash_on_delivery',
-        notes: notes
-      })
-      .select()
-      .single();
+    const { data: newOrder, error } = await dbHelpers.createOrder({
+      user_id: 'a4bc7b55-bee9-4f13-8486-9cb8bb92be29', // TODO: Get from auth
+      order_number: `ORD-${Date.now()}`,
+      total_amount: totalAmount,
+      status: 'pending',
+      shipping_address: `${shippingAddress.street}, ${shippingAddress.city}`,
+      payment_method: paymentMethod || 'cash_on_delivery',
+      notes: notes
+    });
 
     if (error) {
       console.error('Database insert error:', error);
       return NextResponse.json(
-        { success: false, message: `Database error: ${error.message}` },
+        { success: false, message: `Database error: ${error}` },
         { status: 500 }
       );
     }
@@ -217,38 +191,19 @@ export async function PUT(request: NextRequest) {
     console.log('Updating order in database:', { id, status, paymentStatus });
 
     // Update data di database
-    const updateData: any = {
-      updated_at: new Date().toISOString()
-    };
-
+    const updateData: any = {};
     if (status) updateData.status = status;
     if (paymentStatus) updateData.payment_status = paymentStatus;
     if (shippingDate) updateData.shipping_date = shippingDate;
     if (deliveryDate) updateData.delivery_date = deliveryDate;
     if (notes !== undefined) updateData.notes = notes;
 
-    const { data, error } = await supabase
-      .from('orders')
-      .update(updateData)
-      .eq('id', id)
-      .select(`
-        id,
-        user_id,
-        order_number,
-        total_amount,
-        status,
-        shipping_address,
-        payment_method,
-        created_at,
-        updated_at,
-        users(name, email)
-      `)
-      .single();
+    const { data, error } = await dbHelpers.updateOrder(id, updateData);
 
     if (error) {
       console.error('Database update error:', error);
       return NextResponse.json(
-        { success: false, message: `Database error: ${error.message}` },
+        { success: false, message: `Database error: ${error}` },
         { status: 500 }
       );
     }
@@ -316,17 +271,12 @@ export async function DELETE(request: NextRequest) {
     console.log('Deleting order from database:', id);
 
     // Hapus dari database
-    const { data, error } = await supabase
-      .from('orders')
-      .delete()
-      .eq('id', id)
-      .select()
-      .single();
+    const { data, error } = await dbHelpers.deleteOrder(parseInt(id));
 
     if (error) {
       console.error('Database delete error:', error);
       return NextResponse.json(
-        { success: false, message: `Database error: ${error.message}` },
+        { success: false, message: `Database error: ${error}` },
         { status: 500 }
       );
     }

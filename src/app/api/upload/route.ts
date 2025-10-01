@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-// Create Supabase client with service role key for server-side operations
-const supabaseUrl = 'https://ieuvqzaywgsifrfgagld.supabase.co'
-const supabaseServiceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlldXZxemF5d2dzaWZyZmdhZ2xkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODg2ODY3NSwiZXhwIjoyMDc0NDQ0Njc1fQ.Gni2eIu7uojWhtFNU6osyAqivSbcb5fGwaDAhoK1yLs'
-
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
+import { dbHelpers } from '../../../lib/supabase'
 
 // Storage bucket name
-const BUCKET_NAME = 'product-images'
+const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'product-images'
 
 // Allowed file types
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
@@ -45,41 +39,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate unique filename
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-    const filePath = `${folder}/${fileName}`
-
-    // Convert file to buffer
-    const fileBuffer = await file.arrayBuffer()
-
-    // Upload file to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(filePath, fileBuffer, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: file.type
-      })
+    // Upload file using helper function
+    const { data, error } = await dbHelpers.uploadFile(file, folder)
 
     if (error) {
       console.error('Upload error:', error)
       return NextResponse.json(
-        { success: false, error: error.message },
+        { success: false, error: error },
         { status: 500 }
       )
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(BUCKET_NAME)
-      .getPublicUrl(filePath)
-
     return NextResponse.json({
       success: true,
-      url: urlData.publicUrl,
-      path: filePath,
-      fileName: fileName
+      url: data?.url,
+      path: data?.path,
+      fileName: data?.fileName
     })
 
   } catch (error) {
@@ -103,15 +78,13 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Delete file from Supabase Storage
-    const { error } = await supabase.storage
-      .from(BUCKET_NAME)
-      .remove([filePath])
+    // Delete file using helper function
+    const { data, error } = await dbHelpers.deleteFile(filePath)
 
     if (error) {
       console.error('Delete error:', error)
       return NextResponse.json(
-        { success: false, error: error.message },
+        { success: false, error: error },
         { status: 500 }
       )
     }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Mail, Lock, User, Phone, Eye, EyeOff, ShoppingCart, Check, X } from 'lucide-react'
 
 // Simple toast function since react-hot-toast might not be installed
 const toast = {
@@ -10,261 +11,341 @@ const toast = {
   error: (message: string) => console.log('❌', message)
 }
 
-// Simple cookie function
-const Cookies = {
-  set: (name: string, value: string, options: any) => {
-    sessionStorage.setItem(name, value)
+// Password strength checker
+const getPasswordStrength = (password: string) => {
+  const checks = {
+    uppercase: /[A-Z]/.test(password),
+    number: /\d/.test(password),
+    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+    length: password.length >= 8
   }
+
+  // Hitung score berdasarkan syarat yang dipenuhi
+  let score = 0
+  if (checks.uppercase) score++
+  if (checks.number) score++
+  if (checks.special) score++
+  if (checks.length) score++
+
+  return { score, checks }
+}
+
+const getStrengthLabel = (score: number, length: number) => {
+  // Jika semua syarat terpenuhi (score === 4) DAN panjang >= 12, baru hijau
+  if (score === 4 && length >= 12) {
+    return { label: 'Sangat Kuat', color: 'bg-green-500', textColor: 'text-green-600' }
+  }
+  
+  if (score === 0) return { label: 'Lemah', color: 'bg-red-500', textColor: 'text-red-600' }
+  if (score === 1) return { label: 'Lemah', color: 'bg-red-500', textColor: 'text-red-600' }
+  if (score === 2) return { label: 'Sedang', color: 'bg-yellow-500', textColor: 'text-yellow-600' }
+  if (score === 3) return { label: 'Kuat', color: 'bg-blue-500', textColor: 'text-blue-600' }
+  if (score === 4) return { label: 'Kuat', color: 'bg-blue-500', textColor: 'text-blue-600' }
+  return { label: 'Sangat Kuat', color: 'bg-green-500', textColor: 'text-green-600' }
 }
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    name: '',
+    namaLengkap: '',
     email: '',
+    noTelepon: '',
     password: '',
-    confirmPassword: '',
+    confirmPassword: ''
   })
-  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
+  const passwordStrength = getPasswordStrength(formData.password)
+  const strengthInfo = getStrengthLabel(passwordStrength.score, formData.password.length)
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }))
+    }
   }
 
   const validateForm = () => {
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      toast.error('All fields are required')
-      return false
+    const newErrors: {[key: string]: string} = {}
+    
+    if (!formData.namaLengkap.trim()) {
+      newErrors.namaLengkap = 'Nama lengkap wajib diisi'
     }
-
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email wajib diisi'
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Format email tidak valid'
+    }
+    
+    if (!formData.noTelepon.trim()) {
+      newErrors.noTelepon = 'Nomor telepon wajib diisi'
+    } else if (!/^[0-9]{10,13}$/.test(formData.noTelepon)) {
+      newErrors.noTelepon = 'Nomor telepon harus 10-13 digit'
+    }
+    
+    if (!formData.password) {
+      newErrors.password = 'Password wajib diisi'
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password minimal 8 karakter'
+    } else if (passwordStrength.score < 3) {
+      newErrors.password = 'Password terlalu lemah. Gunakan minimal 1 huruf besar, 1 angka, 1 karakter khusus, dan 8 karakter'
+    }
+    
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match')
-      return false
+      newErrors.confirmPassword = 'Password tidak cocok'
     }
-
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters')
-      return false
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email)) {
-      toast.error('Please enter a valid email address')
-      return false
-    }
-
-    return true
+    
+    return newErrors
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const newErrors = validateForm()
     
-    if (!validateForm()) {
-      return
-    }
+    if (Object.keys(newErrors).length === 0) {
+      setLoading(true)
+      
+      try {
+        // Call registration API
+        const response = await fetch('/api/user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.namaLengkap,
+            email: formData.email,
+            password: formData.password,
+            action: 'register'
+          }),
+        })
 
-    setLoading(true)
+        const data = await response.json()
 
-    try {
-      // Call registration API
-      const response = await fetch('/api/user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          action: 'register'
-        }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        toast.success('Registration successful! Please login.')
-        router.push('/Login')
-      } else {
-        toast.error(data.message || 'Registration failed. Please try again.')
+        if (data.success) {
+          toast.success('Registrasi berhasil! Selamat datang di UMKM Elektronik.')
+          router.push('/Login')
+        } else {
+          toast.error(data.message || 'Registrasi gagal. Silakan coba lagi.')
+        }
+      } catch (error: any) {
+        console.error('Registration error:', error)
+        toast.error('Registrasi gagal. Silakan coba lagi.')
+      } finally {
+        setLoading(false)
       }
-    } catch (error: any) {
-      console.error('Registration error:', error)
-      toast.error('Registration failed. Please try again.')
-    } finally {
-      setLoading(false)
+    } else {
+      setErrors(newErrors)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       {/* Back to Home Button */}
       <Link
         href="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
+        className="absolute top-6 left-6 flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
-        <span className="font-medium">Back to Home</span>
+        <span className="font-medium">Kembali ke Beranda</span>
       </Link>
-      
-      <div className="max-w-md w-full space-y-8">
-        {/* Logo and Header */}
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
-            <span className="text-white font-bold text-2xl">M</span>
+
+      <div className="max-w-md w-full">
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center shadow-xl">
+              <ShoppingCart className="w-10 h-10 text-white" />
+            </div>
           </div>
-          <h2 className="text-3xl font-bold text-slate-800">
-            Create Account
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Join UMKM Store today
+          <h1 className="text-4xl font-bold text-blue-900 mb-2">
+            Buat Akun
+          </h1>
+          <p className="text-blue-700 text-lg">
+            Daftar untuk mulai berbelanja produk elektronik
           </p>
         </div>
 
-        {/* Registration Form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
-                  Full Name
-                </label>
+        <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-blue-100">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-semibold text-blue-900 mb-2">
+                Nama Lengkap
+              </label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
                 <input
-                  id="name"
-                  name="name"
                   type="text"
-                  autoComplete="name"
-                  required
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Enter your full name"
-                  value={formData.name}
+                  name="namaLengkap"
+                  value={formData.namaLengkap}
                   onChange={handleChange}
+                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.namaLengkap ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  placeholder="Masukkan nama lengkap"
                 />
               </div>
+              {errors.namaLengkap && (
+                <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.namaLengkap}</p>
+              )}
+            </div>
 
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                  Email Address
-                </label>
+            <div>
+              <label className="block text-sm font-semibold text-blue-900 mb-2">
+                Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
                 <input
-                  id="email"
-                  name="email"
                   type="email"
-                  autoComplete="email"
-                  required
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Enter your email"
+                  name="email"
                   value={formData.email}
                   onChange={handleChange}
+                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.email ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  placeholder="email@example.com"
                 />
               </div>
-              
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    required
-                    className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="Create a password"
-                    value={formData.password}
-                    onChange={handleChange}
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                      </svg>
-                    ) : (
-                      <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
+              {errors.email && (
+                <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.email}</p>
+              )}
+            </div>
 
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-2">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    required
-                    className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? (
-                      <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                      </svg>
-                    ) : (
-                      <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
+            <div>
+              <label className="block text-sm font-semibold text-blue-900 mb-2">
+                Nomor Telepon
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
+                <input
+                  type="tel"
+                  name="noTelepon"
+                  value={formData.noTelepon}
+                  onChange={handleChange}
+                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.noTelepon ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  placeholder="08123456789"
+                />
               </div>
+              {errors.noTelepon && (
+                <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.noTelepon}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-blue-900 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`w-full pl-12 pr-12 py-3.5 border-2 ${errors.password ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  placeholder="Minimal 8 karakter"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600 transition"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              
+              {/* Password Strength Indicator */}
+              {formData.password && (
+                <div className="mt-3 space-y-2">
+                  {/* Progress Bar */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-gray-200 rounded-full h-2">
+                       <div 
+                         className={`h-2 rounded-full transition-all duration-300 ${strengthInfo.color}`}
+                         style={{ width: `${Math.max((passwordStrength.score / 4) * 100, formData.password.length > 0 ? 10 : 0)}%` }}
+                       ></div>
+                    </div>
+                    <span className={`text-sm font-medium ${strengthInfo.textColor}`}>
+                      {strengthInfo.label}
+                    </span>
+                  </div>
+                  
+                  {/* Password Requirements */}
+                  <div className="grid grid-cols-1 gap-1 text-xs">
+                    <div className={`flex items-center gap-2 ${passwordStrength.checks.uppercase ? 'text-green-600' : 'text-gray-400'}`}>
+                      {passwordStrength.checks.uppercase ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>1 huruf besar (A-Z)</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordStrength.checks.number ? 'text-green-600' : 'text-gray-400'}`}>
+                      {passwordStrength.checks.number ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>1 angka (0-9)</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordStrength.checks.special ? 'text-green-600' : 'text-gray-400'}`}>
+                      {passwordStrength.checks.special ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>1 karakter khusus (!@#$%^&*)</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-blue-600">
+                      <span className="text-sm font-medium">Panjang: {formData.password.length} karakter</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {errors.password && (
+                <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.password}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-blue-900 mb-2">
+                Konfirmasi Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full pl-12 pr-12 py-3.5 border-2 ${errors.confirmPassword ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  placeholder="Ulangi password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600 transition"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.confirmPassword}</p>
+              )}
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? 'Mendaftar...' : 'Daftar Sekarang'}
             </button>
           </form>
-          
-          {/* Terms and Privacy */}
-          <div className="mt-6 text-center">
-            <p className="text-xs text-slate-500">
-              By creating an account, you agree to our{' '}
-              <a href="#" className="text-blue-600 hover:text-blue-500">Terms of Service</a>
-              {' '}and{' '}
-              <a href="#" className="text-blue-600 hover:text-blue-500">Privacy Policy</a>
-            </p>
-          </div>
-          
-          {/* Login Link */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-slate-600">
-              Already have an account?{' '}
-              <Link
-                href="/Login"
-                className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
-              >
-                Sign in here
+
+          <div className="mt-8 text-center border-t-2 border-blue-100 pt-6">
+            <p className="text-blue-700">
+              Sudah punya akun?{' '}
+              <Link href="/Login" className="text-blue-600 font-bold hover:text-blue-800 hover:underline transition">
+                Masuk di sini
               </Link>
             </p>
           </div>

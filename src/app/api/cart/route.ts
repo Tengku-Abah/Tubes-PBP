@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../lib/supabase';
+import { dbHelpers, ApiResponse } from '../../../lib/supabase';
 
-// Cart item interface
-interface CartItem {
+// Cart item interface for API response
+interface CartItemResponse {
   id: number;
   product: {
     id: number;
@@ -33,24 +33,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase
-      .from('cart_items')
-      .select(`
-        id,
-        quantity,
-        products (
-          id,
-          name,
-          price,
-          description,
-          image,
-          category,
-          stock,
-          rating,
-          reviews_count
-        )
-      `)
-      .eq('user_id', userId);
+    const { data, error } = await dbHelpers.getCartItems(userId);
 
     if (error) {
       console.error('Database error:', error);
@@ -115,68 +98,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cek apakah item sudah ada di cart
-    const { data: existingItem } = await supabase
-      .from('cart_items')
-      .select('id, quantity')
-      .eq('user_id', userId)
-      .eq('product_id', productId)
-      .single();
+    // Add item to cart using helper function
+    const { data, error } = await dbHelpers.addToCart(userId, productId, quantity);
 
-    if (existingItem) {
-      // Update quantity jika item sudah ada
-      const { data, error } = await supabase
-        .from('cart_items')
-        .update({ quantity: existingItem.quantity + quantity })
-        .eq('id', existingItem.id)
-        .select();
-
-      if (error) {
-        console.error('Update cart error:', error);
-        return NextResponse.json(
-          { success: false, message: 'Failed to update cart item' },
-          { status: 500 }
-        );
-      }
-    } else {
-      // Tambah item baru ke cart
-      const { data, error } = await supabase
-        .from('cart_items')
-        .insert({
-          user_id: userId,
-          product_id: productId,
-          quantity: quantity
-        })
-        .select();
-
-      if (error) {
-        console.error('Insert cart error:', error);
-        return NextResponse.json(
-          { success: false, message: 'Failed to add item to cart' },
-          { status: 500 }
-        );
-      }
+    if (error) {
+      console.error('Add to cart error:', error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to add item to cart' },
+        { status: 500 }
+      );
     }
 
     // Return updated cart items
-    const { data: cartData } = await supabase
-      .from('cart_items')
-      .select(`
-        id,
-        quantity,
-        products (
-          id,
-          name,
-          price,
-          description,
-          image,
-          category,
-          stock,
-          rating,
-          reviews_count
-        )
-      `)
-      .eq('user_id', userId);
+    const { data: cartData } = await dbHelpers.getCartItems(userId);
 
     const transformedData = cartData?.map(item => ({
       id: item.id,
@@ -223,34 +157,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    if (quantity <= 0) {
-      // Remove item if quantity is 0 or negative
-      const { error } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('id', itemId);
+    const { data, error } = await dbHelpers.updateCartItemQuantity(itemId, quantity);
 
-      if (error) {
-        console.error('Delete cart item error:', error);
-        return NextResponse.json(
-          { success: false, message: 'Failed to remove cart item' },
-          { status: 500 }
-        );
-      }
-    } else {
-      // Update quantity
-      const { error } = await supabase
-        .from('cart_items')
-        .update({ quantity })
-        .eq('id', itemId);
-
-      if (error) {
-        console.error('Update cart item error:', error);
-        return NextResponse.json(
-          { success: false, message: 'Failed to update cart item' },
-          { status: 500 }
-        );
-      }
+    if (error) {
+      console.error('Update cart item error:', error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to update cart item' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -280,10 +194,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('id', itemId);
+    const { data, error } = await dbHelpers.removeFromCart(parseInt(itemId));
 
     if (error) {
       console.error('Delete cart item error:', error);

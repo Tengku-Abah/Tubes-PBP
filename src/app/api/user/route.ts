@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { supabase } from '../../../lib/supabase';
+import { dbHelpers, ApiResponse, User } from '../../../lib/supabase';
 
 // Dummy user data (akan diganti dengan database)
 const dummyUsers = [
@@ -31,23 +31,15 @@ async function addAdminUserToDatabase() {
       email: 'admin@gmail.com',
       password: '$2b$10$voXgrTXntv2g17ERAGbfo.VdpIWNwn9PIb29g8M3FvOTlxP3.nrMi',
       name: 'Admin User',
-      role: 'admin'
+      role: 'admin' as const
     };
 
     // Cek apakah admin sudah ada
-    const { data: existingAdmin } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', 'admin@gmail.com')
-      .single();
+    const { data: existingAdmin } = await dbHelpers.getUserByEmail('admin@gmail.com');
 
     if (!existingAdmin) {
       // Tambahkan admin ke database
-      const { data, error } = await supabase
-        .from('users')
-        .insert(adminData)
-        .select()
-        .single();
+      const { data, error } = await dbHelpers.registerUser(adminData);
 
       if (error) {
         console.error('Failed to add admin user:', error);
@@ -101,16 +93,12 @@ export async function POST(request: NextRequest) {
       console.log('Supabase Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not set');
 
       // Cek apakah email sudah ada di database (case-sensitive)
-      const { data: existingUser, error: checkError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .single();
+      const { data: existingUser, error: checkError } = await dbHelpers.getUserByEmail(email);
 
       console.log('Check existing user result:', { existingUser, checkError });
 
       // Jika database error, fallback ke dummy data
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError && (checkError as any).code !== 'PGRST116') {
         console.warn('Database check failed, using dummy data fallback:', checkError);
         const dummyUser = dummyUsers.find(u => u.email === email);
         if (dummyUser) {
@@ -134,17 +122,13 @@ export async function POST(request: NextRequest) {
         email: email,
         password: hashedPassword,
         name: name,
-        role: 'pembeli' // Default role untuk user yang registrasi
+        role: 'pembeli' as const // Default role untuk user yang registrasi
         // is_active: true // Kolom ini belum ada di database
       };
 
       // Simpan ke database
       console.log('Inserting user data:', newUserData);
-      const { data: newUser, error: insertError } = await supabase
-        .from('users')
-        .insert(newUserData)
-        .select()
-        .single();
+      const { data: newUser, error: insertError } = await dbHelpers.registerUser(newUserData);
 
       console.log('Insert result:', { newUser, insertError });
 
@@ -197,16 +181,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Cari user berdasarkan email di database (case-sensitive)
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
+    const { data: user, error: userError } = await dbHelpers.getUserByEmail(email);
 
     let userData = user;
 
     // Jika database error, fallback ke dummy data
-    if (userError && userError.code !== 'PGRST116') {
+    if (userError && (userError as any).code !== 'PGRST116') {
       console.warn('Database login failed, using dummy data fallback:', userError);
       userData = dummyUsers.find(u => u.email === email);
     }

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { dbHelpers, ApiResponse } from '../../../lib/supabase';
 
-// Interface untuk Review
-interface Review {
+// Interface untuk Review response
+interface ReviewResponse {
   id: number;
   productId: number;
   userName: string;
@@ -13,7 +14,7 @@ interface Review {
 }
 
 // Dummy data untuk ulasan
-const dummyReviews: Review[] = [
+const dummyReviews: ReviewResponse[] = [
   {
     id: 1,
     productId: 1,
@@ -174,32 +175,45 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    let filteredReviews = [...dummyReviews];
+    // Get reviews from database
+    const { data: reviews, error } = await dbHelpers.getReviews(
+      productId ? parseInt(productId) : undefined
+    );
 
-    // Filter berdasarkan productId jika ada
-    if (productId) {
-      filteredReviews = filteredReviews.filter(review =>
-        review.productId === parseInt(productId)
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to fetch reviews' },
+        { status: 500 }
       );
     }
 
-    // Sort berdasarkan tanggal terbaru
-    filteredReviews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Transform database reviews to expected format
+    const transformedReviews = reviews?.map(review => ({
+      id: review.id,
+      productId: review.product_id,
+      userName: review.user_name,
+      userAvatar: review.user_avatar,
+      rating: review.rating,
+      comment: review.comment,
+      date: review.date,
+      verified: review.verified
+    })) || [];
 
     // Pagination
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
-    const paginatedReviews = filteredReviews.slice(startIndex, endIndex);
+    const paginatedReviews = transformedReviews.slice(startIndex, endIndex);
 
     // Hitung statistik rating
     const ratingStats = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    filteredReviews.forEach(review => {
+    transformedReviews.forEach(review => {
       ratingStats[review.rating as keyof typeof ratingStats]++;
     });
 
-    const totalReviews = filteredReviews.length;
+    const totalReviews = transformedReviews.length;
     const averageRating = totalReviews > 0
-      ? filteredReviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
+      ? transformedReviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
       : 0;
 
     return NextResponse.json({
@@ -208,8 +222,8 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        total: filteredReviews.length,
-        totalPages: Math.ceil(filteredReviews.length / limit)
+        total: transformedReviews.length,
+        totalPages: Math.ceil(transformedReviews.length / limit)
       },
       stats: {
         totalReviews,
@@ -247,25 +261,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Buat review baru
-    const newReview: Review = {
-      id: dummyReviews.length + 1,
-      productId: parseInt(productId),
-      userName,
-      userAvatar: userAvatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+    // Buat review baru di database
+    const { data: newReview, error } = await dbHelpers.addReview({
+      product_id: parseInt(productId),
+      user_name: userName,
+      user_avatar: userAvatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
       rating: parseInt(rating),
       comment,
       date: new Date().toISOString().split('T')[0],
       verified: false
-    };
+    });
 
-    // Tambahkan ke array (dalam implementasi nyata, ini akan disimpan ke database)
-    dummyReviews.unshift(newReview);
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to add review' },
+        { status: 500 }
+      );
+    }
+
+    // Transform to expected format
+    const transformedReview = {
+      id: newReview.id,
+      productId: newReview.product_id,
+      userName: newReview.user_name,
+      userAvatar: newReview.user_avatar,
+      rating: newReview.rating,
+      comment: newReview.comment,
+      date: newReview.date,
+      verified: newReview.verified
+    };
 
     return NextResponse.json({
       success: true,
       message: 'Review added successfully',
-      data: newReview
+      data: transformedReview
     });
 
   } catch (error) {
