@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { LayoutDashboard, Package, ShoppingCart, Users, TrendingUp, Settings, Menu, X, Zap } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, TrendingUp, Settings, Menu, X, Zap, LogOut } from 'lucide-react';
 import { useAdminContext } from '../AdminContext';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { logout } from '../../../lib/logout';
 
 export default function AdminSidebar() {
   const { sidebarOpen, setSidebarOpen, activeMenu, setActiveMenu } = useAdminContext();
@@ -71,14 +72,24 @@ export default function AdminSidebar() {
         ))}
       </nav>
 
-      {/* Footer */}
-      {sidebarOpen && (
-        <div className="p-4 border-t border-blue-700">
-          <div className="text-xs text-blue-200 text-center">
+      {/* Logout Button */}
+      <div className="p-4 border-t border-blue-700">
+        <button
+          onClick={() => logout()}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:bg-red-600/20 hover:text-red-300 ${
+            sidebarOpen ? 'text-blue-200' : 'justify-center'
+          }`}
+          title={!sidebarOpen ? 'Logout' : undefined}
+        >
+          <LogOut size={20} />
+          {sidebarOpen && <span className="font-medium">Logout</span>}
+        </button>
+        {sidebarOpen && (
+          <div className="text-xs text-blue-200 text-center mt-2">
             Admin Panel v1.0
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </aside>
   );
 }
