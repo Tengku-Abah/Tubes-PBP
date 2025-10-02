@@ -630,12 +630,12 @@ export const checkSupabaseConnection = async () => {
   try {
     // Test connection dengan query sederhana
     const { data, error } = await supabase.from('products').select('count').limit(1)
-
+    
     if (error) {
       console.warn('Supabase connection failed:', error.message)
       return { connected: false, error: error.message }
     }
-
+    
     return { connected: true, error: null }
   } catch (error) {
     console.warn('Supabase connection test failed:', error)

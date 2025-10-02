@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
@@ -8,6 +8,8 @@ import { useToast } from '../../components/Toast';
 import { requireAdmin, getAuthHeaders } from '../../lib/auth';
 import { logout } from '../../lib/logout';
 import AdminProtection from '../../components/AdminProtection';
+import { useAdminContext } from './AdminContext';
+import { DollarSign, X, ShoppingCart, Package, Users, TrendingUp, CheckCircle, Clock, ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react';
 
 // Define types
 interface Product {
@@ -52,12 +54,7 @@ const Plus = (props: any) => <span {...props}>+</span>;
 const Edit = (props: any) => <span {...props}>✏️</span>;
 const Trash2 = (props: any) => <span {...props}>🗑️</span>;
 const Search = (props: any) => <span {...props}>🔍</span>;
-const Package = (props: any) => <span {...props}>📦</span>;
-const ShoppingCart = (props: any) => <span {...props}>🛒</span>;
-const TrendingUp = (props: any) => <span {...props}>📈</span>;
-const DollarSign = (props: any) => <span {...props}>💰</span>;
 const Eye = (props: any) => <span {...props}>👁️</span>;
-const X = (props: any) => <span {...props}>❌</span>;
 const Check = (props: any) => <span {...props}>✅</span>;
 
 const AdminPanel = () => {
@@ -69,6 +66,22 @@ const AdminPanel = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
 
+  // State untuk customers
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [customerFilter, setCustomerFilter] = useState('all');
+
+  // State untuk UI - menggunakan Context
+  const { activeMenu, setActiveMenu } = useAdminContext();
+
+  // Sync activeMenu dengan URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const menuParam = urlParams.get('menu');
+    if (menuParam && menuParam !== activeMenu) {
+      setActiveMenu(menuParam);
+    }
+  }, [activeMenu, setActiveMenu]);
 
   // Popup Alert
   const { alertState, showSuccess, showError, showWarning, showConfirm, hideAlert } = usePopupAlert();
@@ -78,6 +91,7 @@ const AdminPanel = () => {
   useEffect(() => {
     loadProducts();
     loadOrders();
+    loadCustomers();
 
     // Show welcome toast for admin
     let userData = sessionStorage.getItem('user');
@@ -100,7 +114,7 @@ const AdminPanel = () => {
             sessionStorage.setItem('loginTime', now.toString());
             document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; max-age=2592000`;
             userData = JSON.stringify(parsedUser);
-          } else {
+      } else {
             // Login expired, clear localStorage
             localStorage.removeItem('user');
             localStorage.removeItem('rememberMe');
@@ -132,8 +146,6 @@ const AdminPanel = () => {
 
   const loadProducts = async () => {
     try {
-      // Load products from Supabase database
-      console.log('Loading products from Supabase database');
 
       const { data, error } = await supabase
         .from('products')
@@ -142,49 +154,7 @@ const AdminPanel = () => {
 
       if (error) {
         console.error('Error loading products:', error);
-        // Fallback to dummy data if database error
-        const dummyProducts = [
-          {
-            id: 1,
-            name: "iPhone 15 Pro",
-            price: 15000000,
-            stock: 25,
-            category: "Electronics",
-            image: "/api/placeholder/300/200",
-            description: "Latest iPhone with advanced features",
-            rating: 4.8,
-            reviews_count: 150,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: 2,
-            name: "MacBook Air M2",
-            price: 18000000,
-            stock: 15,
-            category: "Electronics",
-            image: "/api/placeholder/300/200",
-            description: "Powerful laptop for professionals",
-            rating: 4.9,
-            reviews_count: 89,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: 3,
-            name: "AirPods Pro",
-            price: 3500000,
-            stock: 50,
-            category: "Electronics",
-            image: "/api/placeholder/300/200",
-            description: "Wireless earbuds with noise cancellation",
-            rating: 4.7,
-            reviews_count: 234,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ];
-        setProducts(dummyProducts);
+        setProducts([]);
         return;
       }
 
@@ -204,7 +174,6 @@ const AdminPanel = () => {
       })) || [];
 
       setProducts(transformedProducts);
-      console.log(`Loaded ${transformedProducts.length} products from database`);
 
     } catch (error) {
       console.error('Error loading products:', error);
@@ -217,93 +186,65 @@ const AdminPanel = () => {
 
   const loadOrders = async () => {
     try {
-      // Load orders from Supabase database
-      console.log('Loading orders from Supabase database');
+      const response = await fetch('/api/orders');
+      const result = await response.json();
 
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items (
-            id,
-            product_id,
-            quantity,
-            products (
-              id,
-              name,
-              price
-            )
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading orders:', error);
-        // Fallback to dummy data if database error
-        const dummyOrders = [
-          {
-            id: 1,
-            customerName: "John Doe",
-            products: [
-              { id: 1, name: "iPhone 15 Pro", quantity: 1, price: 15000000 },
-              { id: 2, name: "MacBook Air M2", quantity: 1, price: 18000000 }
-            ],
-            total: 33000000,
-            status: "completed",
-            date: "26/9/2025"
-          },
-          {
-            id: 2,
-            customerName: "Jane Smith",
-            products: [
-              { id: 3, name: "AirPods Pro", quantity: 2, price: 3500000 }
-            ],
-            total: 7000000,
-            status: "processing",
-            date: "25/9/2025"
-          },
-          {
-            id: 3,
-            customerName: "Bob Johnson",
-            products: [
-              { id: 1, name: "iPhone 15 Pro", quantity: 1, price: 15000000 }
-            ],
-            total: 15000000,
-            status: "pending",
-            date: "24/9/2025"
-          }
-        ];
-        setOrders(dummyOrders);
-        return;
+      if (result.success) {
+        // Transform data untuk kompatibilitas dengan UI yang ada
+        const transformedOrders = result.data.map((order: any) => ({
+          id: order.id,
+          customerName: order.customerName,
+          products: order.items || [], // Menggunakan items dari API
+          total: order.totalAmount,
+          status: order.status,
+          date: new Date(order.orderDate).toLocaleDateString('id-ID')
+        }));
+        
+        setOrders(transformedOrders);
+      } else {
+        console.error('Error loading orders:', result.message);
+        setOrders([]);
       }
-
-      // Transform data to match expected format
-      const transformedOrders = data?.map(order => ({
-        id: order.id,
-        customerName: order.customer_name || 'Unknown Customer',
-        products: order.order_items?.map((item: any) => ({
-          id: item.product_id,
-          name: item.products?.name || 'Unknown Product',
-          quantity: item.quantity,
-          price: item.products?.price || 0
-        })) || [],
-        total: order.total_amount || 0,
-        status: order.status || 'pending',
-        date: new Date(order.created_at).toLocaleDateString('id-ID')
-      })) || [];
-
-      setOrders(transformedOrders);
-      console.log(`Loaded ${transformedOrders.length} orders from database`);
-
     } catch (error) {
       console.error('Error loading orders:', error);
-      // Fallback to empty array on error
       setOrders([]);
     }
   };
 
+  const loadCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'pembeli');
+
+      if (error) {
+        console.error('Error loading customers:', error);
+        setCustomers([]);
+        return;
+      }
+
+      // Transform data untuk memastikan field names yang konsisten
+      const transformedCustomers = (data || []).map(customer => ({
+        id: customer.id,
+        name: customer.name || customer.nama_lengkap || customer.full_name || 'N/A',
+        email: customer.email,
+        phone: customer.phone || customer.no_telepon || customer.phone_number || 'N/A',
+        status: customer.status || 'active', // Default status jika tidak ada
+        created_at: customer.created_at,
+        last_login_at: customer.last_login_at || customer.last_login || customer.updated_at,
+        role: customer.role
+      }));
+
+      console.log('Loaded customers:', transformedCustomers.length, 'customers');
+      setCustomers(transformedCustomers);
+    } catch (error) {
+      console.error('Error loading customers:', error);
+      setCustomers([]);
+    }
+  };
+
   // State untuk UI
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'add' | 'edit' | 'view' | ''>('');
   const [selectedItem, setSelectedItem] = useState<Product | Order | null>(null);
@@ -333,6 +274,39 @@ const AdminPanel = () => {
   };
 
   const stats = calculateStats();
+
+  // Stats untuk dashboard
+  const dashboardStats = [
+    { 
+      title: 'Total Penjualan', 
+      value: `Rp ${stats.totalRevenue.toLocaleString('id-ID')}`, 
+      change: '+12.5%', 
+      icon: DollarSign, 
+      color: 'bg-blue-500' 
+    },
+    { 
+      title: 'Pesanan Baru', 
+      value: orders.filter(order => order.status === 'pending' || order.status === 'processing').length.toString(), 
+      change: '+8', 
+      icon: ShoppingCart, 
+      color: 'bg-blue-600' 
+    },
+    { 
+      title: 'Total Produk', 
+      value: stats.totalProducts.toString(), 
+      change: '+5', 
+      icon: Package, 
+      color: 'bg-blue-700' 
+    },
+    { 
+      title: 'Pelanggan', 
+      value: orders.length.toString(), 
+      change: '+15', 
+      icon: Users, 
+      color: 'bg-blue-800' 
+    }
+  ];
+
 
   // Validasi form
   const validateForm = () => {
@@ -364,7 +338,6 @@ const AdminPanel = () => {
     try {
       // Secure authentication check
       const user = requireAdmin();
-      console.log(`Adding product as admin: ${user.name}`);
 
       // Use secure headers for API calls
       const authHeaders = getAuthHeaders();
@@ -407,7 +380,6 @@ const AdminPanel = () => {
     try {
       // Secure authentication check
       const user = requireAdmin();
-      console.log(`Updating product as admin: ${user.name}`);
 
       // Use secure headers for API calls
       const authHeaders = getAuthHeaders();
@@ -454,7 +426,6 @@ const AdminPanel = () => {
         try {
           // Secure authentication check
           const user = requireAdmin();
-          console.log(`Deleting product as admin: ${user.name}`);
 
           // Use secure headers for API calls
           const authHeaders = getAuthHeaders();
@@ -552,10 +523,53 @@ const AdminPanel = () => {
     setUploadingImage(false);
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+
+  const filteredProducts = products.filter(product => {
+    if (!searchTerm.trim()) {
+      return true;
+    }
+    
+    const searchLower = searchTerm.toLowerCase();
+    return product.name.toLowerCase().includes(searchLower) ||
+           product.category.toLowerCase().includes(searchLower) ||
+           product.description?.toLowerCase().includes(searchLower) ||
+           product.id.toString().includes(searchTerm);
+  });
+
+  const filteredCustomers = customers.filter(customer => {
+    const matchesSearch = !customerSearchTerm.trim() || 
+      customer.name?.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+      customer.email.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+      customer.phone?.toLowerCase().includes(customerSearchTerm.toLowerCase());
+    
+    const matchesFilter = (() => {
+      if (customerFilter === 'all') return true;
+      if (customerFilter === 'active') return customer.status === 'active';
+      if (customerFilter === 'inactive') return customer.status === 'inactive';
+      
+      // Filter berdasarkan terakhir aktif
+      if (customerFilter === 'recent') {
+        if (!customer.last_login_at) return false;
+        const lastLogin = new Date(customer.last_login_at);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return lastLogin >= thirtyDaysAgo;
+      }
+      
+      if (customerFilter === 'inactive_long') {
+        if (!customer.last_login_at) return true; // Belum pernah login
+        const lastLogin = new Date(customer.last_login_at);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return lastLogin < thirtyDaysAgo;
+      }
+      
+      return true;
+    })();
+    
+    return matchesSearch && matchesFilter;
+  });
+
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -620,171 +634,8 @@ const AdminPanel = () => {
     }
   };
 
-  // Dashboard Component
-  const Dashboard = () => (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Total Produk</p>
-              <p className="text-3xl font-bold text-gray-800">{stats.totalProducts}</p>
-            </div>
-            <Package className="text-blue-500" size={32} />
-          </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Total Stok</p>
-              <p className="text-3xl font-bold text-gray-800">{stats.totalStock}</p>
-            </div>
-            <TrendingUp className="text-green-500" size={32} />
-          </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Total Order</p>
-              <p className="text-3xl font-bold text-gray-800">{stats.totalOrders}</p>
-            </div>
-            <ShoppingCart className="text-purple-500" size={32} />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Total Revenue</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrency(stats.totalRevenue)}</p>
-            </div>
-            <DollarSign className="text-yellow-500" size={32} />
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Produk Stok Rendah</h3>
-          <div className="space-y-3">
-            {products.filter(p => p.stock <= 10).map(product => (
-              <div key={product.id} className="flex items-center justify-between p-3 bg-red-50 rounded">
-                <span className="text-gray-800">{product.name}</span>
-                <span className="text-red-600 font-semibold">Stok: {product.stock}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Order Terbaru</h3>
-          <div className="space-y-3">
-            {orders.slice(0, 5).map(order => (
-              <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                <div>
-                  <p className="font-medium text-gray-800">{order.customerName}</p>
-                  <p className="text-sm text-gray-600">{order.date}</p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                  order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                  {order.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Products Component
-  const Products = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Manajemen Produk</h2>
-        <button
-          onClick={() => openModal('add')}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-        >
-          <Plus size={20} />
-          Tambah Produk
-        </button>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-md">
-        <div className="p-6 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Cari produk..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produk</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <img className="h-12 w-12 rounded-lg object-cover" src={product.image} alt={product.name} />
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(product.price)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock <= 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                      }`}>
-                      {product.stock}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => openModal('edit', product)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteProduct(product.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
 
   // Orders Component
   const Orders = () => (
@@ -823,11 +674,11 @@ const AdminPanel = () => {
                       onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
                       disabled={updatingStatus === order.id}
                       className={`px-3 py-1 rounded-full text-xs font-medium border-0 ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                          order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                            order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                              order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                'bg-yellow-100 text-yellow-800'
+                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                              order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                  'bg-yellow-100 text-yellow-800'
                         } ${updatingStatus === order.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <option value="pending">Pending</option>
@@ -856,341 +707,1045 @@ const AdminPanel = () => {
     </div>
   );
 
+  // Customers Component
+  const Customers = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">Manajemen Pelanggan</h2>
+        <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Cari pelanggan..."
+            value={customerSearchTerm}
+            onChange={(e) => setCustomerSearchTerm(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <select
+            value={customerFilter}
+            onChange={(e) => setCustomerFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">Semua Status</option>
+            <option value="active">Aktif</option>
+            <option value="inactive">Tidak Aktif</option>
+            <option value="recent">Aktif 30 Hari Terakhir</option>
+            <option value="inactive_long">Tidak Aktif &gt; 30 Hari</option>
+          </select>
+        </div>
+      </div>
 
-  return (
-    <AdminProtection>
-      <div className="min-h-screen bg-gray-100">
-        {ToastComponent}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telepon</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bergabung</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terakhir Aktif</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredCustomers.map((customer: any) => (
+                <tr key={customer.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{customer.id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{customer.name || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{customer.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{customer.phone || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      customer.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {customer.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {customer.created_at ? new Date(customer.created_at).toLocaleDateString('id-ID') : 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {customer.last_login_at ? new Date(customer.last_login_at).toLocaleDateString('id-ID') : 'Belum pernah login'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
+
+  // Financial Report Component
+  const Analytics = () => {
+    const [selectedPeriod, setSelectedPeriod] = useState('all');
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [selectedQuarter, setSelectedQuarter] = useState(1);
+    const [selectedSemester, setSelectedSemester] = useState(1);
+    const [financialData, setFinancialData] = useState<any>(null);
+    const [loading, setLoading] = useState(false);
+
+    // Load financial data from API
+    const loadFinancialData = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          period: selectedPeriod,
+          year: selectedYear.toString(),
+          month: selectedMonth.toString(),
+          quarter: selectedQuarter.toString(),
+          semester: selectedSemester.toString()
+        });
+
+        const response = await fetch(`/api/financial?${params}`);
+        const result = await response.json();
+
+        if (result.success) {
+          setFinancialData(result.data);
+        } else {
+          console.error('Error loading financial data:', result.message);
+          showError('Gagal memuat data laporan keuangan');
+        }
+      } catch (error) {
+        console.error('Error loading financial data:', error);
+        showError('Gagal memuat data laporan keuangan');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Load data when period changes
+    useEffect(() => {
+      loadFinancialData();
+    }, [selectedPeriod, selectedYear, selectedMonth, selectedQuarter, selectedSemester]);
+
+    // Use API data or fallback to local calculation
+    const productSales = financialData?.productPerformance || [];
+    const financialTotalRevenue = financialData?.summary?.totalRevenue || 0;
+    const totalUnitsSold = financialData?.summary?.totalUnitsSold || 0;
+    const totalOrders = financialData?.summary?.totalOrders || 0;
+
+    return (
+      <div className="space-y-8">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-              <div className="flex items-center space-x-4">
-                <span className="text-gray-600">Selamat datang, Admin</span>
-                <button
-                  onClick={() => logout()}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Logout
-                </button>
+        <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-xl p-6 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/5"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-lg">
+                    <DollarSign className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold mb-1">Laporan Keuangan</h1>
+                    <p className="text-green-100 text-sm">Analisis pendapatan dan performa bisnis</p>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20">
+                  <p className="text-green-100 text-xs font-medium mb-1">Periode Laporan</p>
+                  <p className="text-lg font-semibold text-white">
+                    {selectedPeriod === 'all' && 'Semua Data'}
+                    {selectedPeriod === 'month' && `${new Date(0, selectedMonth).toLocaleString('id-ID', { month: 'long' })} ${selectedYear}`}
+                    {selectedPeriod === 'quarter' && `Q${selectedQuarter} ${selectedYear}`}
+                    {selectedPeriod === 'semester' && `Semester ${selectedSemester} ${selectedYear}`}
+                    {selectedPeriod === 'year' && selectedYear.toString()}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-green-400 text-xs font-medium">
+                      {financialData?.debug?.ordersFound || 0} orders ditemukan
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </header>
+        </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Navigation Tabs */}
-          <div className="mb-8">
-            <nav className="flex space-x-8">
-              {[
-                { key: 'dashboard', label: 'Dashboard', icon: TrendingUp },
-                { key: 'products', label: 'Produk', icon: Package },
-                { key: 'orders', label: 'Order', icon: ShoppingCart },
-              ].map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveTab(key)}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === key
-                    ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                >
-                  <Icon className="mr-2" size={18} />
-                  {label}
-                </button>
-              ))}
-            </nav>
+        {/* Period Selection */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Pilih Periode Laporan</h3>
+            <div className="flex items-center gap-3">
+              {loading && (
+                <div className="flex items-center gap-2 text-green-600">
+                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm font-medium">Memuat data...</span>
+                </div>
+              )}
+              <button
+                onClick={loadFinancialData}
+                disabled={loading}
+                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              >
+                Refresh Data
+              </button>
+            </div>
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Period Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Periode</label>
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+              >
+                <option value="all">Semua Data</option>
+                <option value="month">Bulanan</option>
+                <option value="quarter">Kuartal</option>
+                <option value="semester">Semester</option>
+                <option value="year">Tahunan</option>
+              </select>
+            </div>
 
-          {/* Content */}
-          <div>
-            {loading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="text-lg text-gray-600">Loading...</div>
+            {/* Month Selection */}
+            {selectedPeriod === 'month' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Bulan</label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i} value={i}>
+                      {new Date(0, i).toLocaleString('id-ID', { month: 'long' })}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ) : (
-              <>
-                {activeTab === 'dashboard' && <Dashboard />}
-                {activeTab === 'products' && <Products />}
-                {activeTab === 'orders' && <Orders />}
-              </>
             )}
+
+            {/* Quarter Selection */}
+            {selectedPeriod === 'quarter' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Kuartal</label>
+                <select
+                  value={selectedQuarter}
+                  onChange={(e) => setSelectedQuarter(parseInt(e.target.value))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                >
+                  <option value={1}>Q1 (Jan-Mar)</option>
+                  <option value={2}>Q2 (Apr-Jun)</option>
+                  <option value={3}>Q3 (Jul-Sep)</option>
+                  <option value={4}>Q4 (Okt-Des)</option>
+                </select>
+              </div>
+            )}
+
+            {/* Semester Selection */}
+            {selectedPeriod === 'semester' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Semester</label>
+                <select
+                  value={selectedSemester}
+                  onChange={(e) => setSelectedSemester(parseInt(e.target.value))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                >
+                  <option value={1}>Semester 1 (Jan-Jun)</option>
+                  <option value={2}>Semester 2 (Jul-Des)</option>
+                </select>
+              </div>
+            )}
+
+            {/* Year Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tahun</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+              >
+                {Array.from({ length: 5 }, (_, i) => {
+                  const year = new Date().getFullYear() - i;
+                  return (
+                    <option key={year} value={year}>{year}</option>
+                  );
+                })}
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* Modal */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">
-                  {modalType === 'add' ? 'Tambah Produk' :
-                    modalType === 'edit' ? 'Edit Produk' : 'Detail Order'}
-                </h3>
-                <button
-                  onClick={() => {
-                    resetForm();
-                    setShowModal(false);
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X size={24} />
-                </button>
+        {/* No Data Message */}
+        {!loading && financialData && financialData.debug.ordersFound === 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-yellow-100 rounded-lg">
+                <Package className="w-5 h-5 text-yellow-600" />
               </div>
-
-              {(modalType === 'add' || modalType === 'edit') && (
-                <div className="space-y-6">
-                  {/* Row 1: Nama Produk dan Harga */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Nama Produk */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nama Produk *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Masukkan nama produk"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={productForm.name}
-                        onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                      />
-                    </div>
-
-                    {/* Harga */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Harga (Rp) *
-                      </label>
-                      <input
-                        type="number"
-                        placeholder="Masukkan harga produk"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={productForm.price}
-                        onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Stok dan Kategori */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Stok */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Stok *
-                      </label>
-                      <input
-                        type="number"
-                        placeholder="Masukkan jumlah stok"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={productForm.stock}
-                        onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
-                      />
-                    </div>
-
-                    {/* Kategori */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Kategori *
-                      </label>
-                      <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={productForm.category}
-                        onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                      >
-                        <option value="">Pilih Kategori</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Fashion">Fashion</option>
-                        <option value="Audio">Audio</option>
-                        <option value="Accessories">Accessories</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Row 3: Upload Gambar dan Deskripsi */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Upload Gambar */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Gambar Produk
-                      </label>
-
-                      {/* Drag & Drop Area */}
-                      <div
-                        className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${isDragOver
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-300 hover:border-gray-400'
-                          }`}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                      >
-                        {productForm.image ? (
-                          <div className="space-y-2">
-                            <img
-                              src={productForm.image}
-                              alt="Preview"
-                              className="mx-auto h-20 w-20 object-cover rounded-lg"
-                            />
-                            <p className="text-xs text-gray-600">Gambar saat ini</p>
-                            <button
-                              type="button"
-                              onClick={() => setProductForm({ ...productForm, image: '' })}
-                              className="text-red-600 text-xs hover:text-red-800"
-                            >
-                              Hapus Gambar
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <div className="text-3xl text-gray-400">📷</div>
-                            <p className="text-xs text-gray-600">
-                              Drag & drop atau klik untuk memilih
-                            </p>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileSelect}
-                              className="hidden"
-                              id="image-upload"
-                            />
-                            <label
-                              htmlFor="image-upload"
-                              className="inline-block px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 cursor-pointer"
-                            >
-                              {uploadingImage ? 'Mengupload...' : 'Pilih Gambar'}
-                            </label>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* URL Input sebagai alternatif */}
-                      <div className="mt-2">
-                        <label className="block text-xs text-gray-500 mb-1">
-                          Atau masukkan URL gambar:
-                        </label>
-                        <input
-                          type="url"
-                          placeholder="https://example.com/image.jpg"
-                          className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                          value={productForm.image}
-                          onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Deskripsi */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Deskripsi Produk
-                      </label>
-                      <textarea
-                        placeholder="Masukkan deskripsi produk (opsional)"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        rows={4}
-                        value={productForm.description}
-                        onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  {/* Tombol Aksi */}
-                  <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-                    <button
-                      onClick={modalType === 'add' ? handleAddProduct : handleEditProduct}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
-                    >
-                      {modalType === 'add' ? 'Tambah' : 'Update'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        resetForm();
-                        setShowModal(false);
-                      }}
-                      className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md transition-colors"
-                    >
-                      Batal
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {modalType === 'view' && selectedItem && 'customerName' in selectedItem && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p><strong>Customer:</strong> {selectedItem.customerName}</p>
-                      <p><strong>Total:</strong> {formatCurrency(selectedItem.total)}</p>
-                    </div>
-                    <div>
-                      <p><strong>Status:</strong>
-                        <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${selectedItem.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          selectedItem.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                            selectedItem.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                              selectedItem.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                selectedItem.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                  'bg-yellow-100 text-yellow-800'
-                          }`}>
-                          {selectedItem.status}
-                        </span>
-                      </p>
-                      <p><strong>Tanggal:</strong> {selectedItem.date}</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <strong>Produk:</strong>
-                    {selectedItem.products && selectedItem.products.length > 0 ? (
-                      <ul className="mt-2 space-y-1">
-                        {selectedItem.products.map((product: any, index: number) => (
-                          <li key={index} className="text-sm text-gray-600 flex justify-between">
-                            <span>{product.productName || product.name} x {product.quantity}</span>
-                            <span>{formatCurrency(product.price * product.quantity)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-2 text-gray-500">Tidak ada produk dalam order ini</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {modalType === 'view' && (!selectedItem || !('customerName' in selectedItem)) && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Tidak ada data order yang dipilih</p>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="mt-4 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-                  >
-                    Tutup
-                  </button>
-                </div>
-              )}
+              <div>
+                <h3 className="text-base font-semibold text-yellow-800 mb-1">Tidak Ada Data</h3>
+                <p className="text-yellow-700 text-sm">
+                  Tidak ditemukan pesanan untuk periode{' '}
+                  {selectedPeriod === 'all' && 'Semua Data'}
+                  {selectedPeriod === 'month' && `${new Date(0, selectedMonth).toLocaleString('id-ID', { month: 'long' })} ${selectedYear}`}
+                  {selectedPeriod === 'quarter' && `Q${selectedQuarter} ${selectedYear}`}
+                  {selectedPeriod === 'semester' && `Semester ${selectedSemester} ${selectedYear}`}
+                  {selectedPeriod === 'year' && selectedYear.toString()}.
+                  Coba pilih periode lain atau pastikan ada data pesanan.
+                </p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Popup Alert */}
-        <PopupAlert
-          isOpen={alertState.isOpen}
-          onClose={hideAlert}
-          title={alertState.title}
-          message={alertState.message}
-          type={alertState.type}
-          showConfirmButton={alertState.showConfirmButton}
-          confirmText={alertState.confirmText}
-          onConfirm={alertState.onConfirm}
-          showCancelButton={alertState.showCancelButton}
-          cancelText={alertState.cancelText}
-          onCancel={alertState.onCancel}
-          autoClose={alertState.autoClose}
-          autoCloseDelay={alertState.autoCloseDelay}
-        />
+        {/* Financial Summary Cards */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 animate-pulse">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                  <div className="w-12 h-5 bg-gray-200 rounded-full"></div>
+                </div>
+                <div>
+                  <div className="w-20 h-3 bg-gray-200 rounded mb-2"></div>
+                  <div className="w-24 h-6 bg-gray-200 rounded mb-1"></div>
+                  <div className="w-16 h-2 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 bg-green-50 rounded-lg">
+                  <DollarSign className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="flex items-center gap-1 px-2 py-1 bg-green-50 rounded-full">
+                  <ArrowUpRight className="w-3 h-3 text-green-600" />
+                  <span className="text-xs font-medium text-green-600">+15.2%</span>
+                </div>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm font-medium mb-1">Total Pendapatan</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">{formatCurrency(financialTotalRevenue)}</h3>
+                <p className="text-gray-400 text-xs">Periode terpilih</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 bg-blue-50 rounded-lg">
+                  <Package className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-full">
+                  <ArrowUpRight className="w-3 h-3 text-blue-600" />
+                  <span className="text-xs font-medium text-blue-600">+8.7%</span>
+                </div>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm font-medium mb-1">Total Unit Terjual</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">{totalUnitsSold.toLocaleString('id-ID')}</h3>
+                <p className="text-gray-400 text-xs">Unit produk</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 bg-purple-50 rounded-lg">
+                  <ShoppingCart className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="flex items-center gap-1 px-2 py-1 bg-purple-50 rounded-full">
+                  <ArrowUpRight className="w-3 h-3 text-purple-600" />
+                  <span className="text-xs font-medium text-purple-600">+12.3%</span>
+                </div>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm font-medium mb-1">Total Transaksi</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">{totalOrders.toLocaleString('id-ID')}</h3>
+                <p className="text-gray-400 text-xs">Pesanan</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Financial Charts */}
+        {!loading && financialData && financialData.debug.ordersFound > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Revenue Chart */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Top 10 Produk Berdasarkan Pendapatan</h3>
+                <p className="text-gray-500 text-sm">Produk dengan revenue tertinggi</p>
+              </div>
+              <div className="p-2.5 bg-blue-50 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+            <div className="space-y-4">
+              {productSales
+                .sort((a: any, b: any) => b.totalRevenue - a.totalRevenue)
+                .slice(0, 10)
+                .map((product: any, index: number) => {
+                const sortedProducts = productSales.sort((a: any, b: any) => b.totalRevenue - a.totalRevenue).slice(0, 10);
+                const maxRevenue = Math.max(...sortedProducts.map((p: any) => p.totalRevenue));
+                const percentage = maxRevenue > 0 ? (product.totalRevenue / maxRevenue) * 100 : 0;
+                return (
+                  <div key={product.id} className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                        {index + 1}
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 truncate flex-1">{product.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                        <div 
+                          className="bg-blue-500 h-1.5 rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-sm font-semibold text-gray-900">{formatCurrency(product.totalRevenue)}</span>
+                        <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
+                          ({financialTotalRevenue > 0 ? ((product.totalRevenue / financialTotalRevenue) * 100).toFixed(1) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Units Sold Chart */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Top 10 Produk Berdasarkan Unit Terjual</h3>
+                <p className="text-gray-500 text-sm">Produk dengan penjualan tertinggi</p>
+              </div>
+              <div className="p-2.5 bg-green-50 rounded-lg">
+                <Package className="w-5 h-5 text-green-600" />
+              </div>
+            </div>
+            <div className="space-y-4">
+              {productSales
+                .sort((a: any, b: any) => b.totalSold - a.totalSold)
+                .slice(0, 10)
+                .map((product: any, index: number) => {
+                const sortedProducts = productSales.sort((a: any, b: any) => b.totalSold - a.totalSold).slice(0, 10);
+                const maxUnits = Math.max(...sortedProducts.map((p: any) => p.totalSold));
+                const percentage = maxUnits > 0 ? (product.totalSold / maxUnits) * 100 : 0;
+                
+                return (
+                  <div key={product.id} className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                        {index + 1}
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 truncate flex-1">{product.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                        <div 
+                          className="bg-green-500 h-1.5 rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-sm font-semibold text-gray-900">{product.totalSold.toLocaleString('id-ID')}</span>
+                        <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">unit</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        )}
+
+        {/* Detailed Product Table */}
+        {!loading && financialData && financialData.debug.ordersFound > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Detail Laporan Produk</h3>
+                <p className="text-gray-500 text-sm">Data lengkap penjualan setiap produk</p>
+              </div>
+              <div className="p-2.5 bg-indigo-50 rounded-lg">
+                <DollarSign className="w-5 h-5 text-indigo-600" />
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produk</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Satuan</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Terjual</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Pendapatan</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Transaksi</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {productSales
+                  .sort((a: any, b: any) => b.totalRevenue - a.totalRevenue)
+                  .map((product: any, index: number) => (
+                  <tr key={product.id} className="hover:bg-gray-50 transition-colors duration-150">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <img className="h-10 w-10 rounded-lg object-cover" src={product.image} alt={product.name} />
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                          <div className="text-xs text-gray-500">ID: #{product.id}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+                        {product.category}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{formatCurrency(product.price)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">
+                        {product.totalSold.toLocaleString('id-ID')} unit
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
+                      {formatCurrency(product.totalRevenue)}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
+                        {product.ordersCount} transaksi
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        )}
       </div>
-    </AdminProtection>
+    );
+  };
+
+  // Settings Component
+  const Settings = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-800">Pengaturan Sistem</h2>
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <p className="text-gray-600">Pengaturan sistem akan segera tersedia.</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {activeMenu === 'dashboard' && (
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl p-8 text-white relative overflow-hidden">
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-32"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-4xl font-bold mb-2">Dashboard Admin</h1>
+                  <p className="text-blue-100 text-lg">Selamat datang di panel administrasi ElektroShop</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-blue-100 text-sm font-medium mb-1">Last Updated</p>
+                  <p className="text-2xl font-bold text-white">{new Date().toLocaleTimeString('id-ID', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-green-400 text-xs font-medium">Live</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {dashboardStats.map((stat, index) => (
+              <div key={index} className="group bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-4 rounded-2xl ${stat.color} shadow-lg`}>
+                    <stat.icon className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="flex items-center gap-1 px-3 py-1 bg-green-100 rounded-full">
+                    <ArrowUpRight className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-semibold text-green-600">{stat.change}</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-gray-600 text-sm font-medium mb-2">{stat.title}</p>
+                  <h3 className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</h3>
+                  <p className="text-gray-500 text-xs">vs bulan lalu</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Orders */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Pesanan Terbaru</h3>
+                  <p className="text-gray-600 text-sm">5 pesanan terakhir</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl">
+                  <ShoppingCart className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-4">
+                {orders.slice(0, 5).map((order) => (
+                  <div key={order.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border-2 border-gray-200 shadow-sm">
+                        <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{order.customerName}</h4>
+                        <p className="text-sm text-gray-500">{order.date}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">{formatCurrency(order.total)}</p>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {order.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {orders.length === 0 && (
+                  <div className="text-center py-8">
+                    <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">Belum ada pesanan</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Top Products */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Produk Terlaris</h3>
+                  <p className="text-gray-600 text-sm">5 produk terbaik</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl">
+                  <Package className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="space-y-4">
+                {products.slice(0, 5).map((product, index) => {
+                  const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32', '#4A90E2', '#7B68EE'];
+                  
+                  return (
+                    <div key={product.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
+                      <div className="flex items-center gap-4">
+                        <img 
+                          className="w-16 h-16 rounded-xl object-cover shadow-lg" 
+                          src={product.image} 
+                          alt={product.name}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'https://via.placeholder.com/64x64?text=No+Image';
+                          }}
+                        />
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{product.name}</h4>
+                          <p className="text-sm text-gray-500">{product.category}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">{formatCurrency(product.price)}</p>
+                        <p className="text-sm text-gray-500">Stok: {product.stock}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+                {products.length === 0 && (
+                  <div className="text-center py-8">
+                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">Belum ada produk</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+
+
+          {/* Stock Monitoring */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Monitoring Stok</h3>
+                <p className="text-gray-600 text-sm">Status stok produk</p>
+              </div>
+              <div className="p-3 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl">
+                <Package className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            
+            {/* Stock Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="p-4 rounded-xl border border-red-200 bg-red-50">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <h4 className="font-semibold text-gray-900">Stok Habis</h4>
+                </div>
+                <p className="text-2xl font-bold text-red-700 mb-1">
+                  {products.filter(product => product.stock === 0).length}
+                </p>
+                <p className="text-xs text-red-600">Produk perlu restock</p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-yellow-200 bg-yellow-50">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                  <h4 className="font-semibold text-gray-900">Stok Rendah</h4>
+                </div>
+                <p className="text-2xl font-bold text-yellow-700 mb-1">
+                  {products.filter(product => product.stock > 0 && product.stock <= 10).length}
+                </p>
+                <p className="text-xs text-yellow-600">≤ 10 unit</p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-green-200 bg-green-50">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <h4 className="font-semibold text-gray-900">Stok Normal</h4>
+                </div>
+                <p className="text-2xl font-bold text-green-700 mb-1">
+                  {products.filter(product => product.stock > 10).length}
+                </p>
+                <p className="text-xs text-green-600"> 10 unit</p>
+              </div>
+            </div>
+
+            {/* Low Stock Products */}
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-4">Produk dengan Stok Rendah</h4>
+              <div className="space-y-3">
+                {products.filter(product => product.stock <= 10).slice(0, 5).map((product) => (
+                  <div key={product.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <img className="w-10 h-10 rounded-lg object-cover" src={product.image} alt={product.name} />
+                      <div>
+                        <h5 className="font-medium text-gray-900">{product.name}</h5>
+                        <p className="text-sm text-gray-500">{product.category}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold ${product.stock === 0 ? 'text-red-600' : 'text-yellow-600'}`}>
+                        {product.stock} unit
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {product.stock === 0 ? 'Habis' : 'Rendah'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {products.filter(product => product.stock <= 10).length === 0 && (
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    </div>
+                    <p className="text-gray-500">Semua produk memiliki stok yang cukup</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {activeMenu === 'products' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-gray-800">Manajemen Produk</h2>
+            <button
+              onClick={() => openModal('add')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4 inline mr-2" />
+              Tambah Produk
+            </button>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="p-4 border-b border-gray-200">
+              <input
+                type="text"
+                placeholder="Cari produk..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produk</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredProducts.map((product) => (
+                    <tr key={product.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <img className="h-12 w-12 rounded-lg object-cover" src={product.image} alt={product.name} />
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                            <div className="text-sm text-gray-500">ID: #{product.id}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(product.price)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.stock}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => openModal('edit', product)}
+                          className="text-blue-600 hover:text-blue-900 mr-3"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(product.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeMenu === 'orders' && <Orders />}
+      {activeMenu === 'customers' && <Customers />}
+      {activeMenu === 'keuangan' && <Analytics />}
+      {activeMenu === 'settings' && <Settings />}
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">
+                {modalType === 'add' && 'Tambah Produk'}
+                {modalType === 'edit' && 'Edit Produk'}
+                {modalType === 'view' && 'Detail Order'}
+              </h3>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {modalType === 'view' && selectedItem && 'customerName' in selectedItem && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Customer</label>
+                  <p className="text-sm text-gray-900">{selectedItem.customerName}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Total</label>
+                  <p className="text-sm text-gray-900">{formatCurrency(selectedItem.total)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Status</label>
+                  <p className="text-sm text-gray-900">{selectedItem.status}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Produk</label>
+                  <div className="space-y-2">
+                    {selectedItem.products.map((product: any, index: number) => (
+                      <div key={index} className="flex justify-between">
+                        <span className="text-sm text-gray-900">{product.name}</span>
+                        <span className="text-sm text-gray-900">x{product.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(modalType === 'add' || modalType === 'edit') && (
+              <form className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nama Produk</label>
+                  <input
+                    type="text"
+                    value={productForm.name}
+                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Harga</label>
+                  <input
+                    type="number"
+                    value={productForm.price}
+                    onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Stok</label>
+                  <input
+                    type="number"
+                    value={productForm.stock}
+                    onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Kategori</label>
+                  <select
+                    value={productForm.category}
+                    onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Pilih Kategori</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Accessories">Accessories</option>
+                    <option value="Audio">Audio</option>
+                    <option value="Gaming">Gaming</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Gambar</label>
+                  <div
+                    className={`mt-1 border-2 border-dashed rounded-lg p-6 text-center ${
+                      isDragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    {productForm.image ? (
+                      <div className="space-y-2">
+                        <img src={productForm.image} alt="Preview" className="mx-auto h-24 w-24 object-cover rounded-lg" />
+                        <p className="text-sm text-gray-600">Gambar berhasil diupload</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="text-gray-400">
+                          <svg className="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.01" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                        <p className="text-sm text-gray-600">Drag and drop gambar atau klik untuk upload</p>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                          id="image-upload"
+                        />
+                        <label
+                          htmlFor="image-upload"
+                          className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                        >
+                          Pilih Gambar
+                        </label>
+                      </div>
+                    )}
+                    {uploadingImage && (
+                      <div className="mt-2 text-sm text-blue-600">Mengupload gambar...</div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Deskripsi</label>
+                  <textarea
+                    value={productForm.description}
+                    onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                    rows={3}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={modalType === 'add' ? handleAddProduct : handleEditProduct}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  >
+                    {modalType === 'add' ? 'Tambah' : 'Update'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Popup Alert */}
+      <PopupAlert
+        isOpen={alertState.isOpen}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+        onClose={hideAlert}
+        onConfirm={alertState.onConfirm}
+      />
+
+      {/* Toast */}
+      {ToastComponent}
+    </div>
   );
 };
 

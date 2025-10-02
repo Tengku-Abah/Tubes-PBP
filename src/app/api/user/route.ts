@@ -123,31 +123,11 @@ export async function POST(request: NextRequest) {
       const { data: newUser, error: insertError } = await dbHelpers.registerUser(newUserData);
 
       if (insertError) {
-        console.error('Database insert error, using dummy data fallback:', insertError);
-
-        // Fallback ke dummy data jika database error
-        const newId = Math.max(...dummyUsers.map(u => u.id)) + 1;
-        const fallbackUser = {
-          id: newId,
-          email: email,
-          password: hashedPassword,
-          name: name,
-          role: 'pembeli', // Default role untuk user yang registrasi
-          createdAt: new Date().toISOString(),
-          isActive: true
-        };
-
-        dummyUsers.push(fallbackUser);
-
-        const { password: _, ...userWithoutPassword } = fallbackUser;
-
-        return NextResponse.json({
-          success: true,
-          data: {
-            user: userWithoutPassword,
-            message: 'Registration successful (using fallback storage)'
-          }
-        });
+        console.error('Database insert error:', insertError);
+        return NextResponse.json(
+          { success: false, message: 'Gagal mendaftarkan user' },
+          { status: 500 }
+        );
       }
 
       // Return user data tanpa password
@@ -173,9 +153,9 @@ export async function POST(request: NextRequest) {
     // Cari user berdasarkan email di database (case-sensitive)
     let userData: any = null;
 
-    // Skip database call for now to reduce delay - use dummy data directly
-    console.log('Using dummy data for login to reduce delay');
-    userData = dummyUsers.find(u => u.email === email);
+    // Cari user berdasarkan email di database
+    const { data: user, error: userError } = await dbHelpers.getUserByEmail(email);
+    userData = user;
 
     if (!userData) {
       return NextResponse.json(
