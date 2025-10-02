@@ -68,8 +68,6 @@ const AdminPanel = () => {
 
   // State untuk customers
   const [customers, setCustomers] = useState<any[]>([]);
-  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
-  const [customerFilter, setCustomerFilter] = useState('all');
 
   // State untuk UI - menggunakan Context
   const { activeMenu, setActiveMenu } = useAdminContext();
@@ -536,39 +534,6 @@ const AdminPanel = () => {
            product.id.toString().includes(searchTerm);
   });
 
-  const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = !customerSearchTerm.trim() || 
-      customer.name?.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
-      customer.email.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
-      customer.phone?.toLowerCase().includes(customerSearchTerm.toLowerCase());
-    
-    const matchesFilter = (() => {
-      if (customerFilter === 'all') return true;
-      if (customerFilter === 'active') return customer.status === 'active';
-      if (customerFilter === 'inactive') return customer.status === 'inactive';
-      
-      // Filter berdasarkan terakhir aktif
-      if (customerFilter === 'recent') {
-        if (!customer.last_login_at) return false;
-        const lastLogin = new Date(customer.last_login_at);
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        return lastLogin >= thirtyDaysAgo;
-      }
-      
-      if (customerFilter === 'inactive_long') {
-        if (!customer.last_login_at) return true; // Belum pernah login
-        const lastLogin = new Date(customer.last_login_at);
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        return lastLogin < thirtyDaysAgo;
-      }
-      
-      return true;
-    })();
-    
-    return matchesSearch && matchesFilter;
-  });
 
 
   const formatCurrency = (amount: number) => {
@@ -710,29 +675,7 @@ const AdminPanel = () => {
   // Customers Component
   const Customers = () => (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Manajemen Pelanggan</h2>
-        <div className="flex gap-3">
-          <input
-            type="text"
-            placeholder="Cari pelanggan..."
-            value={customerSearchTerm}
-            onChange={(e) => setCustomerSearchTerm(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <select
-            value={customerFilter}
-            onChange={(e) => setCustomerFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">Semua Status</option>
-            <option value="active">Aktif</option>
-            <option value="inactive">Tidak Aktif</option>
-            <option value="recent">Aktif 30 Hari Terakhir</option>
-            <option value="inactive_long">Tidak Aktif &gt; 30 Hari</option>
-          </select>
-        </div>
-      </div>
+      <h2 className="text-2xl font-bold text-gray-800">Manajemen Pelanggan</h2>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
@@ -749,7 +692,7 @@ const AdminPanel = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredCustomers.map((customer: any) => (
+              {customers.map((customer: any) => (
                 <tr key={customer.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{customer.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{customer.name || 'N/A'}</td>
@@ -837,12 +780,12 @@ const AdminPanel = () => {
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
           
           <div className="relative z-10">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="flex items-center justify-between">
+            <div>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-lg">
                     <DollarSign className="w-6 h-6 text-white" />
-                  </div>
+            </div>
                   <div>
                     <h1 className="text-2xl font-bold mb-1">Laporan Keuangan</h1>
                     <p className="text-green-100 text-sm">Analisis pendapatan dan performa bisnis</p>
@@ -923,7 +866,7 @@ const AdminPanel = () => {
                     </option>
                   ))}
                 </select>
-              </div>
+          </div>
             )}
 
             {/* Quarter Selection */}
@@ -940,12 +883,12 @@ const AdminPanel = () => {
                   <option value={3}>Q3 (Jul-Sep)</option>
                   <option value={4}>Q4 (Okt-Des)</option>
                 </select>
-              </div>
+        </div>
             )}
 
             {/* Semester Selection */}
             {selectedPeriod === 'semester' && (
-              <div>
+            <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Semester</label>
                 <select
                   value={selectedSemester}
@@ -955,7 +898,7 @@ const AdminPanel = () => {
                   <option value={1}>Semester 1 (Jan-Jun)</option>
                   <option value={2}>Semester 2 (Jul-Des)</option>
                 </select>
-              </div>
+            </div>
             )}
 
             {/* Year Selection */}
@@ -984,7 +927,7 @@ const AdminPanel = () => {
               <div className="p-2.5 bg-yellow-100 rounded-lg">
                 <Package className="w-5 h-5 text-yellow-600" />
               </div>
-              <div>
+            <div>
                 <h3 className="text-base font-semibold text-yellow-800 mb-1">Tidak Ada Data</h3>
                 <p className="text-yellow-700 text-sm">
                   Tidak ditemukan pesanan untuk periode{' '}
@@ -995,8 +938,8 @@ const AdminPanel = () => {
                   {selectedPeriod === 'year' && selectedYear.toString()}.
                   Coba pilih periode lain atau pastikan ada data pesanan.
                 </p>
-              </div>
             </div>
+          </div>
           </div>
         )}
 
@@ -1033,8 +976,8 @@ const AdminPanel = () => {
                 <p className="text-gray-500 text-sm font-medium mb-1">Total Pendapatan</p>
                 <h3 className="text-xl font-bold text-gray-900 mb-1">{formatCurrency(financialTotalRevenue)}</h3>
                 <p className="text-gray-400 text-xs">Periode terpilih</p>
-              </div>
-            </div>
+        </div>
+      </div>
 
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
               <div className="flex items-center justify-between mb-4">
@@ -1074,7 +1017,7 @@ const AdminPanel = () => {
 
         {/* Financial Charts */}
         {!loading && financialData && financialData.debug.ordersFound > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Revenue Chart */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-6">
@@ -1336,24 +1279,24 @@ const AdminPanel = () => {
                       <p className="font-bold text-gray-900">{formatCurrency(order.total)}</p>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                         order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                    order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
                         order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
                         order.status === 'delivered' ? 'bg-green-100 text-green-800' :
                         order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {order.status}
-                      </span>
+                      'bg-yellow-100 text-yellow-800'
+                  }`}>
+                  {order.status}
+                </span>
                     </div>
-                  </div>
-                ))}
+              </div>
+            ))}
                 {orders.length === 0 && (
                   <div className="text-center py-8">
                     <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-500">Belum ada pesanan</p>
-                  </div>
+          </div>
                 )}
-              </div>
+        </div>
             </div>
 
             {/* Top Products */}
@@ -1391,9 +1334,9 @@ const AdminPanel = () => {
                       <div className="text-right">
                         <p className="font-bold text-gray-900">{formatCurrency(product.price)}</p>
                         <p className="text-sm text-gray-500">Stok: {product.stock}</p>
-                      </div>
-                    </div>
-                  );
+      </div>
+    </div>
+  );
                 })}
                 {products.length === 0 && (
                   <div className="text-center py-8">
@@ -1494,75 +1437,75 @@ const AdminPanel = () => {
       )}
 
       {activeMenu === 'products' && (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-gray-800">Manajemen Produk</h2>
-            <button
-              onClick={() => openModal('add')}
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">Manajemen Produk</h2>
+        <button
+          onClick={() => openModal('add')}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
+        >
               <Plus className="w-4 h-4 inline mr-2" />
-              Tambah Produk
-            </button>
-          </div>
+          Tambah Produk
+        </button>
+      </div>
 
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="p-4 border-b border-gray-200">
-              <input
-                type="text"
-                placeholder="Cari produk..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+            <input
+              type="text"
+              placeholder="Cari produk..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produk</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
+            />
+          </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produk</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredProducts.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <img className="h-12 w-12 rounded-lg object-cover" src={product.image} alt={product.name} />
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredProducts.map((product) => (
+                <tr key={product.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <img className="h-12 w-12 rounded-lg object-cover" src={product.image} alt={product.name} />
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
                             <div className="text-sm text-gray-500">ID: #{product.id}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(product.price)}</td>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(product.price)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.stock}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => openModal('edit', product)}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => openModal('edit', product)}
                           className="text-blue-600 hover:text-blue-900 mr-3"
-                        >
+                      >
                           <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
                           <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                      </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      </div>
+    </div>
       )}
 
       {activeMenu === 'orders' && <Orders />}
@@ -1580,145 +1523,145 @@ const AdminPanel = () => {
                 {modalType === 'edit' && 'Edit Produk'}
                 {modalType === 'view' && 'Detail Order'}
               </h3>
-              <button
+                    <button
                 onClick={() => setShowModal(false)}
                 className="text-gray-400 hover:text-gray-600"
-              >
+                    >
                 <X className="w-6 h-6" />
-              </button>
-            </div>
+                    </button>
+        </div>
 
             {modalType === 'view' && selectedItem && 'customerName' in selectedItem && (
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Customer</label>
                   <p className="text-sm text-gray-900">{selectedItem.customerName}</p>
-                </div>
+              </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Total</label>
                   <p className="text-sm text-gray-900">{formatCurrency(selectedItem.total)}</p>
-                </div>
+            </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Status</label>
                   <p className="text-sm text-gray-900">{selectedItem.status}</p>
-                </div>
-                <div>
+          </div>
+          <div>
                   <label className="block text-sm font-medium text-gray-700">Produk</label>
                   <div className="space-y-2">
                     {selectedItem.products.map((product: any, index: number) => (
                       <div key={index} className="flex justify-between">
                         <span className="text-sm text-gray-900">{product.name}</span>
                         <span className="text-sm text-gray-900">x{product.quantity}</span>
-                      </div>
+              </div>
                     ))}
-                  </div>
-                </div>
+          </div>
+        </div>
               </div>
             )}
 
-            {(modalType === 'add' || modalType === 'edit') && (
+              {(modalType === 'add' || modalType === 'edit') && (
               <form className="space-y-4">
-                <div>
+                    <div>
                   <label className="block text-sm font-medium text-gray-700">Nama Produk</label>
-                  <input
-                    type="text"
-                    value={productForm.name}
-                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                      <input
+                        type="text"
+                        value={productForm.name}
+                        onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
+                      />
+                    </div>
+                    <div>
                   <label className="block text-sm font-medium text-gray-700">Harga</label>
-                  <input
-                    type="number"
-                    value={productForm.price}
-                    onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                      <input
+                        type="number"
+                        value={productForm.price}
+                        onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
+                      />
+                    </div>
+                    <div>
                   <label className="block text-sm font-medium text-gray-700">Stok</label>
-                  <input
-                    type="number"
-                    value={productForm.stock}
-                    onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                      <input
+                        type="number"
+                        value={productForm.stock}
+                        onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
+                      />
+                    </div>
+                    <div>
                   <label className="block text-sm font-medium text-gray-700">Kategori</label>
-                  <select
-                    value={productForm.category}
-                    onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                      <select
+                        value={productForm.category}
+                        onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Pilih Kategori</option>
-                    <option value="Electronics">Electronics</option>
-                    <option value="Accessories">Accessories</option>
+                      >
+                        <option value="">Pilih Kategori</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Accessories">Accessories</option>
                     <option value="Audio">Audio</option>
                     <option value="Gaming">Gaming</option>
-                  </select>
-                </div>
-                <div>
+                      </select>
+                    </div>
+                    <div>
                   <label className="block text-sm font-medium text-gray-700">Gambar</label>
                   <div
                     className={`mt-1 border-2 border-dashed rounded-lg p-6 text-center ${
                       isDragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
-                    {productForm.image ? (
-                      <div className="space-y-2">
+                          }`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                      >
+                        {productForm.image ? (
+                          <div className="space-y-2">
                         <img src={productForm.image} alt="Preview" className="mx-auto h-24 w-24 object-cover rounded-lg" />
                         <p className="text-sm text-gray-600">Gambar berhasil diupload</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
                         <div className="text-gray-400">
                           <svg className="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                             <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.01" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </div>
                         <p className="text-sm text-gray-600">Drag and drop gambar atau klik untuk upload</p>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileSelect}
-                          className="hidden"
-                          id="image-upload"
-                        />
-                        <label
-                          htmlFor="image-upload"
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileSelect}
+                              className="hidden"
+                              id="image-upload"
+                            />
+                            <label
+                              htmlFor="image-upload"
                           className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                        >
+                            >
                           Pilih Gambar
-                        </label>
-                      </div>
-                    )}
+                            </label>
+                          </div>
+                        )}
                     {uploadingImage && (
                       <div className="mt-2 text-sm text-blue-600">Mengupload gambar...</div>
-                    )}
-                  </div>
-                </div>
-                <div>
+                        )}
+                      </div>
+                      </div>
+                    <div>
                   <label className="block text-sm font-medium text-gray-700">Deskripsi</label>
-                  <textarea
-                    value={productForm.description}
-                    onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                      <textarea
+                        value={productForm.description}
+                        onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
                     rows={3}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+                      />
+                    </div>
                 <div className="flex justify-end space-x-3">
-                  <button
+                    <button
                     type="button"
                     onClick={() => setShowModal(false)}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                  >
-                    Batal
-                  </button>
+                    >
+                      Batal
+                    </button>
                   <button
                     type="button"
                     onClick={modalType === 'add' ? handleAddProduct : handleEditProduct}
@@ -1728,24 +1671,24 @@ const AdminPanel = () => {
                   </button>
                 </div>
               </form>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Popup Alert */}
-      <PopupAlert
-        isOpen={alertState.isOpen}
+        {/* Popup Alert */}
+        <PopupAlert
+          isOpen={alertState.isOpen}
         type={alertState.type}
-        title={alertState.title}
-        message={alertState.message}
+          title={alertState.title}
+          message={alertState.message}
         onClose={hideAlert}
-        onConfirm={alertState.onConfirm}
-      />
+          onConfirm={alertState.onConfirm}
+        />
 
       {/* Toast */}
       {ToastComponent}
-    </div>
+      </div>
   );
 };
 
