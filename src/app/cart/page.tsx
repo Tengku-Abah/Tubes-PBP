@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { calculateSubtotal, calculateShipping, calculateTotal } from '../../lib/cartUtils'
 
 // Cart item interface
 interface CartItem {
@@ -26,6 +28,7 @@ export default function CartPage() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const router = useRouter()
 
   // Check login status
   useEffect(() => {
@@ -62,11 +65,11 @@ export default function CartPage() {
 
   const fetchCartItems = async () => {
     if (!user?.id) return
-    
+
     try {
       const response = await fetch(`/api/cart?user_id=${user.id}`)
       const data = await response.json()
-      
+
       if (data.success) {
         setCartItems(data.data)
       }
@@ -90,7 +93,7 @@ export default function CartPage() {
       removeItem(itemId)
       return
     }
-    
+
     try {
       const response = await fetch('/api/cart', {
         method: 'PUT',
@@ -99,7 +102,7 @@ export default function CartPage() {
         },
         body: JSON.stringify({ itemId, quantity: newQuantity }),
       })
-      
+
       const data = await response.json()
       if (data.success) {
         // Refresh cart items after update
@@ -115,7 +118,7 @@ export default function CartPage() {
       const response = await fetch(`/api/cart?itemId=${itemId}`, {
         method: 'DELETE',
       })
-      
+
       const data = await response.json()
       if (data.success) {
         // Refresh cart items after deletion
@@ -126,35 +129,48 @@ export default function CartPage() {
     }
   }
 
-  const calculateSubtotal = () => {
-    if (!cartItems || cartItems.length === 0) return 0
-    return cartItems.reduce((total, item) => total + (item.product.price * item.quantity), 0)
-  }
-
-  const calculateShipping = () => {
-    const baseShip = 10000
-    if (cartItems.length > 0) {
-      const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0)
-      return baseShip + (totalQuantity - 1) * 5000
-    }
-    return baseShip
-  }
-
-  const calculateTotal = () => {
-    const subtotal = calculateSubtotal()
-    const shipping = subtotal > 1000000 ? 0 : calculateShipping() // Free shipping over 1M
-    const tax = subtotal * 0.11 // 11% tax
-    return subtotal + shipping + tax
-  }
+  // use shared cartUtils functions (they accept items/subtotal/totalItems as needed)
 
   const handleCheckout = () => {
     setLoading(true)
-    // Simulate checkout process
-    setTimeout(() => {
+    try {
+      const subtotal = calculateSubtotal(cartItems)
+      const totalItems = cartItems.reduce((s, it) => s + it.quantity, 0)
+      const shipping = subtotal > 1000000 ? 0 : calculateShipping(subtotal, totalItems)
+      const { total, tax } = calculateTotal(subtotal, shipping)
+
+      const checkoutSummary = {
+        items: cartItems.map(it => ({ productId: it.product.id, quantity: it.quantity })),
+        subtotal,
+        shipping,
+        tax,
+        total,
+        totalItems,
+        timestamp: Date.now(),
+      }
+
+      // Minimal flags and summary for checkout page
+      sessionStorage.setItem('checkout_allowed', '1')
+      sessionStorage.setItem('checkout_summary', JSON.stringify(checkoutSummary))
+
+      // Notify same-tab listeners
+      window.dispatchEvent(new Event('checkout-started'))
+
+      // Client-side navigation to checkout
+      router.push('/checkout')
+    } catch (error) {
+      console.error('Error preparing checkout:', error)
+      alert('Something went wrong. Please try again.')
+    } finally {
       setLoading(false)
-      alert('Checkout functionality would be implemented here!')
-    }, 2000)
+    }
   }
+
+  // compute aggregate values for render
+  const subtotal = calculateSubtotal(cartItems)
+  const totalQuantity = cartItems.reduce((s, it) => s + it.quantity, 0)
+  const shipping = subtotal > 1000000 ? 0 : calculateShipping(subtotal, totalQuantity)
+  const { total, tax } = calculateTotal(subtotal, shipping)
 
   if (initialLoading) {
     return (
@@ -277,7 +293,7 @@ export default function CartPage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-xl p-6">
               <h2 className="text-xl font-semibold text-slate-800 mb-6">Cart Items</h2>
-              
+
               <div className="space-y-6">
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex items-center gap-4 p-4 border border-slate-200 rounded-lg">
@@ -310,11 +326,10 @@ export default function CartPage() {
                           {[...Array(5)].map((_, i) => (
                             <svg
                               key={i}
-                              className={`w-4 h-4 ${
-                                i < Math.floor(item.product.rating)
-                                  ? 'text-yellow-400'
-                                  : 'text-gray-300'
-                              }`}
+                              className={`w-4 h-4 ${i < Math.floor(item.product.rating)
+                                ? 'text-yellow-400'
+                                : 'text-gray-300'
+                                }`}
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
@@ -378,31 +393,27 @@ export default function CartPage() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-8">
               <h2 className="text-xl font-semibold text-slate-800 mb-6">Order Summary</h2>
-              
+
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-slate-600">Subtotal</span>
-                  <span className="font-medium">{formatPrice(calculateSubtotal())}</span>
+                  <span className="font-medium">{formatPrice(subtotal)}</span>
                 </div>
-                
+
                 <div className="flex justify-between">
                   <span className="text-slate-600">Shipping</span>
-                  <span className="font-medium">
-                    {calculateSubtotal() > 1000000 ? 'Free' : formatPrice(calculateShipping())}
-                  </span>
+                  <span className="font-medium">{subtotal > 1000000 ? 'Free' : formatPrice(shipping)}</span>
                 </div>
-                
+
                 <div className="flex justify-between">
                   <span className="text-slate-600">Tax (11%)</span>
-                  <span className="font-medium">{formatPrice(calculateSubtotal() * 0.11)}</span>
+                  <span className="font-medium">{formatPrice(tax)}</span>
                 </div>
-                
+
                 <div className="border-t border-slate-200 pt-4">
                   <div className="flex justify-between">
                     <span className="text-lg font-semibold text-slate-800">Total</span>
-                    <span className="text-lg font-semibold text-slate-800">
-                      {formatPrice(calculateTotal())}
-                    </span>
+                    <span className="text-lg font-semibold text-slate-800">{formatPrice(total)}</span>
                   </div>
                 </div>
               </div>

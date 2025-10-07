@@ -33,8 +33,8 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Check if accessing protected routes (cart, etc.)
-  if (pathname.startsWith('/cart') || pathname.startsWith('/Detail')) {
+  // Check if accessing protected routes (cart, checkout, etc.)
+  if (pathname.startsWith('/cart') || pathname.startsWith('/Detail') || pathname.startsWith('/checkout')) {
     const authToken = request.cookies.get('auth-token')?.value
 
     if (!authToken) {
@@ -63,5 +63,6 @@ export const config = {
     '/Admin/:path*',
     '/cart/:path*',
     '/Detail/:path*',
+    '/checkout/:path*',
   ]
 }
