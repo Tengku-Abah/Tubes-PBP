@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { LayoutDashboard, Package, ShoppingCart, Users, TrendingUp, Settings, Menu, X, Zap, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, TrendingUp, Settings, Menu, X, Zap, LogOut, Tags } from 'lucide-react';
 import { useAdminContext } from '../AdminContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { logout } from '../../../lib/logout';
@@ -13,10 +13,11 @@ export default function AdminSidebar() {
   
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', href: '/Admin' },
-    { id: 'products', icon: Package, label: 'Produk', href: '/Admin?menu=products' },
     { id: 'orders', icon: ShoppingCart, label: 'Pesanan', href: '/Admin?menu=orders' },
+    { id: 'products', icon: Package, label: 'Produk', href: '/Admin?menu=products' },
+    { id: 'categories', icon: Tags, label: 'Kategori', href: '/Admin?menu=categories' },
     { id: 'customers', icon: Users, label: 'Pelanggan', href: '/Admin?menu=customers' },
-          { id: 'keuangan', icon: TrendingUp, label: 'Keuangan', href: '/Admin?menu=keuangan' },
+    { id: 'keuangan', icon: TrendingUp, label: 'Keuangan', href: '/Admin?menu=keuangan' },
     { id: 'settings', icon: Settings, label: 'Pengaturan', href: '/Admin?menu=settings' }
   ];
 

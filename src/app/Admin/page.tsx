@@ -9,7 +9,7 @@ import { requireAdmin, getAuthHeaders } from '../../lib/auth';
 import { logout } from '../../lib/logout';
 import AdminProtection from '../../components/AdminProtection';
 import { useAdminContext } from './AdminContext';
-import { DollarSign, X, ShoppingCart, Package, Users, TrendingUp, CheckCircle, Clock, ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react';
+import { DollarSign, X, ShoppingCart, Package, Users, TrendingUp, CheckCircle, Clock, ArrowUpRight, ArrowDownRight, Activity, ShoppingBag, Pencil, Trash, Eye, Tags } from 'lucide-react';
 
 // Define types
 interface Product {
@@ -54,10 +54,12 @@ const Plus = (props: any) => <span {...props}>+</span>;
 const Edit = (props: any) => <span {...props}>✏️</span>;
 const Trash2 = (props: any) => <span {...props}>🗑️</span>;
 const Search = (props: any) => <span {...props}>🔍</span>;
-const Eye = (props: any) => <span {...props}>👁️</span>;
 const Check = (props: any) => <span {...props}>✅</span>;
 
 const AdminPanel = () => {
+  // State untuk dashboard
+  const [selectedStat, setSelectedStat] = useState('Pesanan Baru');
+  
   // State untuk produk
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +67,8 @@ const AdminPanel = () => {
   // State untuk orders
   const [orders, setOrders] = useState<Order[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const pendingOrders = orders.filter(order => order.status === 'pending');
 
   // State untuk customers
   const [customers, setCustomers] = useState<any[]>([]);
@@ -276,31 +280,27 @@ const AdminPanel = () => {
   // Stats untuk dashboard
   const dashboardStats = [
     { 
-      title: 'Total Penjualan', 
-      value: `Rp ${stats.totalRevenue.toLocaleString('id-ID')}`, 
-      change: '+12.5%', 
-      icon: DollarSign, 
+      title: 'Pesanan Baru', 
+      value: orders.filter(order => order.status === 'pending').length.toString(), 
+      icon: ShoppingCart, 
       color: 'bg-blue-500' 
     },
     { 
-      title: 'Pesanan Baru', 
-      value: orders.filter(order => order.status === 'pending' || order.status === 'processing').length.toString(), 
-      change: '+8', 
-      icon: ShoppingCart, 
+      title: 'Total Produk', 
+      value: stats.totalProducts.toString(),  
+      icon: Package,      
       color: 'bg-blue-600' 
     },
     { 
-      title: 'Total Produk', 
-      value: stats.totalProducts.toString(), 
-      change: '+5', 
-      icon: Package, 
+      title: 'Total Produk Terjual',
+      value: '10',
+      icon: ShoppingBag,
       color: 'bg-blue-700' 
     },
     { 
-      title: 'Pelanggan', 
-      value: orders.length.toString(), 
-      change: '+15', 
-      icon: Users, 
+      title: 'Total Pendapatan', 
+      value: `Rp ${stats.totalRevenue.toLocaleString('id-ID')}`, 
+      icon: DollarSign,  
       color: 'bg-blue-800' 
     }
   ];
@@ -603,10 +603,68 @@ const AdminPanel = () => {
 
 
   // Orders Component
-  const Orders = () => (
+const Orders = () => {
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'cancelled'>('all');
+
+  // Hitung jumlah order per status
+  const countByStatus = {
+    all: orders.length,
+    pending: orders.filter(o => o.status === 'pending').length,
+    processing: orders.filter(o => o.status === 'processing').length,
+    shipped: orders.filter(o => o.status === 'shipped').length,
+    delivered: orders.filter(o => o.status === 'delivered').length,
+    completed: orders.filter(o => o.status === 'completed').length,
+    cancelled: orders.filter(o => o.status === 'cancelled').length,
+  };
+
+  // Filter orders sesuai tab
+  const filteredOrders =
+    selectedStatus === 'all'
+      ? orders
+      : orders.filter(o => o.status === selectedStatus);
+
+  return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800">Manajemen Order</h2>
 
+      {/* === Tabs Filter Section === */}
+      <div className="flex items-center gap-6 border-b border-gray-200 pb-2">
+        {[
+          { key: 'all', label: 'All Orders', color: 'bg-orange-500' },
+          { key: 'pending', label: 'Pending', color: 'bg-yellow-400' },
+          { key: 'processing', label: 'Processing', color: 'bg-blue-400' },
+          { key: 'shipped', label: 'Shipped', color: 'bg-purple-400' },
+          { key: 'delivered', label: 'Delivered', color: 'bg-green-400' },
+          { key: 'completed', label: 'Completed', color: 'bg-green-600' },
+          { key: 'cancelled', label: 'Cancelled', color: 'bg-red-400' },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setSelectedStatus(tab.key as any)}
+            className={`flex items-center gap-2 text-sm font-medium transition-colors relative pb-2
+              ${selectedStatus === tab.key
+                ? 'text-blue-600 font-semibold'
+                : 'text-gray-600 hover:text-blue-600'
+              }`}
+          >
+            {tab.label}
+            <span
+              className={`ml-1 px-2 py-0.5 text-xs rounded-full ${
+                selectedStatus === tab.key
+                  ? `${tab.color} text-white`
+                  : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              {countByStatus[tab.key as keyof typeof countByStatus]}
+            </span>
+            {selectedStatus === tab.key && (
+              <span className="absolute bottom-0 left-0 w-full h-[2px] bg-blue-600 rounded-full" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* === Orders Table === */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -622,15 +680,14 @@ const AdminPanel = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {orders.map((order) => (
+              {filteredOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{order.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.customerName}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {order.products.length > 0
                       ? order.products.map((p: any) => `${p.productName || p.name} (${p.quantity})`).join(', ')
-                      : 'No items'
-                    }
+                      : 'No items'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(order.total)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -638,13 +695,14 @@ const AdminPanel = () => {
                       value={order.status}
                       onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
                       disabled={updatingStatus === order.id}
-                      className={`px-3 py-1 rounded-full text-xs font-medium border-0 ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                            order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                              order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                  'bg-yellow-100 text-yellow-800'
-                        } ${updatingStatus === order.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border-0 ${
+                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      } ${updatingStatus === order.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <option value="pending">Pending</option>
                       <option value="processing">Processing</option>
@@ -660,17 +718,102 @@ const AdminPanel = () => {
                       onClick={() => openModal('view', order)}
                       className="text-blue-600 hover:text-blue-900"
                     >
-                      <Eye size={16} />
+                      <Eye size={16} className="text-gray-600" />
                     </button>
                   </td>
                 </tr>
               ))}
+
+              {filteredOrders.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center py-6 text-gray-500">
+                    Tidak ada pesanan untuk status ini
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
     </div>
   );
+};
+
+// Categories Component
+const Categories = () => {
+  const categories = [
+    { id: 1, name: "Electronics", productCount: 15 },
+    { id: 2, name: "Fashion", productCount: 22 },
+    { id: 3, name: "Audio", productCount: 8 },
+    { id: 4, name: "Accessories", productCount: 30 },
+  ];
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          Daftar Kategori
+        </h2>
+        <button
+          // function for adding category
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={18} />
+          Tambah Kategori
+        </button>
+      </div>
+
+      {/* Tabel Kategori */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama Kategori</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Jumlah Produk</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {categories.map((category) => (
+                <tr key={category.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">#{category.id}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">{category.name}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">{category.productCount}</td>
+                  <td className="px-6 py-4 text-sm font-medium flex gap-3">
+                    <button
+                      // function for editing category
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <Pencil size={16} className="text-gray-600" />
+                    </button>
+                    <button
+                      // function for deleting category
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              {categories.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="text-center py-6 text-gray-500">
+                    Tidak ada kategori ditemukan
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
   // Customers Component
   const Customers = () => (
@@ -1197,244 +1340,283 @@ const AdminPanel = () => {
 
   return (
     <div className="space-y-6">
-      {activeMenu === 'dashboard' && (
-        <div className="space-y-8">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl p-8 text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-black/10"></div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-32"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-4xl font-bold mb-2">Dashboard Admin</h1>
-                  <p className="text-blue-100 text-lg">Selamat datang di panel administrasi ElektroShop</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-blue-100 text-sm font-medium mb-1">Last Updated</p>
-                  <p className="text-2xl font-bold text-white">{new Date().toLocaleTimeString('id-ID', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-green-400 text-xs font-medium">Live</span>
-                  </div>
+    {activeMenu === 'dashboard' && (
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl p-8 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-32"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold mb-2">Dashboard Admin</h1>
+                <p className="text-blue-100 text-lg">Selamat datang di panel administrasi ElektroShop</p>
+              </div>
+              <div className="text-right">
+                <p className="text-blue-100 text-sm font-medium mb-1">Last Updated</p>
+                <p className="text-2xl font-bold text-white">{new Date().toLocaleTimeString('id-ID', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-green-400 text-xs font-medium">Live</span>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {dashboardStats.map((stat, index) => (
-              <div key={index} className="group bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-4 rounded-2xl ${stat.color} shadow-lg`}>
-                    <stat.icon className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="flex items-center gap-1 px-3 py-1 bg-green-100 rounded-full">
-                    <ArrowUpRight className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-semibold text-green-600">{stat.change}</span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm font-medium mb-2">{stat.title}</p>
-                  <h3 className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</h3>
-                  <p className="text-gray-500 text-xs">vs bulan lalu</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Orders */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">Pesanan Terbaru</h3>
-                  <p className="text-gray-600 text-sm">5 pesanan terakhir</p>
-                </div>
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl">
-                  <ShoppingCart className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <div className="space-y-4">
-                {orders.slice(0, 5).map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border-2 border-gray-200 shadow-sm">
-                        <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{order.customerName}</h4>
-                        <p className="text-sm text-gray-500">{order.date}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900">{formatCurrency(order.total)}</p>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                  }`}>
-                  {order.status}
-                </span>
-                    </div>
-              </div>
-            ))}
-                {orders.length === 0 && (
-                  <div className="text-center py-8">
-                    <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Belum ada pesanan</p>
-          </div>
-                )}
         </div>
-            </div>
 
-            {/* Top Products */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">Produk Terlaris</h3>
-                  <p className="text-gray-600 text-sm">5 produk terbaik</p>
-                </div>
-                <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl">
-                  <Package className="w-6 h-6 text-white" />
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {dashboardStats.map((stat) => (
+            <div
+              key={stat.title}
+              onClick={() => setSelectedStat(stat.title)}
+              className={`cursor-pointer group rounded-2xl p-6 shadow-lg border transition-all duration-300
+                ${selectedStat === stat.title 
+                  ? 'bg-blue-600 text-white shadow-xl scale-[1.02]' 
+                  : 'bg-white border-gray-100 hover:shadow-xl hover:-translate-y-1'}
+              `}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-4 rounded-2xl ${selectedStat === stat.title ? 'bg-white/30' : stat.color} shadow-lg`}>
+                  <stat.icon className="w-8 h-8 text-white" />
                 </div>
               </div>
-              <div className="space-y-4">
-                {products.slice(0, 5).map((product, index) => {
-                  const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32', '#4A90E2', '#7B68EE'];
-                  
-                  return (
-                    <div key={product.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
-                      <div className="flex items-center gap-4">
-                        <img 
-                          className="w-16 h-16 rounded-xl object-cover shadow-lg" 
-                          src={product.image} 
-                          alt={product.name}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = 'https://via.placeholder.com/64x64?text=No+Image';
-                          }}
-                        />
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{product.name}</h4>
-                          <p className="text-sm text-gray-500">{product.category}</p>
+              <div>
+                <p className={`text-sm font-medium mb-2 ${selectedStat === stat.title ? 'text-blue-100' : 'text-gray-600'}`}>
+                  {stat.title}
+                </p>
+                <h3 className={`text-3xl font-bold ${selectedStat === stat.title ? 'text-white' : 'text-gray-900'}`}>
+                  {stat.value}
+                </h3>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Dynamic Section */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          {selectedStat === 'Pesanan Baru' && (
+            <>
+                {/* Recent Orders */}
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">Pesanan Terbaru</h3>
+                    </div>
+                    <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl">
+                      <ShoppingCart className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {pendingOrders.length > 0 ? (
+                      pendingOrders.map((order) => (
+                      <div key={order.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border-2 border-gray-200 shadow-sm">
+                            <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{order.customerName}</h4>
+                            <p className="text-sm text-gray-500">{order.date}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-gray-900">{formatCurrency(order.total)}</p>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                            order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                            order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {order.status}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-gray-900">{formatCurrency(product.price)}</p>
-                        <p className="text-sm text-gray-500">Stok: {product.stock}</p>
-      </div>
-    </div>
-  );
-                })}
-                {products.length === 0 && (
-                  <div className="text-center py-8">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Belum ada produk</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-
-
-          {/* Stock Monitoring */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">Monitoring Stok</h3>
-                <p className="text-gray-600 text-sm">Status stok produk</p>
-              </div>
-              <div className="p-3 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl">
-                <Package className="w-6 h-6 text-white" />
-              </div>
-            </div>
-            
-            {/* Stock Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="p-4 rounded-xl border border-red-200 bg-red-50">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <h4 className="font-semibold text-gray-900">Stok Habis</h4>
-                </div>
-                <p className="text-2xl font-bold text-red-700 mb-1">
-                  {products.filter(product => product.stock === 0).length}
-                </p>
-                <p className="text-xs text-red-600">Produk perlu restock</p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-yellow-200 bg-yellow-50">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <h4 className="font-semibold text-gray-900">Stok Rendah</h4>
-                </div>
-                <p className="text-2xl font-bold text-yellow-700 mb-1">
-                  {products.filter(product => product.stock > 0 && product.stock <= 10).length}
-                </p>
-                <p className="text-xs text-yellow-600">≤ 10 unit</p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-green-200 bg-green-50">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <h4 className="font-semibold text-gray-900">Stok Normal</h4>
-                </div>
-                <p className="text-2xl font-bold text-green-700 mb-1">
-                  {products.filter(product => product.stock > 10).length}
-                </p>
-                <p className="text-xs text-green-600"> 10 unit</p>
-              </div>
-            </div>
-
-            {/* Low Stock Products */}
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-4">Produk dengan Stok Rendah</h4>
-              <div className="space-y-3">
-                {products.filter(product => product.stock <= 10).slice(0, 5).map((product) => (
-                  <div key={product.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <img className="w-10 h-10 rounded-lg object-cover" src={product.image} alt={product.name} />
-                      <div>
-                        <h5 className="font-medium text-gray-900">{product.name}</h5>
-                        <p className="text-sm text-gray-500">{product.category}</p>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">Belum ada pesanan tertunda</p>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-bold ${product.stock === 0 ? 'text-red-600' : 'text-yellow-600'}`}>
-                        {product.stock} unit
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {product.stock === 0 ? 'Habis' : 'Rendah'}
-                      </p>
-                    </div>
+                    )}
                   </div>
-                ))}
-                {products.filter(product => product.stock <= 10).length === 0 && (
-                  <div className="text-center py-6">
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                    </div>
-                    <p className="text-gray-500">Semua produk memiliki stok yang cukup</p>
+                </div>
+            </>
+          )}
+
+          {selectedStat === 'Total Produk' && (
+            <>
+              {/* Stock Monitoring */}
+              <div className="bg-white rounded-2xl"> {/* Removed redundant p-6 shadow-lg border-gray-100 as it's the parent */}
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Monitoring Stok</h3>
+                    <p className="text-gray-600 text-sm">Status stok produk</p>
                   </div>
-                )}
-              </div>
-            </div>
+                  <div className="p-3 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl">
+                    <Package className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                
+                {/* Stock Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="p-4 rounded-xl border border-red-200 bg-red-50">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <h4 className="font-semibold text-gray-900">Stok Habis</h4>
+                    </div>
+                    <p className="text-2xl font-bold text-red-700 mb-1">
+                      {products.filter(product => product.stock === 0).length}
+                    </p>
+                    <p className="text-xs text-red-600">Produk perlu restock</p>
+                  </div>
+
+                  <div className="p-4 rounded-xl border border-yellow-200 bg-yellow-50">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                      <h4 className="font-semibold text-gray-900">Stok Rendah</h4>
+                    </div>
+                    <p className="text-2xl font-bold text-yellow-700 mb-1">
+                      {products.filter(product => product.stock > 0 && product.stock <= 10).length}
+                    </p>
+                    <p className="text-xs text-yellow-600">≤ 10 unit</p>
+                  </div>
+
+                  <div className="p-4 rounded-xl border border-green-200 bg-green-50">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <h4 className="font-semibold text-gray-900">Stok Normal</h4>
+                    </div>
+                    <p className="text-2xl font-bold text-green-700 mb-1">
+                      {products.filter(product => product.stock > 10).length}
+                    </p>
+                    <p className="text-xs text-green-600">{'>'} 10 unit</p>
+                  </div>
+                </div>
+
+                {/* Low Stock Products */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-4">Produk dengan Stok Rendah</h4>
+                  <div className="space-y-3">
+                    {products.filter(product => product.stock <= 10).map((product) => (
+                      <div key={product.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <img className="w-10 h-10 rounded-lg object-cover" src={product.image} alt={product.name} />
+                          <div>
+                            <h5 className="font-medium text-gray-900">{product.name}</h5>
+                            <p className="text-sm text-gray-500">{product.category}</p>
+                          </div>
+                        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p
+              className={`font-bold ${
+                product.stock === 0 ? 'text-red-600' : 'text-yellow-600'
+              }`}
+            >
+              {product.stock} unit
+            </p>
+            <p className="text-xs text-gray-500">
+              {product.stock === 0 ? 'Habis' : 'Rendah'}
+            </p>
           </div>
 
+          {/* Ikon Pensil */}
+          <button
+            className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
+            title="Edit produk"
+            //fungsi handler
+          >
+            <Pencil className="w-5 h-5 text-gray-600" />
+          </button>
         </div>
-      )}
+      </div>
+    ))}
+                    {products.filter(product => product.stock <= 10).length === 0 && (
+                      <div className="text-center py-6">
+                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <CheckCircle className="w-6 h-6 text-green-600" />
+                        </div>
+                        <p className="text-gray-500">Semua produk memiliki stok yang cukup</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {selectedStat === 'Total Pendapatan' && (
+            <>
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Ringkasan Pendapatan</h3>
+              <p className="text-gray-700 mb-2">Total pendapatan: <strong>{`Rp ${stats.totalRevenue.toLocaleString('id-ID')}`}</strong></p>
+              <p className="text-gray-500 text-sm">Pendapatan dihitung dari semua pesanan yang sudah selesai.</p>
+            </>
+          )}
+
+          {selectedStat === 'Total Produk Terjual' && (
+            <>
+                {/* Top Products */}
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">Produk Terlaris</h3>
+                      <p className="text-gray-600 text-sm">5 produk terbaik</p>
+                    </div>
+                    <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl">
+                      <Package className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {products.slice(0, 5).map((product) => {
+                      // const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32', '#4A90E2', '#7B68EE']; // Unused, can be removed if not needed
+                      
+                      return (
+                        <div key={product.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
+                          <div className="flex items-center gap-4">
+                            <img 
+                              className="w-16 h-16 rounded-xl object-cover shadow-lg" 
+                              src={product.image} 
+                              alt={product.name}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://via.placeholder.com/64x64?text=No+Image';
+                              }}
+                            />
+                            <div>
+                              <h4 className="font-semibold text-gray-900">{product.name}</h4>
+                              <p className="text-sm text-gray-500">{product.category}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-gray-900">{formatCurrency(product.price)}</p>
+                            <p className="text-sm text-gray-500">Stok: {product.stock}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {products.length === 0 && (
+                      <div className="text-center py-8">
+                        <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">Belum ada produk</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+          )}
+        </div>
+      </div>
+    )}
 
       {activeMenu === 'products' && (
     <div className="space-y-6">
@@ -1490,13 +1672,13 @@ const AdminPanel = () => {
                         onClick={() => openModal('edit', product)}
                           className="text-blue-600 hover:text-blue-900 mr-3"
                       >
-                          <Edit className="w-4 h-4" />
+                          <Pencil className="w-4 h-4 text-gray-600"  />
                       </button>
                       <button
                         onClick={() => handleDeleteProduct(product.id)}
                         className="text-red-600 hover:text-red-900"
                       >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash className="w-4 h-4" />
                       </button>
                   </td>
                 </tr>
@@ -1512,6 +1694,7 @@ const AdminPanel = () => {
       {activeMenu === 'customers' && <Customers />}
       {activeMenu === 'keuangan' && <Analytics />}
       {activeMenu === 'settings' && <Settings />}
+      {activeMenu === 'categories' && <Categories />}
 
       {/* Modal */}
       {showModal && (
