@@ -49,6 +49,11 @@ interface ProductForm {
   description: string;
 }
 
+interface Category {
+  id: number;
+  name: string;
+}
+
 // Simple icons as components
 const Plus = (props: any) => <span {...props}>+</span>;
 const Edit = (props: any) => <span {...props}>✏️</span>;
@@ -63,6 +68,9 @@ const AdminPanel = () => {
   // State untuk produk
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // State untuk kategori
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // State untuk orders
   const [orders, setOrders] = useState<Order[]>([]);
@@ -248,8 +256,8 @@ const AdminPanel = () => {
 
   // State untuk UI
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'add' | 'edit' | 'view' | ''>('');
-  const [selectedItem, setSelectedItem] = useState<Product | Order | null>(null);
+  const [modalType, setModalType] = useState<'add' | 'edit' | 'view' | 'add-category' | 'edit-category' | 'update-stock' | ''>('');
+  const [selectedItem, setSelectedItem] = useState<Product | Order | Category| null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -263,6 +271,14 @@ const AdminPanel = () => {
     image: '',
     description: ''
   });
+
+  // Form state untuk kategori
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+  });
+
+  // Form state untuk stok
+  const [stockForm, setStockForm] = useState({ stock: '' });
 
   // Fungsi untuk menghitung statistik
   const calculateStats = () => {
@@ -489,13 +505,162 @@ const AdminPanel = () => {
     }
   };
 
-  const openModal = (type: string, item: Product | Order | null = null) => {
-    setModalType(type as 'add' | 'edit' | 'view');
+// Fungsi untuk memperbarui stok produk
+const handleUpdateStock = async () => {
+  if (!selectedItem || !('id' in selectedItem)) return;
+
+  const { error } = await supabase
+    .from('products')
+    .update({ stock: parseInt(stockForm.stock, 10) })
+    .eq('id', selectedItem.id);
+
+  if (error) {
+    console.error('Gagal memperbarui stok:', error.message);
+    return;
+  }
+  // Perbarui state lokal
+  setProducts((prev) =>
+    prev.map((p) =>
+      p.id === selectedItem.id ? { ...p, stock: parseInt(stockForm.stock, 10) } : p
+    )
+  );
+
+  setShowModal(false);
+};
+
+  // CRUD Functions untuk kategori
+  // Add kategori (belum ada database kategori)
+  const handleAddCategory = async () => {
+  if (!categoryForm.name.trim()) {
+    showError('Nama kategori tidak boleh kosong');
+    return;
+  }
+
+  try {
+    const user = requireAdmin();
+    const authHeaders = getAuthHeaders();
+
+    const { data, error } = await supabase
+      .from('categories')
+      .insert([{ name: categoryForm.name.trim() }])
+      .select();
+
+    if (error) {
+      console.error('Error adding category:', error);
+      showError(`Gagal menambahkan kategori: ${error.message}`);
+    } else if (data && data.length > 0) {
+      setCategories((prev) => [...prev, data[0]]);
+      resetFormCategory();
+      setShowModal(false);
+      showSuccess('Kategori berhasil ditambahkan');
+    }
+  } catch (error) {
+    console.error('Error adding category:', error);
+    showError('Gagal menambahkan kategori');
+  }
+};
+
+// Edit kategori (belum ada database kategori)
+  const handleEditCategory = async () => {
+  if (!selectedItem || !('name' in selectedItem)) {
+    showError('Kategori yang dipilih tidak valid');
+    return;
+  }
+
+  if (!categoryForm.name.trim()) {
+    showError('Nama kategori tidak boleh kosong');
+    return;
+  }
+
+  try {
+    // Secure authentication check
+    const user = requireAdmin();
+
+    // Use secure headers for API calls
+    const authHeaders = getAuthHeaders();
+
+    const { data, error } = await supabase
+      .from('categories')
+      .update({
+        name: categoryForm.name.trim(),
+      })
+      .eq('id', selectedItem.id)
+      .select();
+
+    if (error) {
+      console.error('Error updating category:', error);
+      showError(`Gagal mengupdate kategori: ${error.message}`);
+    } else if (data && data.length > 0) {
+      setCategories(categories.map(cat =>
+        cat.id === selectedItem.id ? data[0] : cat
+      ));
+      resetFormCategory();
+      setShowModal(false);
+      showSuccess('Kategori berhasil diupdate');
+    } else {
+      console.error('No data returned from update');
+      showError('Gagal mengupdate kategori: Tidak ada data yang dikembalikan');
+    }
+  } catch (error) {
+    console.error('Error updating category:', error);
+    showError(
+      `Gagal mengupdate kategori: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
+    );
+  }
+};
+
+
+// Delete kategori (belum ada database kategori)
+const handleDeleteCategory = async (id: number) => {
+  showConfirm(
+    'Apakah Anda yakin ingin menghapus kategori ini?',
+    'Konfirmasi Hapus',
+    async () => {
+      try {
+        // Pastikan hanya admin yang bisa hapus
+        const user = requireAdmin();
+
+        // Gunakan header autentikasi aman
+        const authHeaders = getAuthHeaders();
+
+        // Hapus data kategori di Supabase
+        const { error } = await supabase
+          .from('categories')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error deleting category:', error);
+          showError('Gagal menghapus kategori');
+        } else {
+          // Update state kategori di sisi frontend
+          // setCategories(categories.filter(category => category.id !== id));
+          showSuccess('Kategori berhasil dihapus');
+        }
+      } catch (error) {
+        console.error('Error deleting category:', error);
+        showError('Gagal menghapus kategori');
+      }
+    }
+  );
+};
+
+
+const openModal = (
+    type: string,
+    item: Product | Order | Category | null = null
+  ) => {
+    setModalType(type as 'add' | 'edit' | 'view' | 'add-category' | 'edit-category' | 'update-stock');
     setShowModal(true);
     setIsDragOver(false);
     setUploadingImage(false);
 
-    if (item && 'name' in item) {
+    if (type === 'update-stock' && item && 'stock' in item) {
+      setSelectedItem(item);
+      setStockForm({ stock: item.stock?.toString() || '' });
+    } else if (item && 'name' in item && 'price' in item) {
       // It's a Product
       setSelectedItem(item);
       setProductForm({
@@ -509,13 +674,28 @@ const AdminPanel = () => {
     } else if (item && 'customerName' in item) {
       // It's an Order
       setSelectedItem(item);
+    } else if ((type === 'edit-category' || type === 'add-category') && item && 'productCount' in item) {
+      // Kategori
+      setSelectedItem(item);
+      setCategoryForm({ name: item.name });
     } else {
+      setSelectedItem(null);
       setProductForm({ name: '', price: '', stock: '', category: '', image: '', description: '' });
+      setCategoryForm({ name: '' });
+      setStockForm({ stock: '' });
     }
   };
 
+
   const resetForm = () => {
     setProductForm({ name: '', price: '', stock: '', category: '', image: '', description: '' });
+    setSelectedItem(null);
+    setIsDragOver(false);
+    setUploadingImage(false);
+  };
+
+  const resetFormCategory = () => {
+    setCategoryForm({ name: ''});
     setSelectedItem(null);
     setIsDragOver(false);
     setUploadingImage(false);
@@ -756,7 +936,7 @@ const Categories = () => {
           Daftar Kategori
         </h2>
         <button
-          // function for adding category
+          onClick={() => openModal('add-category')}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus size={18} />
@@ -784,14 +964,15 @@ const Categories = () => {
                   <td className="px-6 py-4 text-sm text-gray-900">{category.productCount}</td>
                   <td className="px-6 py-4 text-sm font-medium flex gap-3">
                     <button
-                      // function for editing category
-                      className="text-blue-600 hover:text-blue-800"
+                      onClick={() => openModal('edit-category', category)}
+                      className="text-blue-600 hover:text-blue-900"
                     >
                       <Pencil size={16} className="text-gray-600" />
                     </button>
                     <button
                       // function for deleting category
-                      className="text-red-600 hover:text-red-800"
+                        onClick={() => handleDeleteCategory(category.id)}
+                        className="text-red-600 hover:text-red-900"
                     >
                       <Trash size={16} />
                     </button>
@@ -1532,9 +1713,9 @@ const Categories = () => {
 
           {/* Ikon Pensil */}
           <button
+            onClick={() => openModal('update-stock', product)}
             className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
             title="Edit produk"
-            //fungsi handler
           >
             <Pencil className="w-5 h-5 text-gray-600" />
           </button>
@@ -1742,6 +1923,7 @@ const Categories = () => {
               </div>
             )}
 
+
               {(modalType === 'add' || modalType === 'edit') && (
               <form className="space-y-4">
                     <div>
@@ -1855,6 +2037,142 @@ const Categories = () => {
                 </div>
               </form>
               )}
+
+              {showModal && modalType === 'update-stock' && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Perbarui Stok Produk</h3>
+                      <button
+                        onClick={() => setShowModal(false)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
+                    </div>
+
+                    {selectedItem && 'name' in selectedItem && (
+                      <p className="mb-3 text-gray-600">
+                        <span className="font-medium">Produk:</span> {selectedItem.name}
+                      </p>
+                    )}
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block mb-1 font-medium">Jumlah Stok</label>
+                        <input
+                          type="number"
+                          className="w-full border rounded-lg px-3 py-2"
+                          value={stockForm.stock}
+                          onChange={(e) => setStockForm({ stock: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6">
+                      <button
+                        onClick={() => setShowModal(false)}
+                        className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        onClick={handleUpdateStock}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      >
+                        Simpan
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showModal && modalType === 'add-category' && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Tambah Kategori</h3>
+                      <button
+                        onClick={() => setShowModal(false)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block mb-1 font-medium">Nama Kategori</label>
+                        <input
+                          type="text"
+                          className="w-full border rounded-lg px-3 py-2"
+                          value={categoryForm.name}
+                          onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6">
+                      <button
+                        onClick={() => setShowModal(false)}
+                        className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        onClick={handleAddCategory}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      >
+                        Tambah
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showModal && modalType === 'edit-category' && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Edit Kategori</h3>
+                      <button
+                        onClick={() => setShowModal(false)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block mb-1 font-medium">Nama Kategori</label>
+                        <input
+                          type="text"
+                          className="w-full border rounded-lg px-3 py-2"
+                          value={categoryForm.name}
+                          onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6">
+                      <button
+                        onClick={() => setShowModal(false)}
+                        className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        onClick={handleEditCategory}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      >
+                        Simpan
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         )}
