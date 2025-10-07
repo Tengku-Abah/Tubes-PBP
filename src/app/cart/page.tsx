@@ -131,9 +131,18 @@ export default function CartPage() {
     return cartItems.reduce((total, item) => total + (item.product.price * item.quantity), 0)
   }
 
+  const calculateShipping = () => {
+    const baseShip = 10000
+    if (cartItems.length > 0) {
+      const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+      return baseShip + (totalQuantity - 1) * 5000
+    }
+    return baseShip
+  }
+
   const calculateTotal = () => {
     const subtotal = calculateSubtotal()
-    const shipping = subtotal > 1000000 ? 0 : 50000 // Free shipping over 1M
+    const shipping = subtotal > 1000000 ? 0 : calculateShipping() // Free shipping over 1M
     const tax = subtotal * 0.11 // 11% tax
     return subtotal + shipping + tax
   }
@@ -379,7 +388,7 @@ export default function CartPage() {
                 <div className="flex justify-between">
                   <span className="text-slate-600">Shipping</span>
                   <span className="font-medium">
-                    {calculateSubtotal() > 1000000 ? 'Free' : formatPrice(50000)}
+                    {calculateSubtotal() > 1000000 ? 'Free' : formatPrice(calculateShipping())}
                   </span>
                 </div>
                 
