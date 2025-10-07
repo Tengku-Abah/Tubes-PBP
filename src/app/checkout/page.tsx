@@ -22,7 +22,7 @@ interface CartItem {
     quantity: number;
 }
 
-export default function checkoutPage() {
+export default function CheckoutPage() {
     const router = useRouter()
     const { cartItems, loading: cartLoading, subtotal, shipping, totalItem, total, refresh } = useCart()
     const [localSummary, setLocalSummary] = useState<any | null>(null)
@@ -78,6 +78,25 @@ export default function checkoutPage() {
     const [postalCode, setPostalCode] = useState('')
     const [province, setProvince] = useState('')
     const [shippingMethod, setShippingMethod] = useState('standard')
+    const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bank'>('cod')
+    const [notes, setNotes] = useState('')
+    const [currentStep, setCurrentStep] = useState<number>(1)
+    const [agreed, setAgreed] = useState(false)
+
+    // When user data arrives, prefill contact fields once (but keep them editable)
+    useEffect(() => {
+        if (user) {
+            setContactName((prev: string) => prev || user.name || '')
+            setContactEmail((prev: string) => prev || user.email || '')
+            setPhone((prev: string) => prev || user.phone || '')
+        }
+    }, [user])
+
+    // Eligibility to proceed to payment
+    const canProceedToPayment = Boolean(
+        contactName && contactEmail && phone && address && city && postalCode && province &&
+        ((cartItems && cartItems.length > 0) || (localSummary?.items?.length > 0))
+    )
 
     if (initialLoading) {
         return (
@@ -149,10 +168,51 @@ export default function checkoutPage() {
             }
 
             // Prepare minimal payload: items (id, qty) and totals computed server-side
+            // Build items: prefer authoritative cartItems; fallback to localSummary.items
+            const itemsFromCart = cartItems.map((it: any) => ({
+                productId: it.product.id,
+                productName: it.product.name,
+                quantity: it.quantity,
+                price: it.product.price
+            }))
+
+            const itemsFromSummary = (localSummary?.items ?? []).map((it: any) => {
+                const productId = it.productId ?? it.product?.id ?? it.product_id ?? it.id
+                const name = it.product?.name ?? it.name ?? 'Item'
+                const qty = it.quantity ?? 1
+                const price = typeof it.price === 'number' ? it.price : (it.product?.price ?? 0)
+                return { productId, productName: name, quantity: qty, price }
+            })
+
+            const finalItems = itemsFromCart.length > 0 ? itemsFromCart : itemsFromSummary
+
+            if (finalItems.length === 0) {
+                alert('Cart kosong. Kembali ke cart untuk menambahkan item.')
+                router.push('/cart')
+                return
+            }
+
+            const clientSummary = localSummary ?? {
+                subtotal,
+                shipping,
+                tax: subtotal * 0.11,
+                total
+            }
+
             const payload = {
-                items: cartItems.map(it => ({ product_id: it.product.id, quantity: it.quantity })),
-                // allow server to compute totals; send client summary for convenience
-                client_summary: localSummary ?? null
+                customerName: contactName,
+                customerEmail: contactEmail,
+                customerPhone: phone,
+                items: finalItems,
+                shippingAddress: {
+                    street: address,
+                    city,
+                    postalCode,
+                    province
+                },
+                paymentMethod: paymentMethod === 'bank' ? 'bank_transfer' : 'cash_on_delivery',
+                notes: notes || undefined,
+                client_summary: clientSummary
             }
 
             const authHeaders = getAuthHeaders() || {}
@@ -208,6 +268,8 @@ export default function checkoutPage() {
             sessionStorage.setItem('checkout_summary', JSON.stringify(derived))
         }
 
+        // Mark review step as active
+        setCurrentStep(3)
         // Let placeOrder handle server side
         await placeOrder()
     }
@@ -227,7 +289,7 @@ export default function checkoutPage() {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-4">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center">1</div>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}>1</div>
                                                     <div>
                                                         <div className="text-xs text-slate-500">Step 1</div>
                                                         <div className="font-medium">Shipping</div>
@@ -237,7 +299,7 @@ export default function checkoutPage() {
                                                 <div className="flex-1 border-t border-slate-200 mx-3" />
 
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center">2</div>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}>2</div>
                                                     <div>
                                                         <div className="text-xs text-slate-500">Step 2</div>
                                                         <div className="font-medium">Payment</div>
@@ -247,7 +309,7 @@ export default function checkoutPage() {
                                                 <div className="flex-1 border-t border-slate-200 mx-3" />
 
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center">3</div>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}>3</div>
                                                     <div>
                                                         <div className="text-xs text-slate-500">Step 3</div>
                                                         <div className="font-medium">Review</div>
@@ -308,28 +370,138 @@ export default function checkoutPage() {
 
                         <hr className="my-6" />
 
-                        <h2 className="text-xl font-semibold mb-4">Payment</h2>
-                        <p className="text-sm text-slate-600 mb-4">We currently support payment on delivery and bank transfer (placeholder). Implement real payment gateway later.</p>
+                        {/* Step 2: Payment Panel */}
+                        <div className={`${currentStep === 2 ? 'block' : 'hidden'}`}>
+                            <h2 className="text-xl font-semibold mb-4">Payment</h2>
+                            <p className="text-sm text-slate-600 mb-4">We currently support payment on delivery and bank transfer (placeholder). Implement real payment gateway later.</p>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600">Payment Method</label>
-                                <select className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="cod">Cash on Delivery</option>
-                                    <option value="bank">Bank Transfer</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600">Notes (optional)</label>
-                                <input className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-600">Payment Method</label>
+                                    <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as 'cod' | 'bank')} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="cod">Cash on Delivery</option>
+                                        <option value="bank">Bank Transfer</option>
+                                    </select>
+                                    <div className="mt-3 text-sm text-slate-600 bg-slate-50 border rounded-lg p-3">
+                                        {paymentMethod === 'cod' ? (
+                                            <ul className="list-disc pl-5 space-y-1">
+                                                <li>Bayar saat barang diterima (COD).</li>
+                                                <li>Kurir hanya menerima uang tunai.</li>
+                                                <li>Siapkan uang pas untuk mempercepat proses.</li>
+                                            </ul>
+                                        ) : (
+                                            <ul className="list-disc pl-5 space-y-1">
+                                                <li>Transfer ke rekening yang akan dikirim setelah order dibuat.</li>
+                                                <li>Sertakan nomor order pada berita transfer.</li>
+                                                <li>Pesanan diproses setelah pembayaran terkonfirmasi.</li>
+                                            </ul>
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-600">Notes (optional)</label>
+                                    <input value={notes} onChange={e => setNotes(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                </div>
                             </div>
                         </div>
 
-                        <div className="mt-6 flex items-center justify-between">
+                        {/* Step 3: Review Panel */}
+                        <div className={`${currentStep === 3 ? 'block' : 'hidden'}`}>
+                            <h2 className="text-xl font-semibold mb-4">Review Order</h2>
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="border rounded-xl p-4">
+                                    <h3 className="font-medium text-slate-800 mb-2">Contact</h3>
+                                    <p className="text-sm text-slate-700">{contactName} • {contactEmail} • {phone}</p>
+                                </div>
+                                <div className="border rounded-xl p-4">
+                                    <h3 className="font-medium text-slate-800 mb-2">Shipping Address</h3>
+                                    <p className="text-sm text-slate-700">{address}, {city}, {province} {postalCode}</p>
+                                    <p className="text-sm text-slate-600 mt-1">Method: {shippingMethod === 'express' ? 'Express (1-2 days)' : 'Standard (3-5 days)'}</p>
+                                </div>
+                                <div className="border rounded-xl p-4">
+                                    <h3 className="font-medium text-slate-800 mb-2">Payment</h3>
+                                    <p className="text-sm text-slate-700">{paymentMethod === 'bank' ? 'Bank Transfer' : 'Cash on Delivery'}</p>
+                                    {notes && <p className="text-sm text-slate-600 mt-1">Notes: {notes}</p>}
+                                </div>
+                                <div className="border rounded-xl p-4">
+                                    <h3 className="font-medium text-slate-800 mb-3">Items</h3>
+                                    <div className="space-y-2">
+                                        {(
+                                            (cartItems && cartItems.length > 0)
+                                                ? cartItems.map((c: any) => ({
+                                                    key: c.id,
+                                                    name: c.product?.name ?? 'Item',
+                                                    qty: c.quantity ?? 1,
+                                                    price: Number((c.product as any)?.price ?? 0)
+                                                }))
+                                                : (localSummary?.items ?? []).map((it: any, idx: number) => {
+                                                    const productId = it.productId ?? it.product?.id ?? it.product_id ?? it.id
+                                                    const cartEntry = cartItems.find((c: any) => c.product?.id === productId)
+                                                    const product = cartEntry?.product ?? (it.product ?? {})
+                                                    return {
+                                                        key: idx,
+                                                        name: product?.name ?? it.productName ?? 'Item',
+                                                        qty: cartEntry?.quantity ?? it.quantity ?? 1,
+                                                        price: Number((product as any)?.price ?? it.price ?? 0)
+                                                    }
+                                                })
+                                        ).map((row: any) => (
+                                            <div key={row.key} className="flex items-center justify-between text-sm">
+                                                <div className="text-slate-700">{row.name} <span className="text-slate-500">× {row.qty}</span></div>
+                                                <div className="font-medium text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.price * row.qty)}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="border-t mt-3 pt-3 space-y-1 text-sm">
+                                        <div className="flex justify-between text-slate-600">
+                                            <span>Subtotal</span>
+                                            <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.subtotal ?? subtotal)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-slate-600">
+                                            <span>Shipping</span>
+                                            <span>{(localSummary?.shipping ?? shipping) === 0 ? 'Free' : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.shipping ?? shipping)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-slate-600">
+                                            <span>Tax (11%)</span>
+                                            <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.subtotal ?? subtotal) * 0.11)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-slate-800 font-semibold text-base pt-1">
+                                            <span>Total</span>
+                                            <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.total ?? total)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 mt-2">
+                                    <input id="agree" type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
+                                    <label htmlFor="agree" className="text-sm text-slate-700">I confirm the information above is correct.</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex items-center justify-between gap-3">
                             <Link href="/cart" className="text-blue-600 hover:underline">Back to cart</Link>
-                            <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
-                                {loading ? 'Placing order...' : 'Place Order'}
-                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    disabled={!canProceedToPayment}
+                                    onClick={() => setCurrentStep(2)}
+                                    className="px-4 py-3 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+                                >
+                                    Go to Payment
+                                </button>
+                                {currentStep === 2 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setCurrentStep(3)}
+                                        className="px-4 py-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50"
+                                    >
+                                        Go to Review
+                                    </button>
+                                )}
+                                <button type="submit" disabled={loading || currentStep < 2 || (currentStep === 3 && !agreed)} className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
+                                    {loading ? 'Placing order...' : 'Place Order'}
+                                </button>
+                            </div>
                         </div>
                     </form>
 
@@ -338,27 +510,34 @@ export default function checkoutPage() {
                         <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
 
                         <div className="space-y-3">
-                            {(localSummary?.items ?? cartItems).map((it: any, idx: number) => {
-                                // Normalize to a product id and quantity
-                                const productId = it.productId ?? it.product?.id ?? it.product_id ?? it.id
-                                const cartEntry = cartItems.find((c: any) => c.product?.id === productId)
-
-                                // Prefer authoritative data from cartEntry (fetched from /api/cart)
-                                const product = cartEntry?.product ?? (it.product ?? {})
-                                const qty = cartEntry?.quantity ?? it.quantity ?? 1
-                                const name = product?.name ?? 'Item'
-                                const price = typeof product?.price === 'number' ? product.price : (it.price ?? 0)
-
-                                return (
-                                    <div key={idx} className="flex items-center justify-between">
-                                        <div>
-                                            <div className="text-sm font-medium text-slate-800">{name}</div>
-                                            <div className="text-xs text-slate-500">Qty: {qty}</div>
-                                        </div>
-                                        <div className="text-sm font-semibold text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price * qty)}</div>
+                            {(
+                                (cartItems && cartItems.length > 0)
+                                    ? cartItems.map((c: any) => ({
+                                        key: c.id,
+                                        name: c.product?.name ?? 'Item',
+                                        qty: c.quantity ?? 1,
+                                        price: typeof c.product?.price === 'number' ? c.product.price : 0
+                                    }))
+                                    : (localSummary?.items ?? []).map((it: any, idx: number) => {
+                                        const productId = it.productId ?? it.product?.id ?? it.product_id ?? it.id
+                                        const cartEntry = cartItems.find((c: any) => c.product?.id === productId)
+                                        const product = cartEntry?.product ?? (it.product ?? {})
+                                        return {
+                                            key: idx,
+                                            name: product?.name ?? it.productName ?? 'Item',
+                                            qty: cartEntry?.quantity ?? it.quantity ?? 1,
+                                            price: typeof product?.price === 'number' ? product.price : (it.price ?? 0)
+                                        }
+                                    })
+                            ).map((row: any) => (
+                                <div key={row.key} className="flex items-center justify-between">
+                                    <div>
+                                        <div className="text-sm font-medium text-slate-800">{row.name}</div>
+                                        <div className="text-xs text-slate-500">Qty: {row.qty}</div>
                                     </div>
-                                )
-                            })}
+                                    <div className="text-sm font-semibold text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.price * row.qty)}</div>
+                                </div>
+                            ))}
                         </div>
 
                         <div className="border-t border-slate-200 mt-4 pt-4 space-y-3">

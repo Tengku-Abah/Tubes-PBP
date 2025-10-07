@@ -116,12 +116,14 @@ export async function POST(request: NextRequest) {
       customerPhone,
       items,
       shippingAddress,
-      paymentMethod,
-      notes
+      paymentMethod
     } = body;
 
+    // Get user ID from request headers or query params
+    const userId = request.headers.get('user-id') || request.nextUrl.searchParams.get('user_id');
+
     // Validasi input
-    if (!customerName || !customerEmail || !customerPhone || !items || !shippingAddress) {
+    if (!customerName || !customerEmail || !customerPhone || !items || !shippingAddress || !userId) {
       return NextResponse.json(
         { success: false, message: 'Required fields are missing' },
         { status: 400 }
@@ -140,19 +142,19 @@ export async function POST(request: NextRequest) {
 
     // Buat pesanan baru di database
     const { data: newOrder, error } = await dbHelpers.createOrder({
-      user_id: 'a4bc7b55-bee9-4f13-8486-9cb8bb92be29', // TODO: Get from auth
+      user_id: String(userId),
       order_number: `ORD-${Date.now()}`,
       total_amount: totalAmount,
       status: 'pending',
       shipping_address: `${shippingAddress.street}, ${shippingAddress.city}`,
-      payment_method: paymentMethod || 'cash_on_delivery',
-      notes: notes
+      payment_method: paymentMethod || 'cash_on_delivery'
     });
 
     if (error) {
       console.error('Database insert error:', error);
+      const message = (error as any)?.message || (typeof error === 'string' ? error : JSON.stringify(error));
       return NextResponse.json(
-        { success: false, message: `Database error: ${error}` },
+        { success: false, message: `Database error: ${message}` },
         { status: 500 }
       );
     }

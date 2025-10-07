@@ -51,15 +51,13 @@ export default function ProductCard({ product, className }: ProductCardProps) {
   const fallbackImage =
     'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&auto=format&fit=crop&q=60'
 
-  const canClick = product.stock > 0
+  // Always allow viewing product detail, regardless of stock
+  const canClick = true
 
   return (
     <Link
-      href={canClick ? `/Detail?id=${product.id}` : '#'}
+      href={`/Detail?id=${product.id}`}
       className="block"
-      onClick={(e) => {
-        if (!canClick) e.preventDefault()
-      }}
     > 
     <div
       className={`group relative [perspective:1200px] h-full ${className ?? ''}`}
@@ -131,13 +129,17 @@ export default function ProductCard({ product, className }: ProductCardProps) {
             </span>
           </div>
 
-            {/* Harga */}
-            <div className="flex justify-between items-center mt-1">
-              <div></div>
-              <span className="text-[15px] font-semibold text-gray-900">
-                {formatPrice(product.price)}
-              </span>
-            </div>
+          {/* Harga + Aksi */}
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <span className="text-[15px] font-semibold text-gray-900">
+              {formatPrice(product.price)}
+            </span>
+            <span
+              className="px-3 py-1.5 text-sm rounded-md font-medium bg-blue-600 text-white"
+            >
+              Lihat Detail
+            </span>
+          </div>
           </div>
         </div>
       </div>
