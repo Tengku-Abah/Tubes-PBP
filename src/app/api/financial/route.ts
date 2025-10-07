@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 import { supabase } from '../../../lib/supabase';
 
 // GET endpoint untuk laporan keuangan
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = request.nextUrl;
     const period = searchParams.get('period') || 'month';
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
     const month = parseInt(searchParams.get('month') || new Date().getMonth().toString());
