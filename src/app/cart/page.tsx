@@ -313,7 +313,7 @@ export default function CartPage() {
                             </svg>
                           ))}
                           <span className="ml-1 text-sm text-slate-600">
-                            {item.product.rating.toFixed(1)}
+                            {(item.product.rating || 0).toFixed(1)}
                           </span>
                         </div>
                       </div>
