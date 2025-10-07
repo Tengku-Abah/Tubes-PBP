@@ -402,7 +402,7 @@ export default function HomePage() {
                 <div className="flex gap-3">
                   {user?.role === 'admin' && (
                     <Link
-                      href="/admin"
+                      href="/Admin"
                       className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-md"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
