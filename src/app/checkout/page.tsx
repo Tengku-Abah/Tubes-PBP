@@ -339,10 +339,16 @@ export default function checkoutPage() {
 
                         <div className="space-y-3">
                             {(localSummary?.items ?? cartItems).map((it: any, idx: number) => {
-                                const prod = cartItems.find(c => c.product.id === (it.productId ?? it.product?.id))
-                                const name = prod?.product?.name ?? prod?.product?.name ?? 'Item'
-                                const qty = it.quantity ?? (prod?.quantity ?? 1)
-                                const price = prod?.product?.price ?? 0
+                                // Normalize to a product id and quantity
+                                const productId = it.productId ?? it.product?.id ?? it.product_id ?? it.id
+                                const cartEntry = cartItems.find((c: any) => c.product?.id === productId)
+
+                                // Prefer authoritative data from cartEntry (fetched from /api/cart)
+                                const product = cartEntry?.product ?? (it.product ?? {})
+                                const qty = cartEntry?.quantity ?? it.quantity ?? 1
+                                const name = product?.name ?? 'Item'
+                                const price = typeof product?.price === 'number' ? product.price : (it.price ?? 0)
+
                                 return (
                                     <div key={idx} className="flex items-center justify-between">
                                         <div>
@@ -358,22 +364,22 @@ export default function checkoutPage() {
                         <div className="border-t border-slate-200 mt-4 pt-4 space-y-3">
                             <div className="flex justify-between text-sm text-slate-600">
                                 <span>Subtotal</span>
-                                <span className="font-medium">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(subtotal)}</span>
+                                <span className="font-medium">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.subtotal ?? subtotal)}</span>
                             </div>
 
                             <div className="flex justify-between text-sm text-slate-600">
                                 <span>Shipping</span>
-                                <span className="font-medium">{shipping === 0 ? 'Free' : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(shipping)}</span>
+                                <span className="font-medium">{(localSummary?.shipping ?? shipping) === 0 ? 'Free' : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.shipping ?? shipping)}</span>
                             </div>
 
                             <div className="flex justify-between text-sm text-slate-600">
                                 <span>Tax (11%)</span>
-                                <span className="font-medium">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(subtotal * 0.11)}</span>
+                                <span className="font-medium">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.subtotal ?? subtotal) * 0.11)}</span>
                             </div>
 
                             <div className="flex justify-between text-lg font-semibold mt-2">
                                 <span>Total</span>
-                                <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(total)}</span>
+                                <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.total ?? total)}</span>
                             </div>
                         </div>
 
