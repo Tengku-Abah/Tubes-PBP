@@ -8,6 +8,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import { useToast } from '../components/Toast'
 import { logout } from '../lib/logout'
 import Link from 'next/link'
+import UserProfileDropdown from '../components/UserProfileDropdown'
 
 interface Product {
   id: number
@@ -351,9 +352,8 @@ export default function HomePage() {
               Welcome to UMKM Store
             </h1>
             {isLoggedIn && user && (
-              <div className="text-right">
-                <p className="text-slate-600">Selamat datang, <span className="font-semibold text-blue-600">{user.name}</span>!</p>
-                <p className="text-sm text-slate-500">{user.role === 'admin' ? 'Admin' : 'Customer'}</p>
+              <div className="flex items-center gap-4">
+                <UserProfileDropdown user={user} />
               </div>
             )}
           </div>

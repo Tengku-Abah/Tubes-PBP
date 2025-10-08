@@ -1,11 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Supabase configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ickulgsxwndqrighdaku.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlja3VsZ3N4d25kcXJpZ2hkYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0NjA0NjIsImV4cCI6MjA3NDAzNjQ2Mn0.R1HZa_kk9D6x_cwQh60MoR3FROliwbqAAQq1eB8YjTg'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 // Create Supabase client with fallback
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Create admin Supabase client for bypassing RLS
+export const supabaseAdmin = supabaseServiceKey 
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : supabase
 
 // Database types
 export interface Database {
@@ -88,9 +99,6 @@ export interface Database {
           shipping_address: string
           payment_method: string
           payment_status?: string
-          shipping_date?: string
-          delivery_date?: string
-          notes?: string
           created_at: string
           updated_at: string
         }
@@ -103,9 +111,6 @@ export interface Database {
           shipping_address: string
           payment_method: string
           payment_status?: string
-          shipping_date?: string
-          delivery_date?: string
-          notes?: string
           created_at?: string
           updated_at?: string
         }
@@ -118,9 +123,6 @@ export interface Database {
           shipping_address?: string
           payment_method?: string
           payment_status?: string
-          shipping_date?: string
-          delivery_date?: string
-          notes?: string
           created_at?: string
           updated_at?: string
         }
@@ -521,34 +523,75 @@ export const dbHelpers = {
   async updateOrder(orderId: number, updateData: {
     status?: string;
     payment_status?: string;
-    shipping_date?: string;
-    delivery_date?: string;
-    notes?: string;
   }) {
     try {
+      // Pastikan orderId adalah angka
+      if (typeof orderId !== 'number') {
+        orderId = parseInt(String(orderId), 10);
+        if (isNaN(orderId)) {
+          throw new Error('Invalid order ID');
+        }
+      }
+      
+      // Filter out fields that don't exist in the database
       const dataToUpdate = {
-        ...updateData,
+        ...(updateData.status && { status: updateData.status }),
+        ...(updateData.payment_status && { payment_status: updateData.payment_status }),
         updated_at: new Date().toISOString()
       };
 
-      return await supabase
+      // Log untuk debugging
+      console.log('NEW updateOrder - Input parameters:', { orderId, updateData });
+      console.log('NEW updateOrder - Filtered data to update:', dataToUpdate);
+      console.log('NEW updateOrder - Data to update keys:', Object.keys(dataToUpdate));
+      console.log('NEW updateOrder - Data to update values:', Object.values(dataToUpdate));
+
+      // Pertama, cek apakah order ada (tanpa .single())
+      const { data: existingOrders, error: checkError } = await supabase
+        .from('orders')
+        .select('id, status')
+        .eq('id', orderId);
+
+      console.log('NEW updateOrder - Existing order check:', { existingOrders, checkError });
+
+      if (checkError) {
+        console.log('NEW updateOrder - Error checking order:', checkError);
+        return { data: null, error: checkError };
+      }
+
+      if (!existingOrders || existingOrders.length === 0) {
+        console.log('NEW updateOrder - Order not found:', orderId);
+        return { data: null, error: new Error(`Order with ID ${orderId} not found`) };
+      }
+
+      console.log('NEW updateOrder - Using supabaseAdmin:', !!supabaseServiceKey);
+      console.log('NEW updateOrder - Service key exists:', supabaseServiceKey ? 'YES' : 'NO');
+      
+      // Lakukan update tanpa .single() - bypass RLS untuk admin operations
+      const { data: updatedData, error: updateError } = await supabaseAdmin
         .from('orders')
         .update(dataToUpdate)
         .eq('id', orderId)
-        .select(`
-          id,
-          user_id,
-          order_number,
-          total_amount,
-          status,
-          shipping_address,
-          payment_method,
-          created_at,
-          updated_at,
-          users(name, email)
-        `)
-        .single();
+        .select('*');
+        
+      // Log hasil untuk debugging
+      console.log('NEW updateOrder - Update result:', { data: updatedData, error: updateError });
+      
+      if (updateError) {
+        console.log('NEW updateOrder - Update error:', updateError);
+        return { data: null, error: updateError };
+      }
+
+      if (!updatedData || updatedData.length === 0) {
+        console.log('NEW updateOrder - No rows updated');
+        return { data: null, error: new Error('No rows were updated') };
+      }
+
+      console.log('NEW updateOrder - Success, returning:', updatedData[0]);
+      // Return the first (and should be only) updated record
+      return { data: updatedData[0], error: null };
     } catch (error) {
+      console.error('NEW updateOrder - catch error:', error);
       return { data: null, error };
     }
   },

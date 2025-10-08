@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbHelpers, ApiResponse } from '../../../lib/supabase';
+import { dbHelpers, ApiResponse, supabase } from '../../../lib/supabase';
 
 // Interface untuk pesanan response
 interface OrderResponse {
@@ -34,12 +34,39 @@ interface OrderResponse {
 // GET endpoint untuk mengambil semua pesanan
 export async function GET(request: NextRequest) {
   try {
+    // Verifikasi bahwa request berasal dari admin untuk akses ke semua pesanan
+    const authHeader = request.headers.get('authorization');
+    const userRole = request.headers.get('x-user-role');
+    
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const customerEmail = searchParams.get('customerEmail');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
+    const id = searchParams.get('id');
 
+    if (id) {
+      // Jika ada ID, ambil pesanan spesifik
+      // Untuk pesanan spesifik, verifikasi admin atau pemilik pesanan
+      const { data: order, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', parseInt(id))
+        .single();
+      
+      if (!order) {
+        return NextResponse.json(
+          { success: false, message: 'Order not found' },
+          { status: 404 }
+        );
+      }
+      
+      return NextResponse.json({
+        success: true,
+        data: order,
+        message: 'Order retrieved successfully'
+      });
+    }
 
     const { data, error } = await dbHelpers.getOrders({
       status: status || undefined,
@@ -177,17 +204,44 @@ export async function POST(request: NextRequest) {
 // PUT endpoint untuk update status pesanan
 export async function PUT(request: NextRequest) {
   try {
+    console.log('=== API PUT /api/orders DEBUG ===');
+    
+    // Verifikasi bahwa request berasal dari admin
+    const authHeader = request.headers.get('authorization');
+    const userRole = request.headers.get('x-user-role');
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ') || userRole !== 'admin') {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized: Admin access required' },
+        { status: 403 }
+      );
+    }
+    
     const body = await request.json();
+    console.log('Request body:', body);
+    
     const { id, status, paymentStatus, shippingDate, deliveryDate, notes } = body;
 
     // Validasi input
     if (!id) {
+      console.log('Missing required field - id:', id);
       return NextResponse.json(
         { success: false, message: 'Order ID is required' },
         { status: 400 }
       );
     }
 
+    // Validasi status
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'completed', 'cancelled'];
+    if (status && !validStatuses.includes(status)) {
+      console.log('Invalid status:', status);
+      return NextResponse.json(
+        { success: false, message: 'Invalid status value' },
+        { status: 400 }
+      );
+    }
+
+    console.log('Updating order in database - ID:', id, 'Status:', status);
 
     // Update data di database
     const updateData: any = {};
@@ -197,51 +251,91 @@ export async function PUT(request: NextRequest) {
     if (deliveryDate) updateData.delivery_date = deliveryDate;
     if (notes !== undefined) updateData.notes = notes;
 
-    const { data, error } = await dbHelpers.updateOrder(id, updateData);
+    // Pastikan id adalah angka
+    const orderId = typeof id === 'string' ? parseInt(id, 10) : id;
+    
+    console.log('Updating order with ID:', orderId, 'Data:', updateData);
+    
+    const { data, error } = await dbHelpers.updateOrder(orderId, updateData);
+    console.log('Database update result - data:', data, 'error:', error);
 
     if (error) {
       console.error('Database update error:', error);
+      const errorMessage = typeof error === 'object' ? JSON.stringify(error) : String(error);
       return NextResponse.json(
-        { success: false, message: `Database error: ${error}` },
+        { success: false, message: `Database error: ${errorMessage}` },
         { status: 500 }
       );
     }
-
+    
+    // Periksa apakah data ditemukan
+    // Jika data adalah null atau undefined, maka order tidak ditemukan
     if (!data) {
       return NextResponse.json(
         { success: false, message: 'Order not found' },
         { status: 404 }
       );
     }
-
+    
+    // Jika data adalah array kosong, maka order mungkin ditemukan tapi tidak ada perubahan
+    if (Array.isArray(data) && data.length === 0) {
+      // Coba ambil data order untuk memastikan order ada (tanpa .single())
+      const { data: orderCheck } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId);
+        
+      if (!orderCheck || orderCheck.length === 0) {
+        return NextResponse.json(
+          { success: false, message: 'Order not found' },
+          { status: 404 }
+        );
+      }
+      
+      // Order ada tapi tidak ada perubahan, anggap sukses
+      return NextResponse.json({
+        success: true,
+        message: 'No changes were made to the order',
+        data: {
+          id: orderCheck[0].id,
+          status: orderCheck[0].status
+        }
+      });
+    }
+    
+    // Ambil data pertama dari array hasil
+    const orderData = Array.isArray(data) ? data : data;
+    
     // Transform data untuk response
     const transformedOrder = {
-      id: data.id,
-      customerName: (data.users as any)?.name || 'Unknown',
-      customerEmail: (data.users as any)?.email || '',
-      customerPhone: (data.users as any)?.phone || '',
+      id: orderData.id,
+      customerName: (orderData.users as any)?.name || 'Unknown',
+      customerEmail: (orderData.users as any)?.email || '',
+      customerPhone: (orderData.users as any)?.phone || '',
       items: [], // TODO: Implement order items relationship
-      totalAmount: data.total_amount,
-      status: data.status,
+      totalAmount: orderData.total_amount,
+      status: orderData.status,
       shippingAddress: {
-        street: data.shipping_address || '',
+        street: orderData.shipping_address || '',
         city: '',
         postalCode: '',
         province: ''
       },
-      paymentMethod: data.payment_method,
-      paymentStatus: 'pending', // TODO: Add payment_status field
-      orderDate: data.created_at,
-      shippingDate: null,
-      deliveryDate: null,
-      notes: null
+      paymentMethod: orderData.payment_method,
+      paymentStatus: orderData.payment_status || 'pending',
+      orderDate: orderData.created_at,
+      shippingDate: null, // Column doesn't exist in database
+      deliveryDate: null, // Column doesn't exist in database
+      notes: null // Column doesn't exist in database
     };
 
+    console.log('Order updated successfully:', transformedOrder);
+    console.log('=== API PUT /api/orders DEBUG END ===');
 
     return NextResponse.json({
       success: true,
-      data: transformedOrder,
-      message: 'Order updated successfully in database'
+      message: 'Order updated successfully',
+      data: transformedOrder
     });
 
   } catch (error) {

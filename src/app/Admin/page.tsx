@@ -153,7 +153,8 @@ const AdminPanel = () => {
         console.error('Error parsing user data:', error);
       }
     }
-  }, []); // Empty dependency array to run only once
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array to prevent infinite fetches
 
   const loadProducts = async () => {
     try {
@@ -195,9 +196,37 @@ const AdminPanel = () => {
     }
   };
 
+  // Tambahkan state untuk mencegah multiple fetch
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  
   const loadOrders = async () => {
+    // Cek apakah sedang loading, jika ya, jangan fetch lagi
+    if (isLoadingOrders) return;
+    
+    // Verifikasi user adalah admin sebelum memuat data
+    const userData = sessionStorage.getItem('user');
+    if (!userData) {
+      console.error('Sesi login tidak ditemukan');
+      return;
+    }
+
+    const user = JSON.parse(userData);
+    if (user.role !== 'admin') {
+      console.error('Akses admin diperlukan');
+      return;
+    }
+    
     try {
-      const response = await fetch('/api/orders');
+      setIsLoadingOrders(true);
+      const response = await fetch('/api/orders', {
+        // Tambahkan cache: 'no-store' untuk mencegah caching yang mungkin menyebabkan fetch berulang
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Authorization': `Bearer ${user.id}`,
+          'X-User-Role': 'admin'
+        }
+      });
       const result = await response.json();
 
       if (result.success) {
@@ -219,6 +248,8 @@ const AdminPanel = () => {
     } catch (error) {
       console.error('Error loading orders:', error);
       setOrders([]);
+    } finally {
+      setIsLoadingOrders(false);
     }
   };
 
@@ -494,32 +525,95 @@ const AdminPanel = () => {
 
   const handleUpdateOrderStatus = async (orderId: number, newStatus: string) => {
     try {
+      console.log('=== ORDER STATUS UPDATE DEBUG ===');
+      console.log('Order ID:', orderId);
+      console.log('New Status:', newStatus);
+      console.log('Current orders state:', orders);
+      
       setUpdatingStatus(orderId);
 
+      // Validasi status
+      const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'completed', 'cancelled'];
+      if (!validStatuses.includes(newStatus)) {
+        console.log('Invalid status:', newStatus);
+        showError('Status tidak valid');
+        return;
+      }
+
+      // Pastikan user adalah admin sebelum melakukan update
+      const userData = sessionStorage.getItem('user');
+      if (!userData) {
+        console.log('No user data found in session');
+        showError('Sesi login tidak ditemukan');
+        return;
+      }
+
+      const user = JSON.parse(userData);
+      console.log('User data:', user);
+      
+      if (user.role !== 'admin') {
+        console.log('User is not admin:', user.role);
+        showError('Anda tidak memiliki akses admin');
+        return;
+      }
+
+      const requestBody = {
+        id: orderId,
+        status: newStatus
+      };
+      
+      console.log('Request body:', requestBody);
+
+      // Tambahkan header Authorization untuk memastikan request dari admin
       const response = await fetch('/api/orders', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Authorization': `Bearer ${user.id}`,
+          'X-User-Role': 'admin'
         },
-        body: JSON.stringify({
-          id: orderId,
-          status: newStatus
-        }),
+        cache: 'no-store',
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Response error text:', errorText);
+        throw new Error(`Server error: ${response.status} ${errorText}`);
+      }
+
       const result = await response.json();
+      console.log('API Response result:', result);
 
       if (result.success) {
+        console.log('Update successful, updating local state...');
+        
         // Update state dengan data terbaru dari server
-        setOrders(prevOrders =>
-          prevOrders.map(order =>
+        setOrders(prevOrders => {
+          const updatedOrders = prevOrders.map(order =>
             order.id === orderId
               ? { ...order, status: newStatus }
               : order
-          )
-        );
-        // Reload data untuk memastikan sinkronisasi
-        await loadOrders();
+          );
+          console.log('Updated orders state:', updatedOrders);
+          return updatedOrders;
+        });
+        
+        // Reload data untuk memastikan sinkronisasi dengan database
+        console.log('Reloading orders from database...');
+        setTimeout(async () => {
+          try {
+            await loadOrders();
+            console.log('Orders reloaded successfully');
+          } catch (error) {
+            console.error('Error reloading orders:', error);
+          }
+        }, 100); // Reduced timeout for faster refresh
+        
         showSuccess('Status order berhasil diupdate');
       } else {
         console.error('Error updating order status:', result.message);
@@ -530,6 +624,7 @@ const AdminPanel = () => {
       showError('Gagal mengupdate status order: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setUpdatingStatus(null);
+      console.log('=== ORDER STATUS UPDATE DEBUG END ===');
     }
   };
 
@@ -1120,6 +1215,7 @@ const AdminPanel = () => {
     // Load data when period changes
     useEffect(() => {
       loadFinancialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedPeriod, selectedYear, selectedMonth, selectedQuarter, selectedSemester]);
 
     // Use API data or fallback to local calculation
