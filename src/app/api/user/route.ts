@@ -9,6 +9,7 @@ const dummyUsers = [
     email: 'admin@gmail.com',
     password: '$2b$10$voXgrTXntv2g17ERAGbfo.VdpIWNwn9PIb29g8M3FvOTlxP3.nrMi', // Admin08
     name: 'Admin User',
+    phoneNumber: '081234567890',
     role: 'admin',
     createdAt: new Date().toISOString(),
     isActive: true
@@ -18,6 +19,7 @@ const dummyUsers = [
     email: 'user@gmail.com',
     password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password123
     name: 'Regular User',
+    phoneNumber: '081111222333',
     role: 'pembeli',
     createdAt: new Date().toISOString(),
     isActive: true
@@ -55,7 +57,7 @@ async function addAdminUserToDatabase() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, name, action } = body;
+    const { email, password, name, phone, action } = body;
 
     // Jika action adalah 'register', lakukan registrasi
     if (action === 'register') {
@@ -63,7 +65,10 @@ export async function POST(request: NextRequest) {
       await addAdminUserToDatabase();
 
       // Validasi input untuk registrasi
-      if (!email || !password || !name) {
+      // Extract phoneNumber as optional required field
+      const phoneNumber = body.phoneNumber || body.phone || '';
+
+      if (!email || !password || !name || !phoneNumber) {
         return NextResponse.json(
           { success: false, message: 'Name, email and password are required' },
           { status: 400 }
@@ -107,6 +112,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Basic phone number validation (digits, length 6..20)
+      const phoneDigits = phoneNumber.replace(/\D/g, '');
+      if (phoneDigits.length < 6 || phoneDigits.length > 20) {
+        return NextResponse.json(
+          { success: false, message: 'Please enter a valid phone number' },
+          { status: 400 }
+        );
+      }
+
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -115,6 +129,7 @@ export async function POST(request: NextRequest) {
         email: email,
         password: hashedPassword,
         name: name,
+        phone: phone || null,
         role: 'pembeli' as const // Default role untuk user yang registrasi
         // is_active: true // Kolom ini belum ada di database
       };
@@ -130,13 +145,19 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Return user data tanpa password
+      // Return user data tanpa password (pastikan phone disertakan)
       const { password: _, ...userWithoutPassword } = newUser;
+
+      // Normalize possible phone fields for response
+      const normalizedUser = {
+        ...userWithoutPassword,
+        phoneNumber: (userWithoutPassword as any).phone_number || (userWithoutPassword as any).phone || ''
+      };
 
       return NextResponse.json({
         success: true,
         data: {
-          user: userWithoutPassword,
+          user: normalizedUser,
           message: 'Registration successful'
         }
       });
