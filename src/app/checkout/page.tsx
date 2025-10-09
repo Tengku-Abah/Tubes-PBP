@@ -178,7 +178,6 @@ export default function CheckoutPage() {
             }
 
             const clientSummary = localSummary ?? {
-
                 subtotal,
                 shipping,
                 tax: subtotal * 0.11,
@@ -316,96 +315,102 @@ export default function CheckoutPage() {
                     </div>
                     {/* Left: Form (2/3 width) */}
                     <form onSubmit={handlePlaceClick} className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6">
-                        <h2 className="text-xl font-semibold mb-4">Contact & Shipping</h2>
+                        {/* Step 1: Shipping Form */}
+                        {currentStep === 1 && (
+                            <>
+                                <h2 className="text-xl font-semibold mb-4">Contact & Shipping</h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600">Full name</label>
-                                <input value={contactName} onChange={e => setContactName(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600">Email</label>
-                                <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600">Phone</label>
-                                <input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600">Province</label>
-                                <input value={province} onChange={e => setProvince(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-                        </div>
-
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-slate-600">Address</label>
-                            <input value={address} onChange={e => setAddress(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600">City</label>
-                                <input value={city} onChange={e => setCity(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600">Postal Code</label>
-                                <input value={postalCode} onChange={e => setPostalCode(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600">Shipping Method</label>
-                                <select value={shippingMethod} onChange={e => setShippingMethod(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="standard">Standard (3-5 days)</option>
-                                    <option value="express">Express (1-2 days)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <hr className="my-6" />
-
-                        {/* Step 2: Payment Panel */}
-                        <div className={`${currentStep === 2 ? 'block' : 'hidden'}`}>
-                            <h2 className="text-xl font-semibold mb-4">Payment</h2>
-                            <p className="text-sm text-slate-600 mb-4">We currently support payment on delivery and bank transfer (placeholder). Implement real payment gateway later.</p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-600">Payment Method</label>
-                                    <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as 'cod' | 'bank' | 'credit-card')} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="cod">Cash on Delivery</option>
-                                        <option value="bank">Bank Transfer</option>
-                                        <option value="credit-card">Credit Card</option>
-                                    </select>
-                                    <div className="mt-3 text-sm text-slate-600 bg-slate-50 border rounded-lg p-3">
-                                        {paymentMethod === 'cod' ? (
-                                            <ul className="list-disc pl-5 space-y-1">
-                                                <li>Bayar saat barang diterima (COD).</li>
-                                                <li>Kurir hanya menerima uang tunai.</li>
-                                                <li>Siapkan uang pas untuk mempercepat proses.</li>
-                                            </ul>
-                                        ) : paymentMethod === 'bank' ? (
-                                            <ul className="list-disc pl-5 space-y-1">
-                                                <li>Transfer ke rekening yang akan dikirim setelah order dibuat.</li>
-                                                <li>Sertakan nomor order pada berita transfer.</li>
-                                                <li>Pesanan diproses setelah pembayaran terkonfirmasi.</li>
-                                            </ul>
-                                        ) : (
-                                            <ul className="list-disc pl-5 space-y-1">
-                                                <li>Pembayaran kartu kredit akan diproses melalui gateway (placeholder).</li>
-                                                <li>Data kartu tidak disimpan di server pada demo ini.</li>
-                                                <li>Nanti implementasikan integrasi gateway untuk transaksi nyata.</li>
-                                            </ul>
-                                        )}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600">Full name</label>
+                                        <input value={contactName} onChange={e => setContactName(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600">Email</label>
+                                        <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600">Phone</label>
+                                        <input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600">Province</label>
+                                        <input value={province} onChange={e => setProvince(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-600">Notes (optional)</label>
-                                    <input value={notes} onChange={e => setNotes(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+                                <div className="mt-4">
+                                    <label className="block text-sm font-medium text-slate-600">Address</label>
+                                    <input value={address} onChange={e => setAddress(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                 </div>
-                            </div>
-                        </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600">City</label>
+                                        <input value={city} onChange={e => setCity(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600">Postal Code</label>
+                                        <input value={postalCode} onChange={e => setPostalCode(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600">Shipping Method</label>
+                                        <select value={shippingMethod} onChange={e => setShippingMethod(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="standard">Standard (3-5 days)</option>
+                                            <option value="express">Express (1-2 days)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Step 2: Payment Form */}
+                        {currentStep === 2 && (
+                            <>
+                                <h2 className="text-xl font-semibold mb-4">Payment</h2>
+                                <p className="text-sm text-slate-600 mb-4">We currently support payment on delivery and bank transfer (placeholder). Implement real payment gateway later.</p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600">Payment Method</label>
+                                        <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as 'cod' | 'bank' | 'credit-card')} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="cod">Cash on Delivery</option>
+                                            <option value="bank">Bank Transfer</option>
+                                            <option value="credit-card">Credit Card</option>
+                                        </select>
+                                        <div className="mt-3 text-sm text-slate-600 bg-slate-50 border rounded-lg p-3">
+                                            {paymentMethod === 'cod' ? (
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    <li>Bayar saat barang diterima (COD).</li>
+                                                    <li>Kurir hanya menerima uang tunai.</li>
+                                                    <li>Siapkan uang pas untuk mempercepat proses.</li>
+                                                </ul>
+                                            ) : paymentMethod === 'bank' ? (
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    <li>Transfer ke rekening yang akan dikirim setelah order dibuat.</li>
+                                                    <li>Sertakan nomor order pada berita transfer.</li>
+                                                    <li>Pesanan diproses setelah pembayaran terkonfirmasi.</li>
+                                                </ul>
+                                            ) : (
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    <li>Pembayaran kartu kredit akan diproses melalui gateway (placeholder).</li>
+                                                    <li>Data kartu tidak disimpan di server pada demo ini.</li>
+                                                    <li>Nanti implementasikan integrasi gateway untuk transaksi nyata.</li>
+                                                </ul>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600">Notes (optional)</label>
+                                        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add any special instructions..."></textarea>
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         {/* Step 3: Review Panel */}
-                        <div className={`${currentStep === 3 ? 'block' : 'hidden'}`}>
+                        {currentStep === 3 && (
+                            <>
                             <h2 className="text-xl font-semibold mb-4">Review Order</h2>
                             <div className="grid grid-cols-1 gap-4">
                                 <div className="border rounded-xl p-4">
@@ -466,35 +471,59 @@ export default function CheckoutPage() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 mt-2">
-                                    <input id="agree" type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
+                                    <input id="agree" type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="w-4 h-4 text-blue-600 rounded" />
                                     <label htmlFor="agree" className="text-sm text-slate-700">I confirm the information above is correct.</label>
                                 </div>
                             </div>
-                        </div>
+                            </>
+                        )}
 
+                        {/* Navigation Buttons */}
                         <div className="mt-6 flex items-center justify-between gap-3">
-                            <Link href="/cart" className="text-blue-600 hover:underline">Back to cart</Link>
+                            <Link href="/cart" className="text-blue-600 hover:underline font-medium">Back to cart</Link>
                             <div className="flex gap-3">
-                                <button
-                                    type="button"
-                                    disabled={!canProceedToPayment}
-                                    onClick={() => setCurrentStep(2)}
-                                    className="px-4 py-3 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
-                                >
-                                    Go to Payment
-                                </button>
-                                {currentStep === 2 && (
+                                {/* Step 1: Shipping - Show "Go to Payment" */}
+                                {currentStep === 1 && (
                                     <button
                                         type="button"
-                                        onClick={() => setCurrentStep(3)}
-                                        className="px-4 py-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50"
+                                        disabled={!canProceedToPayment}
+                                        onClick={() => setCurrentStep(2)}
+                                        className="px-6 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                                     >
-                                        Go to Review
+                                        Go to Payment
                                     </button>
                                 )}
-                                <button type="submit" disabled={loading || currentStep < 2 || (currentStep === 3 && !agreed)} className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
-                                    {loading ? 'Placing order...' : 'Place Order'}
-                                </button>
+
+                                {/* Step 2: Payment - Show "Back to Shipping" and "Go to Review" */}
+                                {currentStep === 2 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentStep(1)}
+                                            className="px-6 py-3 rounded-lg border-2 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
+                                        >
+                                            Back to Shipping
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentStep(3)}
+                                            className="px-6 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium"
+                                        >
+                                            Go to Review
+                                        </button>
+                                    </>
+                                )}
+
+                                {/* Step 3: Review - Show "Place Order" */}
+                                {currentStep === 3 && (
+                                    <button 
+                                        type="submit" 
+                                        disabled={loading || !agreed} 
+                                        className="px-6 py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg"
+                                    >
+                                        {loading ? 'Placing order...' : 'Place Order'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </form>
