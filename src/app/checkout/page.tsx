@@ -72,13 +72,13 @@ export default function CheckoutPage() {
     // Local form state for the checkout form (must be declared unconditionally)
     const [contactName, setContactName] = useState(user?.name ?? '')
     const [contactEmail, setContactEmail] = useState(user?.email ?? '')
-    const [phone, setPhone] = useState(user?.phone ?? '')
+    const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber ?? '')
     const [address, setAddress] = useState('')
     const [city, setCity] = useState('')
     const [postalCode, setPostalCode] = useState('')
     const [province, setProvince] = useState('')
     const [shippingMethod, setShippingMethod] = useState('standard')
-    const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bank'>('cod')
+    const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bank' | 'credit-card'>('cod')
     const [notes, setNotes] = useState('')
     const [currentStep, setCurrentStep] = useState<number>(1)
     const [agreed, setAgreed] = useState(false)
@@ -88,13 +88,13 @@ export default function CheckoutPage() {
         if (user) {
             setContactName((prev: string) => prev || user.name || '')
             setContactEmail((prev: string) => prev || user.email || '')
-            setPhone((prev: string) => prev || user.phone || '')
+            setPhoneNumber((prev: string) => prev || user.phoneNumber || user.phone || '')
         }
     }, [user])
 
     // Eligibility to proceed to payment
     const canProceedToPayment = Boolean(
-        contactName && contactEmail && phone && address && city && postalCode && province &&
+    contactName && contactEmail && phoneNumber && address && city && postalCode && province &&
         ((cartItems && cartItems.length > 0) || (localSummary?.items?.length > 0))
     )
 
@@ -181,7 +181,7 @@ export default function CheckoutPage() {
                 const name = it.product?.name ?? it.name ?? 'Item'
                 const qty = it.quantity ?? 1
                 const price = typeof it.price === 'number' ? it.price : (it.product?.price ?? 0)
-                return { productId, productName: name, quantity: qty, price }
+                return { productId, productName: name, quantity: qty, price: price }
             })
 
             const finalItems = itemsFromCart.length > 0 ? itemsFromCart : itemsFromSummary
@@ -193,6 +193,7 @@ export default function CheckoutPage() {
             }
 
             const clientSummary = localSummary ?? {
+
                 subtotal,
                 shipping,
                 tax: subtotal * 0.11,
@@ -202,7 +203,7 @@ export default function CheckoutPage() {
             const payload = {
                 customerName: contactName,
                 customerEmail: contactEmail,
-                customerPhone: phone,
+                customerPhone: phoneNumber,
                 items: finalItems,
                 shippingAddress: {
                     street: address,
@@ -210,7 +211,7 @@ export default function CheckoutPage() {
                     postalCode,
                     province
                 },
-                paymentMethod: paymentMethod === 'bank' ? 'bank_transfer' : 'cash_on_delivery',
+                paymentMethod: paymentMethod === 'bank' ? 'bank_transfer' : (paymentMethod === 'credit-card' ? 'credit_card' : 'cash_on_delivery'),
                 notes: notes || undefined,
                 client_summary: clientSummary
             }
@@ -257,7 +258,13 @@ export default function CheckoutPage() {
         if (!localSummary) {
             // derive from cartItems
             const derived = {
-                items: cartItems.map(it => ({ productId: it.product.id, quantity: it.quantity })),
+                items: cartItems.map(it => ({ 
+                    productId: it.product.id, 
+                    productName: it.product.name,
+                    quantity: it.quantity,
+                    price: it.product.price,
+                    itemTotal: it.quantity * it.product.price
+                })),
                 subtotal,
                 shipping,
                 tax: subtotal * 0.11,
@@ -337,7 +344,7 @@ export default function CheckoutPage() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-600">Phone</label>
-                                <input value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                <input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-600">Province</label>
@@ -378,9 +385,10 @@ export default function CheckoutPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-600">Payment Method</label>
-                                    <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as 'cod' | 'bank')} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as 'cod' | 'bank' | 'credit-card')} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                                         <option value="cod">Cash on Delivery</option>
                                         <option value="bank">Bank Transfer</option>
+                                        <option value="credit-card">Credit Card</option>
                                     </select>
                                     <div className="mt-3 text-sm text-slate-600 bg-slate-50 border rounded-lg p-3">
                                         {paymentMethod === 'cod' ? (
@@ -389,11 +397,17 @@ export default function CheckoutPage() {
                                                 <li>Kurir hanya menerima uang tunai.</li>
                                                 <li>Siapkan uang pas untuk mempercepat proses.</li>
                                             </ul>
-                                        ) : (
+                                        ) : paymentMethod === 'bank' ? (
                                             <ul className="list-disc pl-5 space-y-1">
                                                 <li>Transfer ke rekening yang akan dikirim setelah order dibuat.</li>
                                                 <li>Sertakan nomor order pada berita transfer.</li>
                                                 <li>Pesanan diproses setelah pembayaran terkonfirmasi.</li>
+                                            </ul>
+                                        ) : (
+                                            <ul className="list-disc pl-5 space-y-1">
+                                                <li>Pembayaran kartu kredit akan diproses melalui gateway (placeholder).</li>
+                                                <li>Data kartu tidak disimpan di server pada demo ini.</li>
+                                                <li>Nanti implementasikan integrasi gateway untuk transaksi nyata.</li>
                                             </ul>
                                         )}
                                     </div>
@@ -411,7 +425,7 @@ export default function CheckoutPage() {
                             <div className="grid grid-cols-1 gap-4">
                                 <div className="border rounded-xl p-4">
                                     <h3 className="font-medium text-slate-800 mb-2">Contact</h3>
-                                    <p className="text-sm text-slate-700">{contactName} • {contactEmail} • {phone}</p>
+                                    <p className="text-sm text-slate-700">{contactName} • {contactEmail} • {phoneNumber}</p>
                                 </div>
                                 <div className="border rounded-xl p-4">
                                     <h3 className="font-medium text-slate-800 mb-2">Shipping Address</h3>
@@ -420,7 +434,7 @@ export default function CheckoutPage() {
                                 </div>
                                 <div className="border rounded-xl p-4">
                                     <h3 className="font-medium text-slate-800 mb-2">Payment</h3>
-                                    <p className="text-sm text-slate-700">{paymentMethod === 'bank' ? 'Bank Transfer' : 'Cash on Delivery'}</p>
+                                    <p className="text-sm text-slate-700">{paymentMethod === 'bank' ? 'Bank Transfer' : (paymentMethod === 'credit-card' ? 'Credit Card' : 'Cash on Delivery')}</p>
                                     {notes && <p className="text-sm text-slate-600 mt-1">Notes: {notes}</p>}
                                 </div>
                                 <div className="border rounded-xl p-4">
@@ -434,17 +448,12 @@ export default function CheckoutPage() {
                                                     qty: c.quantity ?? 1,
                                                     price: Number((c.product as any)?.price ?? 0)
                                                 }))
-                                                : (localSummary?.items ?? []).map((it: any, idx: number) => {
-                                                    const productId = it.productId ?? it.product?.id ?? it.product_id ?? it.id
-                                                    const cartEntry = cartItems.find((c: any) => c.product?.id === productId)
-                                                    const product = cartEntry?.product ?? (it.product ?? {})
-                                                    return {
-                                                        key: idx,
-                                                        name: product?.name ?? it.productName ?? 'Item',
-                                                        qty: cartEntry?.quantity ?? it.quantity ?? 1,
-                                                        price: Number((product as any)?.price ?? it.price ?? 0)
-                                                    }
-                                                })
+                                                : (localSummary?.items ?? []).map((it: any, idx: number) => ({
+                                                    key: idx,
+                                                    name: it.product?.name ?? it.productName ?? 'Item',
+                                                    qty: it.quantity ?? 1,
+                                                    price: Number(it.product?.price ?? it.price ?? 0)
+                                                }))
                                         ).map((row: any) => (
                                             <div key={row.key} className="flex items-center justify-between text-sm">
                                                 <div className="text-slate-700">{row.name} <span className="text-slate-500">× {row.qty}</span></div>
@@ -518,17 +527,12 @@ export default function CheckoutPage() {
                                         qty: c.quantity ?? 1,
                                         price: typeof c.product?.price === 'number' ? c.product.price : 0
                                     }))
-                                    : (localSummary?.items ?? []).map((it: any, idx: number) => {
-                                        const productId = it.productId ?? it.product?.id ?? it.product_id ?? it.id
-                                        const cartEntry = cartItems.find((c: any) => c.product?.id === productId)
-                                        const product = cartEntry?.product ?? (it.product ?? {})
-                                        return {
-                                            key: idx,
-                                            name: product?.name ?? it.productName ?? 'Item',
-                                            qty: cartEntry?.quantity ?? it.quantity ?? 1,
-                                            price: typeof product?.price === 'number' ? product.price : (it.price ?? 0)
-                                        }
-                                    })
+                                    : (localSummary?.items ?? []).map((it: any, idx: number) => ({
+                                        key: idx,
+                                        name: it.product?.name ?? it.productName ?? 'Item',
+                                        qty: it.quantity ?? 1,
+                                        price: it.product?.price ?? it.price ?? 0
+                                    }))
                             ).map((row: any) => (
                                 <div key={row.key} className="flex items-center justify-between">
                                     <div>
