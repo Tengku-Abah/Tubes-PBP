@@ -216,6 +216,25 @@ export default function CheckoutPage() {
                 return
             }
 
+            // Delete only the checked-out items from cart
+            const cartItemIds = (localSummary?.items ?? [])
+                .map((it: any) => it.cartItemId)
+                .filter((id: any) => id !== undefined && id !== null)
+
+            if (cartItemIds.length > 0) {
+                try {
+                    // Delete each cart item
+                    await Promise.all(
+                        cartItemIds.map((itemId: number) =>
+                            fetch(`/api/cart?itemId=${itemId}`, { method: 'DELETE' })
+                        )
+                    )
+                } catch (deleteError) {
+                    console.error('Error deleting cart items:', deleteError)
+                    // Continue anyway - order was successful
+                }
+            }
+
             // Clear client-side checkout flags to avoid reuse
             sessionStorage.removeItem('checkout_allowed')
             sessionStorage.removeItem('checkout_summary')
@@ -381,22 +400,25 @@ export default function CheckoutPage() {
                                         <div className="mt-3 text-sm text-slate-600 bg-slate-50 border rounded-lg p-3">
                                             {paymentMethod === 'cod' ? (
                                                 <ul className="list-disc pl-5 space-y-1">
-                                                    <li>Bayar saat barang diterima (COD).</li>
-                                                    <li>Kurir hanya menerima uang tunai.</li>
-                                                    <li>Siapkan uang pas untuk mempercepat proses.</li>
-                                                </ul>
+                                                    <li>Bayar langsung ke kurir saat pesanan diterima (COD).</li>
+                                                    <li>Kurir hanya menerima uang tunai, bukan transfer atau QRIS.</li>
+                                                    <li>Pastikan alamat dan nomor telepon aktif untuk memudahkan pengantaran.</li>
+                                                    <li>Siapkan uang pas untuk mempercepat proses pengantaran.</li>
+                                                    <li>Pesanan tidak dapat dibuka sebelum pembayaran dilakukan.</li>                                                </ul>
                                             ) : paymentMethod === 'bank' ? (
                                                 <ul className="list-disc pl-5 space-y-1">
-                                                    <li>Transfer ke rekening yang akan dikirim setelah order dibuat.</li>
-                                                    <li>Sertakan nomor order pada berita transfer.</li>
-                                                    <li>Pesanan diproses setelah pembayaran terkonfirmasi.</li>
-                                                </ul>
+                                                    <li>Transfer ke rekening resmi yang akan dikirim setelah order dibuat.</li>
+                                                    <li>Sertakan nomor order pada berita transfer untuk mempercepat verifikasi.</li>
+                                                    <li>Upload bukti transfer melalui halaman konfirmasi pembayaran.</li>
+                                                    <li>Pesanan akan diproses setelah pembayaran terverifikasi oleh sistem.</li>
+                                                    <li>Proses verifikasi biasanya memakan waktu 5–10 menit setelah transfer.</li>                                                </ul>
                                             ) : (
                                                 <ul className="list-disc pl-5 space-y-1">
-                                                    <li>Pembayaran kartu kredit akan diproses melalui gateway (placeholder).</li>
-                                                    <li>Data kartu tidak disimpan di server pada demo ini.</li>
-                                                    <li>Nanti implementasikan integrasi gateway untuk transaksi nyata.</li>
-                                                </ul>
+                                                    <li>Pembayaran diproses secara aman melalui payment gateway terpercaya.</li>
+                                                    <li>Data kartu tidak disimpan di server kami untuk keamanan Anda.</li>
+                                                    <li>Pastikan saldo atau limit kartu mencukupi sebelum melakukan pembayaran.</li>
+                                                    <li>Pesanan akan langsung diproses setelah transaksi berhasil.</li>
+                                                    <li>Gunakan jaringan internet yang aman saat memasukkan data kartu.</li>                                                </ul>
                                             )}
                                         </div>
                                     </div>

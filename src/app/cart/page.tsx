@@ -24,6 +24,7 @@ interface CartItem {
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -72,6 +73,9 @@ export default function CartPage() {
 
       if (data.success) {
         setCartItems(data.data)
+        // Auto-select all items by default
+        const allIds = new Set<number>(data.data.map((item: CartItem) => item.id))
+        setSelectedItems(allIds)
       }
     } catch (error) {
       console.error('Error fetching cart items:', error)
@@ -121,6 +125,10 @@ export default function CartPage() {
 
       const data = await response.json()
       if (data.success) {
+        // Remove from selected items if it was selected
+        const newSelected = new Set(selectedItems)
+        newSelected.delete(itemId)
+        setSelectedItems(newSelected)
         // Refresh cart items after deletion
         fetchCartItems()
       }
@@ -129,18 +137,50 @@ export default function CartPage() {
     }
   }
 
+  // Toggle individual item selection
+  const toggleItemSelection = (itemId: number) => {
+    const newSelected = new Set(selectedItems)
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId)
+    } else {
+      newSelected.add(itemId)
+    }
+    setSelectedItems(newSelected)
+  }
+
+  // Toggle all items selection
+  const toggleAllSelection = () => {
+    if (selectedItems.size === cartItems.length) {
+      // Deselect all
+      setSelectedItems(new Set())
+    } else {
+      // Select all
+      const allIds = new Set(cartItems.map(item => item.id))
+      setSelectedItems(allIds)
+    }
+  }
+
+  // Filter selected cart items
+  const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id))
+
   // use shared cartUtils functions (they accept items/subtotal/totalItems as needed)
 
   const handleCheckout = () => {
+    if (selectedItems.size === 0) {
+      alert('Please select at least one item to checkout')
+      return
+    }
+
     setLoading(true)
     try {
-      const subtotal = calculateSubtotal(cartItems)
-      const totalItems = cartItems.reduce((s, it) => s + it.quantity, 0)
+      const subtotal = calculateSubtotal(selectedCartItems)
+      const totalItems = selectedCartItems.reduce((s, it) => s + it.quantity, 0)
       const shipping = subtotal > 1000000 ? 0 : calculateShipping(subtotal, totalItems)
       const { total, tax } = calculateTotal(subtotal, shipping)
 
       const checkoutSummary = {
-        items: cartItems.map(it => ({
+        items: selectedCartItems.map(it => ({
+          cartItemId: it.id, // Add cart item ID to track which items to delete later
           productId: it.product.id,
           productName: it.product.name,
           quantity: it.quantity,
@@ -182,9 +222,9 @@ export default function CartPage() {
     }
   }
 
-  // compute aggregate values for render
-  const subtotal = calculateSubtotal(cartItems)
-  const totalQuantity = cartItems.reduce((s, it) => s + it.quantity, 0)
+  // compute aggregate values for render - only for selected items
+  const subtotal = calculateSubtotal(selectedCartItems)
+  const totalQuantity = selectedCartItems.reduce((s, it) => s + it.quantity, 0)
   const shipping = subtotal > 1000000 ? 0 : calculateShipping(subtotal, totalQuantity)
   const { total, tax } = calculateTotal(subtotal, shipping)
 
@@ -301,18 +341,51 @@ export default function CartPage() {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-800 mb-2">Shopping Cart</h1>
-          <p className="text-slate-600">{cartItems.length} item(s) in your cart</p>
+          <p className="text-slate-600">
+            {cartItems.length} item(s) in your cart • {selectedItems.size} selected
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-xl p-6">
-              <h2 className="text-xl font-semibold text-slate-800 mb-6">Cart Items</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-slate-800">Cart Items</h2>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="select-all"
+                    checked={selectedItems.size === cartItems.length && cartItems.length > 0}
+                    onChange={toggleAllSelection}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <label htmlFor="select-all" className="text-sm font-medium text-slate-700 cursor-pointer">
+                    Select All
+                  </label>
+                </div>
+              </div>
 
               <div className="space-y-6">
                 {cartItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4 p-4 border border-slate-200 rounded-lg">
+                  <div 
+                    key={item.id} 
+                    className={`flex items-center gap-4 p-4 border rounded-lg transition-all ${
+                      selectedItems.has(item.id) 
+                        ? 'border-blue-300 bg-blue-50/30' 
+                        : 'border-slate-200 bg-slate-50/50 opacity-60'
+                    }`}
+                  >
+                    {/* Checkbox */}
+                    <div className="flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(item.id)}
+                        onChange={() => toggleItemSelection(item.id)}
+                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </div>
+
                     {/* Product Image */}
                     <div className="flex-shrink-0">
                       <img
@@ -436,10 +509,10 @@ export default function CartPage() {
 
               <button
                 onClick={handleCheckout}
-                disabled={loading}
+                disabled={loading || selectedItems.size === 0}
                 className="w-full mt-6 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Processing...' : 'Proceed to Checkout'}
+                {loading ? 'Processing...' : `Proceed to Checkout (${selectedItems.size} item${selectedItems.size !== 1 ? 's' : ''})`}
               </button>
 
               <Link
