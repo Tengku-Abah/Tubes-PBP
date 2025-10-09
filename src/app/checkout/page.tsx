@@ -6,21 +6,6 @@ import { useRouter } from 'next/navigation'
 import useCart from '../../hooks/useCart'
 import { getCurrentUser, getAuthHeaders } from '../../lib/auth'
 
-interface CartItem {
-    id: number;
-    product: {
-        id: number;
-        name: string;
-        price: number;
-        description: string;
-        image: string;
-        category: string;
-        stock: number;
-        rating: number;
-        reviews: number;
-    };
-    quantity: number;
-}
 
 export default function CheckoutPage() {
     const router = useRouter()
@@ -72,7 +57,7 @@ export default function CheckoutPage() {
     // Local form state for the checkout form (must be declared unconditionally)
     const [contactName, setContactName] = useState(user?.name ?? '')
     const [contactEmail, setContactEmail] = useState(user?.email ?? '')
-    const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber ?? '')
+    const [phoneNumber, setPhoneNumber] = useState(user?.phone ?? '')
     const [address, setAddress] = useState('')
     const [city, setCity] = useState('')
     const [postalCode, setPostalCode] = useState('')
@@ -88,7 +73,7 @@ export default function CheckoutPage() {
         if (user) {
             setContactName((prev: string) => prev || user.name || '')
             setContactEmail((prev: string) => prev || user.email || '')
-            setPhoneNumber((prev: string) => prev || user.phoneNumber || user.phone || '')
+            setPhoneNumber((prev: string) => prev || user.phone || '')
         }
     }, [user])
 

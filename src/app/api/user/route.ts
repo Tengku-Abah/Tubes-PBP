@@ -9,7 +9,7 @@ const dummyUsers = [
     email: 'admin@gmail.com',
     password: '$2b$10$voXgrTXntv2g17ERAGbfo.VdpIWNwn9PIb29g8M3FvOTlxP3.nrMi', // Admin08
     name: 'Admin User',
-    phoneNumber: '081234567890',
+    phone: '081234567890',
     role: 'admin',
     createdAt: new Date().toISOString(),
     isActive: true
@@ -19,7 +19,7 @@ const dummyUsers = [
     email: 'user@gmail.com',
     password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password123
     name: 'Regular User',
-    phoneNumber: '081111222333',
+    phone: '081111222333',
     role: 'pembeli',
     createdAt: new Date().toISOString(),
     isActive: true
@@ -65,12 +65,11 @@ export async function POST(request: NextRequest) {
       await addAdminUserToDatabase();
 
       // Validasi input untuk registrasi
-      // Extract phoneNumber as optional required field
-      const phoneNumber = body.phoneNumber || body.phone || '';
+      const phoneNumber = body.phone || body.phoneNumber || '';
 
       if (!email || !password || !name || !phoneNumber) {
         return NextResponse.json(
-          { success: false, message: 'Name, email and password are required' },
+          { success: false, message: 'Name, email, phone and password are required' },
           { status: 400 }
         );
       }
@@ -129,9 +128,8 @@ export async function POST(request: NextRequest) {
         email: email,
         password: hashedPassword,
         name: name,
-        phone: phone || null,
+        phone: phoneNumber,
         role: 'pembeli' as const // Default role untuk user yang registrasi
-        // is_active: true // Kolom ini belum ada di database
       };
 
       // Simpan ke database
@@ -145,19 +143,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Return user data tanpa password (pastikan phone disertakan)
+      // Return user data tanpa password
       const { password: _, ...userWithoutPassword } = newUser;
-
-      // Normalize possible phone fields for response
-      const normalizedUser = {
-        ...userWithoutPassword,
-        phoneNumber: (userWithoutPassword as any).phone_number || (userWithoutPassword as any).phone || ''
-      };
 
       return NextResponse.json({
         success: true,
         data: {
-          user: normalizedUser,
+          user: userWithoutPassword,
           message: 'Registration successful'
         }
       });
