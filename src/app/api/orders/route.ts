@@ -14,7 +14,7 @@ interface OrderResponse {
     price: number;
   }[];
   totalAmount: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'cancelled';
   shippingAddress: {
     street: string;
     city: string;
