@@ -55,7 +55,7 @@ async function addAdminUserToDatabase() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, name, action } = body;
+    const { email, password, name, phone, action } = body;
 
     // Jika action adalah 'register', lakukan registrasi
     if (action === 'register') {
@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
         email: email,
         password: hashedPassword,
         name: name,
+        phone: phone || null,
         role: 'pembeli' as const // Default role untuk user yang registrasi
         // is_active: true // Kolom ini belum ada di database
       };

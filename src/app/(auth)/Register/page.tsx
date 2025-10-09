@@ -35,7 +35,7 @@ const getStrengthLabel = (score: number, length: number) => {
   if (score === 4 && length >= 12) {
     return { label: 'Sangat Kuat', color: 'bg-green-500', textColor: 'text-green-600' }
   }
-  
+
   if (score === 0) return { label: 'Lemah', color: 'bg-red-500', textColor: 'text-red-600' }
   if (score === 1) return { label: 'Lemah', color: 'bg-red-500', textColor: 'text-red-600' }
   if (score === 2) return { label: 'Sedang', color: 'bg-yellow-500', textColor: 'text-yellow-600' }
@@ -52,7 +52,7 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: ''
   })
-  const [errors, setErrors] = useState<{[key: string]: string}>({})
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -76,24 +76,24 @@ export default function RegisterPage() {
   }
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {}
-    
+    const newErrors: { [key: string]: string } = {}
+
     if (!formData.namaLengkap.trim()) {
       newErrors.namaLengkap = 'Nama lengkap wajib diisi'
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email wajib diisi'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Format email tidak valid'
     }
-    
+
     if (!formData.noTelepon.trim()) {
       newErrors.noTelepon = 'Nomor telepon wajib diisi'
     } else if (!/^[0-9]{10,13}$/.test(formData.noTelepon)) {
       newErrors.noTelepon = 'Nomor telepon harus 10-13 digit'
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password wajib diisi'
     } else if (formData.password.length < 8) {
@@ -101,21 +101,21 @@ export default function RegisterPage() {
     } else if (passwordStrength.score < 3) {
       newErrors.password = 'Password terlalu lemah. Gunakan minimal 1 huruf besar, 1 angka, 1 karakter khusus, dan 8 karakter'
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Password tidak cocok'
     }
-    
+
     return newErrors
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const newErrors = validateForm()
-    
+
     if (Object.keys(newErrors).length === 0) {
       setLoading(true)
-      
+
       try {
         // Call registration API
         const response = await fetch('/api/user', {
@@ -126,6 +126,7 @@ export default function RegisterPage() {
           body: JSON.stringify({
             name: formData.namaLengkap,
             email: formData.email,
+            phone: formData.noTelepon,
             password: formData.password,
             action: 'register'
           }),
@@ -262,23 +263,23 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              
+
               {/* Password Strength Indicator */}
               {formData.password && (
                 <div className="mt-3 space-y-2">
                   {/* Progress Bar */}
                   <div className="flex items-center gap-3">
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
-                       <div 
-                         className={`h-2 rounded-full transition-all duration-300 ${strengthInfo.color}`}
-                         style={{ width: `${Math.max((passwordStrength.score / 4) * 100, formData.password.length > 0 ? 10 : 0)}%` }}
-                       ></div>
+                      <div
+                        className={`h-2 rounded-full transition-all duration-300 ${strengthInfo.color}`}
+                        style={{ width: `${Math.max((passwordStrength.score / 4) * 100, formData.password.length > 0 ? 10 : 0)}%` }}
+                      ></div>
                     </div>
                     <span className={`text-sm font-medium ${strengthInfo.textColor}`}>
                       {strengthInfo.label}
                     </span>
                   </div>
-                  
+
                   {/* Password Requirements */}
                   <div className="grid grid-cols-1 gap-1 text-xs">
                     <div className={`flex items-center gap-2 ${passwordStrength.checks.uppercase ? 'text-green-600' : 'text-gray-400'}`}>
@@ -299,7 +300,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
               )}
-              
+
               {errors.password && (
                 <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.password}</p>
               )}

@@ -172,6 +172,7 @@ export interface Database {
           password: string
           name: string
           role: 'admin' | 'pembeli'
+          phone?: string
           is_active: boolean
           created_at: string
           updated_at: string
@@ -182,6 +183,7 @@ export interface Database {
           password: string
           name: string
           role?: 'admin' | 'pembeli'
+          phone?: string
           is_active?: boolean
           created_at?: string
           updated_at?: string
@@ -192,6 +194,7 @@ export interface Database {
           password?: string
           name?: string
           role?: 'admin' | 'pembeli'
+          phone?: string
           is_active?: boolean
           created_at?: string
           updated_at?: string
