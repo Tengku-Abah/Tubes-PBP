@@ -140,7 +140,23 @@ export default function CartPage() {
       const { total, tax } = calculateTotal(subtotal, shipping)
 
       const checkoutSummary = {
-        items: cartItems.map(it => ({ productId: it.product.id, quantity: it.quantity })),
+        items: cartItems.map(it => ({
+          productId: it.product.id,
+          productName: it.product.name,
+          quantity: it.quantity,
+          price: it.product.price,
+          product: {
+            id: it.product.id,
+            name: it.product.name,
+            price: it.product.price,
+            description: it.product.description,
+            image: it.product.image,
+            category: it.product.category,
+            stock: it.product.stock,
+            rating: it.product.rating,
+            reviews: it.product.reviews
+          }
+        })),
         subtotal,
         shipping,
         tax,

@@ -126,6 +126,7 @@ export default function RegisterPage() {
           body: JSON.stringify({
             name: formData.namaLengkap,
             email: formData.email,
+            phoneNumber: formData.noTelepon,
             password: formData.password,
             action: 'register'
           }),
