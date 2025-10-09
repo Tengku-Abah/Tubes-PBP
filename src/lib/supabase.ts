@@ -742,6 +742,56 @@ export const dbHelpers = {
     } catch (error) {
       return { data: null, error };
     }
+  },
+
+  // User management methods
+  async getAllUsers() {
+    try {
+      return await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async getUserById(id: string) {
+    try {
+      return await supabase
+        .from('users')
+        .select('*')
+        .eq('id', id)
+        .single();
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async updateUser(id: string, userData: UserUpdate) {
+    try {
+      return await supabase
+        .from('users')
+        .update(userData)
+        .eq('id', id)
+        .select()
+        .single();
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async deleteUser(id: string) {
+    try {
+      return await supabase
+        .from('users')
+        .delete()
+        .eq('id', id)
+        .select()
+        .single();
+    } catch (error) {
+      return { data: null, error };
+    }
   }
 }
 
