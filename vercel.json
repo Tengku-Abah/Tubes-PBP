@@ -1,0 +1,10 @@
+{
+    "env": {
+        "NEXT_PUBLIC_SUPABASE_URL": "https://ickulgsxwndqrighdaku.supabase.co",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlja3VsZ3N4d25kcXJpZ2hkYWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0NjA0NjIsImV4cCI6MjA3NDAzNjQ2Mn0.R1HZa_kk9D6x_cwQh60MoR3FROliwbqAAQq1eB8YjTg",
+        "SUPABASE_STORAGE_BUCKET": "product-images"
+    },
+    "buildCommand": "npm run build",
+    "outputDirectory": ".next",
+    "framework": "nextjs"
+}

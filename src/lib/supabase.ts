@@ -9,13 +9,13 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Create admin Supabase client for bypassing RLS
-export const supabaseAdmin = supabaseServiceKey 
+export const supabaseAdmin = supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
   : supabase
 
 // Database types
@@ -197,6 +197,29 @@ export interface Database {
           updated_at?: string
         }
       }
+      categories: {
+        Row: {
+          id: number
+          name: string
+          slug: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          name: string
+          slug?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          name?: string
+          slug?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -233,6 +256,10 @@ export type CartItemUpdate = Database['public']['Tables']['cart_items']['Update'
 export type Order = Database['public']['Tables']['orders']['Row']
 export type OrderInsert = Database['public']['Tables']['orders']['Insert']
 export type OrderUpdate = Database['public']['Tables']['orders']['Update']
+
+export type Category = Database['public']['Tables']['categories']['Row']
+export type CategoryInsert = Database['public']['Tables']['categories']['Insert']
+export type CategoryUpdate = Database['public']['Tables']['categories']['Update']
 
 // API Response types
 export interface ApiResponse<T = any> {
@@ -532,7 +559,7 @@ export const dbHelpers = {
           throw new Error('Invalid order ID');
         }
       }
-      
+
       // Filter out fields that don't exist in the database
       const dataToUpdate = {
         ...(updateData.status && { status: updateData.status }),
@@ -566,17 +593,17 @@ export const dbHelpers = {
 
       console.log('NEW updateOrder - Using supabaseAdmin:', !!supabaseServiceKey);
       console.log('NEW updateOrder - Service key exists:', supabaseServiceKey ? 'YES' : 'NO');
-      
+
       // Lakukan update tanpa .single() - bypass RLS untuk admin operations
       const { data: updatedData, error: updateError } = await supabaseAdmin
         .from('orders')
         .update(dataToUpdate)
         .eq('id', orderId)
         .select('*');
-        
+
       // Log hasil untuk debugging
       console.log('NEW updateOrder - Update result:', { data: updatedData, error: updateError });
-      
+
       if (updateError) {
         console.log('NEW updateOrder - Update error:', updateError);
         return { data: null, error: updateError };
@@ -665,6 +692,56 @@ export const dbHelpers = {
     } catch (error) {
       return { data: null, error };
     }
+  },
+
+  // Categories operations
+  async getCategories() {
+    try {
+      return await supabase
+        .from('categories')
+        .select('*')
+        .order('created_at', { ascending: false });
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async addCategory(categoryData: CategoryInsert) {
+    try {
+      return await supabase
+        .from('categories')
+        .insert(categoryData)
+        .select()
+        .single();
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async updateCategory(id: number, categoryData: CategoryUpdate) {
+    try {
+      return await supabase
+        .from('categories')
+        .update(categoryData)
+        .eq('id', id)
+        .select()
+        .single();
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async deleteCategory(id: number) {
+    try {
+      return await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id)
+        .select()
+        .single();
+    } catch (error) {
+      return { data: null, error };
+    }
   }
 }
 
@@ -673,12 +750,12 @@ export const checkSupabaseConnection = async () => {
   try {
     // Test connection dengan query sederhana
     const { data, error } = await supabase.from('products').select('count').limit(1)
-    
+
     if (error) {
       console.warn('Supabase connection failed:', error.message)
       return { connected: false, error: error.message }
     }
-    
+
     return { connected: true, error: null }
   } catch (error) {
     console.warn('Supabase connection test failed:', error)
