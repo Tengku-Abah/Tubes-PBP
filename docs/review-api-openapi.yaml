@@ -1,0 +1,689 @@
+openapi: 3.0.3
+info:
+  title: Review API
+  description: API untuk mengelola ulasan produk dengan fitur CRUD lengkap, statistik, dan manajemen admin
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+servers:
+  - url: https://your-domain.com/api
+    description: Production server
+  - url: http://localhost:3000/api
+    description: Development server
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+paths:
+  /reviews:
+    get:
+      summary: Get Reviews
+      description: Mengambil daftar ulasan dengan berbagai filter dan pagination
+      tags:
+        - Reviews
+      parameters:
+        - name: productId
+          in: query
+          description: Filter berdasarkan ID produk
+          required: false
+          schema:
+            type: integer
+            example: 1
+        - name: userId
+          in: query
+          description: Filter berdasarkan ID user
+          required: false
+          schema:
+            type: string
+            format: uuid
+            example: "a4bc7b55-bee9-4f13-8486-9cb8bb92be29"
+        - name: page
+          in: query
+          description: Halaman
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Jumlah item per halaman
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: sortBy
+          in: query
+          description: Field untuk sorting
+          required: false
+          schema:
+            type: string
+            enum: [created_at, rating, updated_at]
+            default: created_at
+        - name: sortOrder
+          in: query
+          description: Urutan sorting
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: rating
+          in: query
+          description: Filter berdasarkan rating
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+        - name: verified
+          in: query
+          description: Filter berdasarkan status verifikasi
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewListResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create Review
+      description: Membuat ulasan baru untuk produk
+      tags:
+        - Reviews
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+        '400':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - Duplicate review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update Review
+      description: Memperbarui ulasan yang sudah ada
+      tags:
+        - Reviews
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewRequest'
+      responses:
+        '200':
+          description: Review updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+        '400':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete Review
+      description: Menghapus ulasan
+      tags:
+        - Reviews
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteReviewRequest'
+      responses:
+        '200':
+          description: Review deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/reviews:
+    get:
+      summary: Get All Reviews (Admin)
+      description: Mengambil semua ulasan dengan informasi lengkap untuk admin
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Halaman
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Jumlah item per halaman
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sortBy
+          in: query
+          description: Field untuk sorting
+          required: false
+          schema:
+            type: string
+            enum: [created_at, rating, updated_at]
+            default: created_at
+        - name: sortOrder
+          in: query
+          description: Urutan sorting
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: verified
+          in: query
+          description: Filter berdasarkan status verifikasi
+          required: false
+          schema:
+            type: boolean
+        - name: rating
+          in: query
+          description: Filter berdasarkan rating
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminReviewListResponse'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update Review (Admin)
+      description: Admin dapat memperbarui ulasan apapun
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateReviewRequest'
+      responses:
+        '200':
+          description: Review updated successfully by admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminReviewResponse'
+        '400':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+  /reviews/stats:
+    get:
+      summary: Get Review Statistics
+      description: Mengambil statistik ulasan untuk produk atau keseluruhan
+      tags:
+        - Statistics
+      parameters:
+        - name: productId
+          in: query
+          description: Statistik untuk produk tertentu
+          required: false
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewStatsResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        productId:
+          type: integer
+          example: 1
+        userId:
+          type: string
+          format: uuid
+          example: "a4bc7b55-bee9-4f13-8486-9cb8bb92be29"
+        userName:
+          type: string
+          example: "John Doe"
+        userAvatar:
+          type: string
+          format: uri
+          example: "https://example.com/avatar.jpg"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          example: "Produk sangat bagus!"
+        date:
+          type: string
+          format: date
+          example: "2024-01-15"
+        verified:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    AdminReview:
+      allOf:
+        - $ref: '#/components/schemas/Review'
+        - type: object
+          properties:
+            productName:
+              type: string
+              example: "Laptop Gaming ASUS"
+            userEmail:
+              type: string
+              format: email
+              example: "john@example.com"
+
+    CreateReviewRequest:
+      type: object
+      required:
+        - productId
+        - rating
+        - comment
+      properties:
+        productId:
+          type: integer
+          example: 1
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: "Produk sangat bagus dan sesuai ekspektasi!"
+
+    UpdateReviewRequest:
+      type: object
+      required:
+        - reviewId
+      properties:
+        reviewId:
+          type: integer
+          example: 1
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: "Update: Produk bagus tapi ada sedikit kekurangan"
+
+    AdminUpdateReviewRequest:
+      type: object
+      required:
+        - reviewId
+      properties:
+        reviewId:
+          type: integer
+          example: 1
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: "Review diperbarui oleh admin"
+        verified:
+          type: boolean
+          example: true
+
+    DeleteReviewRequest:
+      type: object
+      required:
+        - reviewId
+      properties:
+        reviewId:
+          type: integer
+          example: 1
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 25
+        totalPages:
+          type: integer
+          example: 3
+        hasNext:
+          type: boolean
+          example: true
+        hasPrev:
+          type: boolean
+          example: false
+
+    ReviewListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            reviews:
+              type: array
+              items:
+                $ref: '#/components/schemas/Review'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    AdminReviewListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            reviews:
+              type: array
+              items:
+                $ref: '#/components/schemas/AdminReview'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    ReviewResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Review berhasil ditambahkan"
+        data:
+          $ref: '#/components/schemas/Review'
+
+    AdminReviewResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Review berhasil diperbarui oleh admin"
+        data:
+          $ref: '#/components/schemas/AdminReview'
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Review berhasil dihapus"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Validation Error"
+        message:
+          type: string
+          example: "Rating harus antara 1-5"
+
+    RatingDistribution:
+      type: object
+      properties:
+        "1":
+          type: integer
+          example: 1
+        "2":
+          type: integer
+          example: 2
+        "3":
+          type: integer
+          example: 4
+        "4":
+          type: integer
+          example: 8
+        "5":
+          type: integer
+          example: 10
+
+    TopRatedProduct:
+      type: object
+      properties:
+        productId:
+          type: integer
+          example: 1
+        productName:
+          type: string
+          example: "Laptop Gaming ASUS"
+        averageRating:
+          type: number
+          format: float
+          example: 4.8
+        totalReviews:
+          type: integer
+          example: 50
+
+    ReviewStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            productId:
+              type: integer
+              example: 1
+            totalReviews:
+              type: integer
+              example: 25
+            averageRating:
+              type: number
+              format: float
+              example: 4.2
+            ratingDistribution:
+              $ref: '#/components/schemas/RatingDistribution'
+            verifiedReviews:
+              type: integer
+              example: 20
+            unverifiedReviews:
+              type: integer
+              example: 5
+            recentReviews:
+              type: array
+              items:
+                $ref: '#/components/schemas/Review'
+            topRatedProducts:
+              type: array
+              items:
+                $ref: '#/components/schemas/TopRatedProduct'
+
+tags:
+  - name: Reviews
+    description: Operations for managing product reviews
+  - name: Admin
+    description: Admin operations for managing reviews
+  - name: Statistics
+    description: Review statistics and analytics

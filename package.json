@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:api": "node test-review-api.js",
+    "test:api:watch": "nodemon test-review-api.js"
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",

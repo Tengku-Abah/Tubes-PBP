@@ -162,39 +162,39 @@ export interface Database {
       reviews: {
         Row: {
           id: number
-          product_id: number
+          product_id: number | null
+          user_id: string | null
           user_name: string
-          user_avatar: string
-          rating: number
-          comment: string
-          date: string
-          verified: boolean
-          created_at: string
-          updated_at: string
+          user_avatar: string | null
+          rating: number | null
+          comment: string | null
+          verified: boolean | null
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
           id?: number
-          product_id: number
+          product_id?: number | null
+          user_id?: string | null
           user_name: string
-          user_avatar: string
-          rating: number
-          comment: string
-          date?: string
-          verified?: boolean
-          created_at?: string
-          updated_at?: string
+          user_avatar?: string | null
+          rating?: number | null
+          comment?: string | null
+          verified?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
           id?: number
-          product_id?: number
+          product_id?: number | null
+          user_id?: string | null
           user_name?: string
-          user_avatar?: string
-          rating?: number
-          comment?: string
-          date?: string
-          verified?: boolean
-          created_at?: string
-          updated_at?: string
+          user_avatar?: string | null
+          rating?: number | null
+          comment?: string | null
+          verified?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
         }
       }
       users: {
@@ -376,15 +376,48 @@ export const dbHelpers = {
   },
 
   // Reviews
-  async getReviews(productId?: number) {
+  async getReviews(params?: {
+    productId?: number;
+    userId?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    rating?: number;
+    verified?: boolean;
+  }) {
     try {
       let query = supabase
         .from('reviews')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
 
-      if (productId) {
-        query = query.eq('product_id', productId);
+      // Apply filters
+      if (params?.productId) {
+        query = query.eq('product_id', params.productId);
+      }
+
+      if (params?.userId) {
+        query = query.eq('user_id', params.userId);
+      }
+
+      if (params?.rating) {
+        query = query.eq('rating', params.rating);
+      }
+
+      if (params?.verified !== undefined) {
+        query = query.eq('verified', params.verified);
+      }
+
+      // Apply sorting
+      const sortBy = params?.sortBy || 'created_at';
+      const sortOrder = params?.sortOrder || 'desc';
+      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+      // Apply pagination
+      if (params?.page && params?.limit) {
+        const startIndex = (params.page - 1) * params.limit;
+        const endIndex = startIndex + params.limit - 1;
+        query = query.range(startIndex, endIndex);
       }
 
       return await query;
@@ -399,6 +432,60 @@ export const dbHelpers = {
         .from('reviews')
         .insert(review)
         .select()
+        .single();
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async updateReview(reviewId: number, updateData: ReviewUpdate) {
+    try {
+      return await supabase
+        .from('reviews')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', reviewId)
+        .select()
+        .single();
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async deleteReview(reviewId: number) {
+    try {
+      return await supabase
+        .from('reviews')
+        .delete()
+        .eq('id', reviewId)
+        .select()
+        .single();
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async getReviewById(reviewId: number) {
+    try {
+      return await supabase
+        .from('reviews')
+        .select('*')
+        .eq('id', reviewId)
+        .single();
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async getUserReviewForProduct(userId: string, productId: number) {
+    try {
+      return await supabase
+        .from('reviews')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('product_id', productId)
         .single();
     } catch (error) {
       return { data: null, error };
@@ -565,7 +652,7 @@ export const dbHelpers = {
             )
           `)
           .eq('users.email', filters.customerEmail);
-          
+
         // Apply status filter if needed
         if (filters?.status) {
           query = query.eq('status', filters.status);
@@ -853,7 +940,7 @@ export const dbHelpers = {
       }
 
       const newStock = product.stock - quantityToReduce;
-      
+
       // Prevent negative stock
       if (newStock < 0) {
         return { data: null, error: new Error(`Insufficient stock. Available: ${product.stock}, Requested: ${quantityToReduce}`) };
@@ -874,7 +961,7 @@ export const dbHelpers = {
   async reduceMultipleProductsStock(items: { productId: number; quantity: number }[]) {
     try {
       const results = [];
-      
+
       for (const item of items) {
         const result = await this.updateProductStock(item.productId, item.quantity);
         if (result.error) {
@@ -884,7 +971,7 @@ export const dbHelpers = {
         }
         results.push(result.data);
       }
-      
+
       return { data: results, error: null };
     } catch (error) {
       return { data: null, error };
