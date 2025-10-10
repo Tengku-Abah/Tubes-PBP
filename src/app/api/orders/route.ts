@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
       customerName: (order.users as any)?.name || 'Unknown',
       customerEmail: (order.users as any)?.email || '',
       customerPhone: '', // Phone tidak tersedia di tabel users
-      items: [], // TODO: Implement order items relationship
+      items: order.order_items || [], // Use the order_items from the join
       totalAmount: order.total_amount,
       status: order.status,
       shippingAddress: {
@@ -167,6 +167,22 @@ export async function POST(request: NextRequest) {
     // Hitung total amount
     const totalAmount = items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
+    // Reduce product stock before creating order
+    const stockItems = items.map(item => ({
+      productId: item.productId,
+      quantity: item.quantity
+    }));
+
+    const { data: stockUpdateResult, error: stockError } = await dbHelpers.reduceMultipleProductsStock(stockItems);
+    
+    if (stockError) {
+      console.error('Stock reduction error:', stockError);
+      return NextResponse.json(
+        { success: false, message: `Stock error: ${(stockError as any).message}` },
+        { status: 400 }
+      );
+    }
+
     // Buat pesanan baru di database
     const { data: newOrder, error } = await dbHelpers.createOrder({
       user_id: String(userId),
@@ -175,7 +191,7 @@ export async function POST(request: NextRequest) {
       status: 'pending',
       shipping_address: `${shippingAddress.street}, ${shippingAddress.city}`,
       payment_method: paymentMethod || 'cash_on_delivery'
-    });
+    }, items);
 
     if (error) {
       console.error('Database insert error:', error);

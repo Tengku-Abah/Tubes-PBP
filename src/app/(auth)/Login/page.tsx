@@ -179,6 +179,9 @@ export default function LoginPage() {
           // Set cookie for middleware
           document.cookie = `auth-token=${JSON.stringify(userData)}; path=/; max-age=2592000` // 30 days
 
+          // Dispatch custom event to notify other components about login
+          window.dispatchEvent(new CustomEvent('user-login', { detail: userData }))
+
           // Redirect based on role
           if (userData.role === 'admin') {
             router.replace('/Admin')
@@ -312,6 +315,9 @@ export default function LoginPage() {
           }
 
           // No alert for successful login - will show toast on dashboard
+
+          // Dispatch custom event to notify other components about login
+          window.dispatchEvent(new CustomEvent('user-login', { detail: userData }))
 
           // Use replace instead of push for better UX
           if (userData.role === 'admin') {

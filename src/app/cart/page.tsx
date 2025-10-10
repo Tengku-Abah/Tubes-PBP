@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { calculateSubtotal, calculateShipping, calculateTotal } from '../../lib/cartUtils'
+import { getCurrentUser } from '../../lib/auth'
 
 // Cart item interface
 interface CartItem {
@@ -34,6 +35,26 @@ export default function CartPage() {
   // Check login status
   useEffect(() => {
     checkLoginStatus()
+    
+    // Listen for storage changes (when user logs in from another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user' || e.key === null) {
+        checkLoginStatus()
+      }
+    }
+    
+    // Listen for custom login events
+    const handleLoginEvent = () => {
+      checkLoginStatus()
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('user-login', handleLoginEvent)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('user-login', handleLoginEvent)
+    }
   }, [])
 
   // Fetch cart items when user is logged in
@@ -48,10 +69,9 @@ export default function CartPage() {
 
   const checkLoginStatus = () => {
     try {
-      const userData = sessionStorage.getItem('user')
-      if (userData) {
-        const parsedUser = JSON.parse(userData)
-        setUser(parsedUser)
+      const currentUser = getCurrentUser()
+      if (currentUser) {
+        setUser(currentUser)
         setIsLoggedIn(true)
       } else {
         setIsLoggedIn(false)

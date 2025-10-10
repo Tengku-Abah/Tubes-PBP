@@ -996,8 +996,8 @@ const AdminPanel = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{order.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.customerName}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.products.length > 0
-                        ? order.products.map((p: any) => `${p.productName || p.name} (${p.quantity})`).join(', ')
+                      {order.products && order.products.length > 0
+                        ? order.products.map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')
                         : 'No items'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(order.total)}</td>

@@ -107,14 +107,26 @@ export default function HomePage() {
     }
   }, [isLoggedIn, user]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchProducts = async () => {
+  // Listen for cart updates
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      if (isLoggedIn && user?.id) {
+        fetchCartCount()
+      }
+    }
+
+    window.addEventListener('cartUpdated', handleCartUpdate)
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate)
+  }, [isLoggedIn, user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchProducts = async (forceRefresh = false) => {
     // Check if products are cached in session storage
     const cachedProducts = sessionStorage.getItem('cachedProducts')
     const cacheTime = sessionStorage.getItem('productsCacheTime')
     const now = Date.now()
 
-    // Use cache if it's less than 10 minutes old and no search term
-    if (cachedProducts && cacheTime && (now - parseInt(cacheTime)) < 600000 && !searchTerm.trim()) {
+    // Use cache if it's less than 10 minutes old and no search term and not forcing refresh
+    if (cachedProducts && cacheTime && (now - parseInt(cacheTime)) < 600000 && !searchTerm.trim() && !forceRefresh) {
       const parsedProducts = JSON.parse(cachedProducts)
       setProducts(parsedProducts)
 

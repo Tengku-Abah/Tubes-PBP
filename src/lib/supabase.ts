@@ -127,6 +127,38 @@ export interface Database {
           updated_at?: string
         }
       }
+      order_items: {
+        Row: {
+          id: number
+          order_id: number
+          product_id: number
+          product_name: string
+          quantity: number
+          price: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          order_id: number
+          product_id: number
+          product_name: string
+          quantity: number
+          price: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          order_id?: number
+          product_id?: number
+          product_name?: string
+          quantity?: number
+          price?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       reviews: {
         Row: {
           id: number
@@ -259,6 +291,10 @@ export type CartItemUpdate = Database['public']['Tables']['cart_items']['Update'
 export type Order = Database['public']['Tables']['orders']['Row']
 export type OrderInsert = Database['public']['Tables']['orders']['Insert']
 export type OrderUpdate = Database['public']['Tables']['orders']['Update']
+
+export type OrderItem = Database['public']['Tables']['order_items']['Row']
+export type OrderItemInsert = Database['public']['Tables']['order_items']['Insert']
+export type OrderItemUpdate = Database['public']['Tables']['order_items']['Update']
 
 export type Category = Database['public']['Tables']['categories']['Row']
 export type CategoryInsert = Database['public']['Tables']['categories']['Insert']
@@ -485,48 +521,72 @@ export const dbHelpers = {
   },
 
   // Orders operations
-  async getOrders(filters?: {
-    status?: string;
-    customerEmail?: string;
-    page?: number;
-    limit?: number;
-  }) {
+  async getOrders(filters?: { status?: string; customerEmail?: string; limit?: number; page?: number }) {
     try {
       let query = supabase
         .from('orders')
         .select(`
-          id,
-          user_id,
-          order_number,
-          total_amount,
-          status,
-          shipping_address,
-          payment_method,
-          created_at,
-          updated_at,
-          users(name, email)
-        `)
-        .order('created_at', { ascending: false });
+          *,
+          users (
+            id,
+            name,
+            email
+          ),
+          order_items (
+            id,
+            product_id,
+            product_name,
+            quantity,
+            price
+          )
+        `);
 
-      // Apply filters
       if (filters?.status) {
         query = query.eq('status', filters.status);
       }
 
       if (filters?.customerEmail) {
-        query = query.ilike('users.email', `%${filters.customerEmail}%`);
+        // Create a new query for filtering by email
+        query = supabase
+          .from('orders')
+          .select(`
+            *,
+            users!inner (
+              id,
+              name,
+              email
+            ),
+            order_items (
+              id,
+              product_id,
+              product_name,
+              quantity,
+              price
+            )
+          `)
+          .eq('users.email', filters.customerEmail);
+          
+        // Apply status filter if needed
+        if (filters?.status) {
+          query = query.eq('status', filters.status);
+        }
       }
 
-      // Pagination
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+
       if (filters?.page && filters?.limit) {
-        const startIndex = (filters.page - 1) * filters.limit;
-        const endIndex = startIndex + filters.limit;
-        query = query.range(startIndex, endIndex - 1);
+        const offset = (filters.page - 1) * filters.limit;
+        query = query.range(offset, offset + filters.limit - 1);
       }
 
-      return await query;
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      return { data, error: error?.message || null };
     } catch (error) {
-      return { data: null, error };
+      console.error('Get orders error:', error);
+      return { data: null, error: (error as Error).message };
     }
   },
 
@@ -538,15 +598,46 @@ export const dbHelpers = {
     shipping_address: string;
     payment_method: string;
     notes?: string;
-  }) {
+  }, items?: { productId: number; productName: string; quantity: number; price: number }[]) {
     try {
-      return await supabase
+      // Create the order first
+      const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert(orderData)
         .select()
         .single();
+
+      if (orderError) {
+        console.error('Order creation error:', orderError);
+        return { data: null, error: orderError.message };
+      }
+
+      // If items are provided, create order items
+      if (items && items.length > 0) {
+        const orderItems = items.map(item => ({
+          order_id: order.id,
+          product_id: item.productId,
+          product_name: item.productName,
+          quantity: item.quantity,
+          price: item.price
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('order_items')
+          .insert(orderItems);
+
+        if (itemsError) {
+          console.error('Order items creation error:', itemsError);
+          // Rollback: delete the created order
+          await supabase.from('orders').delete().eq('id', order.id);
+          return { data: null, error: itemsError.message };
+        }
+      }
+
+      return { data: order, error: null };
     } catch (error) {
-      return { data: null, error };
+      console.error('Create order error:', error);
+      return { data: null, error: (error as Error).message };
     }
   },
 
@@ -742,6 +833,59 @@ export const dbHelpers = {
         .eq('id', id)
         .select()
         .single();
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  // Product stock management
+  async updateProductStock(productId: number, quantityToReduce: number) {
+    try {
+      // First, get current stock
+      const { data: product, error: getError } = await supabase
+        .from('products')
+        .select('stock')
+        .eq('id', productId)
+        .single();
+
+      if (getError || !product) {
+        return { data: null, error: getError || new Error('Product not found') };
+      }
+
+      const newStock = product.stock - quantityToReduce;
+      
+      // Prevent negative stock
+      if (newStock < 0) {
+        return { data: null, error: new Error(`Insufficient stock. Available: ${product.stock}, Requested: ${quantityToReduce}`) };
+      }
+
+      // Update the stock
+      return await supabase
+        .from('products')
+        .update({ stock: newStock })
+        .eq('id', productId)
+        .select()
+        .single();
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async reduceMultipleProductsStock(items: { productId: number; quantity: number }[]) {
+    try {
+      const results = [];
+      
+      for (const item of items) {
+        const result = await this.updateProductStock(item.productId, item.quantity);
+        if (result.error) {
+          // If any product fails, we should ideally rollback previous updates
+          // For now, we'll return the error
+          return { data: null, error: result.error };
+        }
+        results.push(result.data);
+      }
+      
+      return { data: results, error: null };
     } catch (error) {
       return { data: null, error };
     }
