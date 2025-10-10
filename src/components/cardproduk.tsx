@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useToast } from './Toast'
 
 interface Product {
   id: number
@@ -29,6 +30,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
+  const { showToast, ToastComponent } = useToast()
 
   // Check login status
   useEffect(() => {
@@ -87,15 +89,16 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
     // Check if user is logged in
     if (!isLoggedIn) {
-      if (confirm('Anda harus login terlebih dahulu untuk menambahkan produk ke keranjang. Apakah Anda ingin login sekarang?')) {
+      showToast('Anda harus login terlebih dahulu untuk menambahkan produk ke keranjang', 'error')
+      setTimeout(() => {
         router.push('/Login')
-      }
+      }, 2000)
       return
     }
 
     // Check stock
     if (product.stock === 0) {
-      alert('Produk ini sedang habis stok')
+      showToast('Produk ini sedang habis stok', 'error')
       return
     }
 
@@ -116,15 +119,15 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       const data = await response.json()
       
       if (data.success) {
-        alert('Produk berhasil ditambahkan ke keranjang!')
+        showToast('Produk berhasil ditambahkan ke keranjang!', 'success')
         // Trigger cart count update in header if needed
         window.dispatchEvent(new Event('cartUpdated'))
       } else {
-        alert(data.message || 'Gagal menambahkan ke keranjang')
+        showToast(data.message || 'Gagal menambahkan ke keranjang', 'error')
       }
     } catch (error) {
       console.error('Error adding to cart:', error)
-      alert('Gagal menambahkan ke keranjang')
+      showToast('Gagal menambahkan ke keranjang', 'error')
     } finally {
       setAddingToCart(false)
     }
@@ -160,7 +163,9 @@ export default function ProductCard({ product, className }: ProductCardProps) {
   const canClick = true
 
   return (
-    <div className={`group relative ${className}`}>
+    <>
+      {ToastComponent}
+      <div className={`group relative ${className}`}>
       {/* Main Card */}
       <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-full flex flex-col">
         
@@ -295,5 +300,6 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         </div>
       </div>
     </div>
+    </>
   )
 }

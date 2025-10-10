@@ -995,10 +995,17 @@ const AdminPanel = () => {
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{order.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.customerName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.products && order.products.length > 0
-                        ? order.products.map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')
-                        : 'No items'}
+                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
+                      {order.products && order.products.length > 0 ? (
+                        <div className="truncate" title={order.products.map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')}>
+                          {order.products.length <= 2 
+                            ? order.products.map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')
+                            : `${order.products.slice(0, 2).map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')}... +${order.products.length - 2} lainnya`
+                          }
+                        </div>
+                      ) : (
+                        'No items'
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(order.total)}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -2038,13 +2045,21 @@ const AdminPanel = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Produk</label>
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
                     {selectedItem.products.map((product: any, index: number) => (
-                      <div key={index} className="flex justify-between">
-                        <span className="text-sm text-gray-900">{product.name}</span>
-                        <span className="text-sm text-gray-900">x{product.quantity}</span>
+                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                        <span className="text-sm text-gray-900">{product.name || product.product_name || product.productName || 'Unknown Product'}</span>
+                        <span className="text-sm font-medium text-gray-900">x{product.quantity}</span>
                       </div>
                     ))}
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                      <span className="text-sm font-medium text-gray-700">
+                        Total Item: {selectedItem.products.reduce((sum: number, p: any) => sum + p.quantity, 0)}
+                      </span>
+                      <span className="text-sm font-medium text-gray-700">
+                        Total Produk: {selectedItem.products.length}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

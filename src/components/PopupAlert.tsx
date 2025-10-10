@@ -34,12 +34,18 @@ const PopupAlert: React.FC<PopupAlertProps> = ({
   autoCloseDelay = 3000
 }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setIsVisible(true);
+      setIsEntering(true);
+      // Small delay to trigger entrance animation
+      setTimeout(() => {
+        setIsVisible(true);
+      }, 50);
     } else {
       setIsVisible(false);
+      setIsEntering(false);
     }
   }, [isOpen]);
 
@@ -55,8 +61,9 @@ const PopupAlert: React.FC<PopupAlertProps> = ({
   const handleClose = () => {
     setIsVisible(false);
     setTimeout(() => {
+      setIsEntering(false);
       onClose();
-    }, 300); // Wait for animation to complete
+    }, 400); // Wait for animation to complete
   };
 
   const handleConfirm = () => {
@@ -78,35 +85,43 @@ const PopupAlert: React.FC<PopupAlertProps> = ({
       case 'success':
         return {
           icon: '✅',
-          bgColor: 'bg-green-50',
-          borderColor: 'border-green-200',
-          textColor: 'text-green-800',
-          buttonColor: 'bg-green-600 hover:bg-green-700'
+          bgColor: 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50',
+          borderColor: 'border-emerald-200',
+          textColor: 'text-emerald-800',
+          buttonColor: 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-lg shadow-emerald-200',
+          iconBg: 'bg-gradient-to-br from-emerald-100 to-green-100',
+          headerGradient: 'bg-gradient-to-r from-emerald-500/10 to-green-500/10'
         };
       case 'error':
         return {
           icon: '❌',
-          bgColor: 'bg-red-50',
+          bgColor: 'bg-gradient-to-br from-red-50 via-rose-50 to-pink-50',
           borderColor: 'border-red-200',
           textColor: 'text-red-800',
-          buttonColor: 'bg-red-600 hover:bg-red-700'
+          buttonColor: 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-lg shadow-red-200',
+          iconBg: 'bg-gradient-to-br from-red-100 to-rose-100',
+          headerGradient: 'bg-gradient-to-r from-red-500/10 to-rose-500/10'
         };
       case 'warning':
         return {
           icon: '⚠️',
-          bgColor: 'bg-yellow-50',
-          borderColor: 'border-yellow-200',
-          textColor: 'text-yellow-800',
-          buttonColor: 'bg-yellow-600 hover:bg-yellow-700'
+          bgColor: 'bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50',
+          borderColor: 'border-amber-200',
+          textColor: 'text-amber-800',
+          buttonColor: 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 shadow-lg shadow-amber-200',
+          iconBg: 'bg-gradient-to-br from-amber-100 to-orange-100',
+          headerGradient: 'bg-gradient-to-r from-amber-500/10 to-orange-500/10'
         };
       case 'info':
       default:
         return {
           icon: 'ℹ️',
-          bgColor: 'bg-blue-50',
+          bgColor: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50',
           borderColor: 'border-blue-200',
           textColor: 'text-blue-800',
-          buttonColor: 'bg-blue-600 hover:bg-blue-700'
+          buttonColor: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-200',
+          iconBg: 'bg-gradient-to-br from-blue-100 to-indigo-100',
+          headerGradient: 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10'
         };
     }
   };
@@ -119,22 +134,36 @@ const PopupAlert: React.FC<PopupAlertProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-all duration-500 ${
+          isVisible ? 'opacity-100' : 'opacity-0'
+        }`}
         onClick={handleClose}
       />
       
       {/* Modal */}
       <div 
-        className={`relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all duration-300 ${
-          isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+        className={`relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-500 ease-out ${
+          isVisible ? 'scale-100 opacity-100 translate-y-0 rotate-0' : 'scale-95 opacity-0 translate-y-4 rotate-1'
         }`}
+        style={{
+          animationDelay: isEntering ? '100ms' : '0ms'
+        }}
       >
+        {/* Decorative gradient header */}
+        <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-2xl ${styles.headerGradient}`} />
+        
         {/* Header */}
-        <div className={`px-6 py-4 border-b ${styles.borderColor} ${styles.bgColor}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <span className="text-2xl">{styles.icon}</span>
-              <h3 className={`text-lg font-semibold ${styles.textColor}`}>
+        <div className={`px-6 py-5 border-b ${styles.borderColor} ${styles.bgColor} rounded-t-2xl relative overflow-hidden`}>
+          {/* Decorative circles */}
+          <div className="absolute -top-2 -right-2 w-16 h-16 bg-white/20 rounded-full blur-xl" />
+          <div className="absolute -bottom-2 -left-2 w-12 h-12 bg-white/10 rounded-full blur-lg" />
+          
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center space-x-4">
+              <div className={`w-12 h-12 rounded-xl ${styles.iconBg} flex items-center justify-center shadow-lg ring-1 ring-white/20`}>
+                <span className="text-2xl drop-shadow-sm">{styles.icon}</span>
+              </div>
+              <h3 className={`text-xl font-bold ${styles.textColor} drop-shadow-sm`}>
                 {title || (type === 'success' ? 'Berhasil!' : 
                           type === 'error' ? 'Error!' : 
                           type === 'warning' ? 'Peringatan!' : 'Informasi')}
@@ -142,7 +171,7 @@ const PopupAlert: React.FC<PopupAlertProps> = ({
             </div>
             <button
               onClick={handleClose}
-              className={`text-gray-400 hover:text-gray-600 transition-colors ${styles.textColor}`}
+              className={`p-2 rounded-xl hover:bg-white/20 transition-all duration-200 ${styles.textColor} hover:scale-110 active:scale-95`}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -152,19 +181,19 @@ const PopupAlert: React.FC<PopupAlertProps> = ({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-4">
-          <p className={`text-sm ${styles.textColor} leading-relaxed`}>
+        <div className="px-6 py-6 bg-white">
+          <p className={`text-base ${styles.textColor} leading-relaxed font-medium`}>
             {message}
           </p>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 rounded-b-lg">
+        <div className="px-6 py-5 bg-gradient-to-r from-gray-50/80 to-gray-100/80 rounded-b-2xl border-t border-gray-100">
           <div className="flex justify-end space-x-3">
             {showCancelButton && (
               <button
                 onClick={handleCancel}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                className="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all duration-200 shadow-sm hover:shadow-md active:scale-95"
               >
                 {cancelText}
               </button>
@@ -172,7 +201,7 @@ const PopupAlert: React.FC<PopupAlertProps> = ({
             {showConfirmButton && (
               <button
                 onClick={handleConfirm}
-                className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${styles.buttonColor}`}
+                className={`px-6 py-3 text-sm font-semibold text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-lg active:scale-95 ${styles.buttonColor}`}
               >
                 {confirmText}
               </button>
