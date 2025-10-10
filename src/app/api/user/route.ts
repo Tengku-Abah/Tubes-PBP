@@ -10,6 +10,7 @@ const dummyUsers = [
     password: '$2b$10$voXgrTXntv2g17ERAGbfo.VdpIWNwn9PIb29g8M3FvOTlxP3.nrMi', // Admin08
     name: 'Admin User',
     phone: '081234567890',
+    address: 'Jl. Admin No. 1, Jakarta',
     role: 'admin',
     createdAt: new Date().toISOString(),
     isActive: true
@@ -20,6 +21,7 @@ const dummyUsers = [
     password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password123
     name: 'Regular User',
     phone: '081111222333',
+    address: 'Jl. User No. 2, Bandung',
     role: 'pembeli',
     createdAt: new Date().toISOString(),
     isActive: true
@@ -254,7 +256,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, email, role, isActive } = body;
+    const { id, name, email, phone, address, role, isActive } = body;
 
     // Validasi input
     if (!id) {
@@ -278,6 +280,8 @@ export async function PUT(request: NextRequest) {
       ...dummyUsers[userIndex],
       ...(name && { name }),
       ...(email && { email }),
+      ...(phone && { phone }),
+      ...(address && { address }),
       ...(role && { role }),
       ...(isActive !== undefined && { isActive })
     };

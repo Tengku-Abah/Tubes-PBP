@@ -27,7 +27,7 @@ export default function UserProfileDropdown({ user }: UserProfileDropdownProps) 
   }, [])
 
   const handleProfileClick = () => {
-    router.push('/profile')
+    router.push('/Profile')
     setIsOpen(false)
   }
 
@@ -42,7 +42,20 @@ export default function UserProfileDropdown({ user }: UserProfileDropdownProps) 
   const userEmail = user?.email || ''
   const userId = user?.id || ''
   const userPhone = user?.phone || '+62 812-3456-7890'
-  const userLocation = user?.location || 'Jakarta, Indonesia'
+  
+  // Get location from address field and limit to 2 sentences
+  const getLocationDisplay = (address: string) => {
+    if (!address) return 'Jakarta, Indonesia'
+    
+    // Split by common sentence delimiters
+    const sentences = address.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0)
+    
+    // Take first 2 sentences and join them
+    const limitedSentences = sentences.slice(0, 2).map(sentence => sentence.trim())
+    return limitedSentences.join('. ') + (limitedSentences.length > 0 && !limitedSentences[limitedSentences.length - 1].endsWith('.') ? '.' : '')
+  }
+  
+  const userLocation = getLocationDisplay(user?.address || user?.location || '')
   const joinDate = user?.created_at ? new Date(user.created_at).toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',

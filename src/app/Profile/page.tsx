@@ -1,22 +1,11 @@
-'use client';
-
-import { User, Mail, Phone, MapPin, Edit2, Save, Loader2, AlertCircle } from 'lucide-react';
+'use client'
+import { User, Mail, Phone, MapPin, Edit2, Save, ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { supabase, User as UserType } from '../../lib/supabase';
-import { useToast } from '../../components/Toast';
+import { useRouter } from 'next/navigation';
+import { getCurrentUser } from '../../lib/auth';
 
-// Types
-interface ProfileData {
+interface UserProfile {
   id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  address?: string;
-  role: 'admin' | 'pembeli';
-  created_at: string;
-}
-
-interface ProfileFormData {
   name: string;
   email: string;
   phone: string;
@@ -24,202 +13,170 @@ interface ProfileFormData {
 }
 
 export default function ProfileSettings() {
-  // State management
-  const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [tempProfile, setTempProfile] = useState<ProfileFormData>({
+  const router = useRouter();
+  const [isEditing, setIsEditing] = useState(true); // Set to true by default
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState({
     name: '',
     email: '',
     phone: '',
     address: ''
   });
 
-  const { showToast, ToastComponent } = useToast();
+  const [tempProfile, setTempProfile] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
+  });
 
-  const showSuccess = (message: string) => {
-    showToast(message, 'success');
-  };
-
-  const showError = (message: string) => {
-    showToast(message, 'error');
-  };
-
-  // Fetch user profile data
+  // Load user data on component mount
   useEffect(() => {
-    fetchUserProfile();
-  }, []);
+    const loadUserData = () => {
+      try {
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+          router.push('/Login');
+          return;
+        }
 
-  const fetchUserProfile = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Get current user from Supabase auth
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Fetch user profile from database
-      const { data: userProfile, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        throw new Error('Failed to fetch user profile');
-      }
-
-      if (userProfile) {
+        setUser(currentUser);
+        const userProfile = {
+          name: currentUser.name || '',
+          email: currentUser.email || '',
+          phone: currentUser.phone || '',
+          address: currentUser.address || ''
+        };
+        
         setProfile(userProfile);
         setTempProfile({
-          name: userProfile.name || '',
-          email: userProfile.email || '',
-          phone: userProfile.phone || '',
-          address: userProfile.address || ''
+          name: userProfile.name,
+          email: userProfile.email,
+          phone: userProfile.phone,
+          address: userProfile.address
         });
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        router.push('/Login');
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load profile';
-      setError(errorMessage);
-      showError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    loadUserData();
+  }, [router]);
 
   const handleEdit = () => {
-    if (!profile) return;
-    
     setIsEditing(true);
-    setTempProfile({
-      name: profile.name || '',
-      email: profile.email || '',
-      phone: profile.phone || '',
-      address: profile.address || ''
+    setTempProfile({ 
+      name: profile.name,
+      email: profile.email,
+      phone: profile.phone,
+      address: profile.address
     });
   };
 
   const handleSave = async () => {
-    if (!profile) return;
+    if (!user) return;
 
+    setSaving(true);
     try {
-      setIsSaving(true);
-      setError(null);
+      const response = await fetch('/api/user', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: user.id,
+          name: tempProfile.name,
+          email: tempProfile.email,
+          phone: tempProfile.phone,
+          address: tempProfile.address
+        }),
+      });
 
-      // Validate required fields
-      if (!tempProfile.name.trim()) {
-        throw new Error('Nama tidak boleh kosong');
+      const data = await response.json();
+
+      if (data.success) {
+        // Update local state
+        const updatedProfile = {
+          name: tempProfile.name,
+          email: tempProfile.email,
+          phone: tempProfile.phone,
+          address: tempProfile.address
+        };
+        setProfile(updatedProfile);
+        
+        // Update user data in sessionStorage
+        const updatedUser = { 
+          ...user, 
+          name: tempProfile.name,
+          email: tempProfile.email,
+          phone: tempProfile.phone,
+          address: tempProfile.address
+        };
+        sessionStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        
+        // Keep in edit mode, don't set isEditing to false
+        alert('Profil berhasil diperbarui!');
+      } else {
+        alert('Gagal memperbarui profil: ' + data.message);
       }
-
-      if (!tempProfile.email.trim()) {
-        throw new Error('Email tidak boleh kosong');
-      }
-
-      // Update user profile in database
-      const { data, error: updateError } = await supabase
-        .from('users')
-        .update({
-          name: tempProfile.name.trim(),
-          email: tempProfile.email.trim(),
-          phone: tempProfile.phone.trim() || null,
-          address: tempProfile.address.trim() || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', profile.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        throw new Error('Gagal memperbarui profil');
-      }
-
-      // Update local state
-      setProfile(data);
-      setIsEditing(false);
-      showSuccess('Profil berhasil diperbarui');
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Gagal memperbarui profil';
-      setError(errorMessage);
-      showError(errorMessage);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Terjadi kesalahan saat memperbarui profil');
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 
   const handleCancel = () => {
-    if (!profile) return;
-    
-    setTempProfile({
-      name: profile.name || '',
-      email: profile.email || '',
-      phone: profile.phone || '',
-      address: profile.address || ''
+    setTempProfile({ 
+      name: profile.name,
+      email: profile.email,
+      phone: profile.phone,
+      address: profile.address
     });
     setIsEditing(false);
-    setError(null);
   };
 
-  const handleChange = (field: keyof ProfileFormData, value: string) => {
-    setTempProfile(prev => ({ ...prev, [field]: value }));
-    if (error) setError(null); // Clear error when user starts typing
+  const handleChange = (field: string, value: string) => {
+    setTempProfile({ ...tempProfile, [field]: value });
   };
 
-  // Loading state
-  if (isLoading) {
+  const handleBackToHome = () => {
+    router.push('/');
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 py-12 px-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-              <span className="ml-2 text-blue-600">Memuat profil...</span>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-blue-600">Memuat data profil...</p>
         </div>
       </div>
     );
   }
-
-  // Error state
-  if (error && !profile) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 py-12 px-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <div className="flex items-center justify-center py-12 text-red-600">
-              <AlertCircle className="w-8 h-8" />
-              <span className="ml-2">{error}</span>
-            </div>
-            <div className="text-center mt-4">
-              <button
-                onClick={fetchUserProfile}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Coba Lagi
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!profile) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 py-8 px-4">
+      {/* Back Button - Positioned at screen edge */}
+      <button
+        onClick={handleBackToHome}
+        className="fixed top-8 left-4 z-10 flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 hover:bg-white/50 rounded-lg transition-all duration-200 group shadow-sm"
+      >
+        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform duration-200" />
+        <span className="font-medium">Kembali ke Beranda</span>
+      </button>
+
       <div className="max-w-3xl mx-auto">
-        {/* Header */}
+        {/* Page Title - Centered */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-blue-900 mb-2">Pengaturan Profil</h1>
-          <p className="text-blue-600">Kelola informasi pribadi Anda</p>
+          <h1 className="text-2xl font-bold text-blue-900">Pengaturan Profil</h1>
+          <p className="text-sm text-blue-600">Kelola informasi pribadi Anda</p>
         </div>
 
         {/* Profile Card */}
@@ -235,34 +192,18 @@ export default function ProfileSettings() {
                 <User size={64} className="text-blue-600" />
               </div>
               <h2 className="text-2xl font-bold text-white">{profile.name}</h2>
-              <p className="text-blue-100 mt-1">
-                Member sejak {new Date(profile.created_at).getFullYear()}
-              </p>
-              {profile.role === 'admin' && (
-                <span className="inline-block mt-2 px-3 py-1 bg-yellow-400 text-yellow-900 text-sm font-semibold rounded-full">
-                  Administrator
-                </span>
-              )}
+              <p className="text-blue-100 mt-1">Member sejak 2024</p>
             </div>
           </div>
 
           {/* Form Section */}
           <div className="p-8">
-            {/* Error Display */}
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700">
-                <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
             <div className="space-y-6">
               {/* Nama */}
               <div className="group">
                 <label className="flex items-center text-sm font-semibold text-blue-900 mb-2">
                   <User size={18} className="mr-2 text-blue-600" />
                   Nama Lengkap
-                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                   type="text"
@@ -274,7 +215,6 @@ export default function ProfileSettings() {
                       ? 'border-blue-400 focus:border-blue-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
                   }`}
-                  placeholder="Masukkan nama lengkap"
                 />
               </div>
 
@@ -283,7 +223,6 @@ export default function ProfileSettings() {
                 <label className="flex items-center text-sm font-semibold text-blue-900 mb-2">
                   <Mail size={18} className="mr-2 text-blue-600" />
                   Email
-                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                   type="email"
@@ -295,7 +234,6 @@ export default function ProfileSettings() {
                       ? 'border-blue-400 focus:border-blue-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
                   }`}
-                  placeholder="Masukkan alamat email"
                 />
               </div>
 
@@ -307,7 +245,7 @@ export default function ProfileSettings() {
                 </label>
                 <input
                   type="tel"
-                  value={isEditing ? tempProfile.phone : (profile.phone || '')}
+                  value={isEditing ? tempProfile.phone : profile.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
                   disabled={!isEditing}
                   className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
@@ -315,7 +253,6 @@ export default function ProfileSettings() {
                       ? 'border-blue-400 focus:border-blue-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
                   }`}
-                  placeholder="Masukkan nomor telepon"
                 />
               </div>
 
@@ -326,7 +263,7 @@ export default function ProfileSettings() {
                   Alamat
                 </label>
                 <textarea
-                  value={isEditing ? tempProfile.address : (profile.address || '')}
+                  value={isEditing ? tempProfile.address : profile.address}
                   onChange={(e) => handleChange('address', e.target.value)}
                   disabled={!isEditing}
                   rows={3}
@@ -335,7 +272,6 @@ export default function ProfileSettings() {
                       ? 'border-blue-400 focus:border-blue-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
                   }`}
-                  placeholder="Masukkan alamat lengkap"
                 />
               </div>
             </div>
@@ -354,25 +290,14 @@ export default function ProfileSettings() {
                 <>
                   <button
                     onClick={handleSave}
-                    disabled={isSaving}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                   >
-                    {isSaving ? (
-                      <>
-                        <Loader2 size={20} className="animate-spin" />
-                        Menyimpan...
-                      </>
-                    ) : (
-                      <>
-                        <Save size={20} />
-                        Simpan
-                      </>
-                    )}
+                    <Save size={20} />
+                    Simpan
                   </button>
                   <button
                     onClick={handleCancel}
-                    disabled={isSaving}
-                    className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all flex items-center justify-center gap-2"
                   >
                     Batal
                   </button>
@@ -384,23 +309,11 @@ export default function ProfileSettings() {
 
         {/* Info Card */}
         <div className="mt-6 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-blue-800">Informasi Akun</h3>
-              <p className="text-sm text-blue-600">
-                Bergabung sejak {profile ? new Date(profile.created_at).getFullYear() : ''} • 
-                {profile?.role === 'admin' ? ' Administrator' : ' Member'}
-              </p>
-            </div>
-          </div>
+          <p className="text-sm text-blue-800 text-center">
+            <span className="font-semibold">💡 Tips:</span> Pastikan informasi Anda selalu terkini untuk pengalaman yang lebih baik
+          </p>
         </div>
       </div>
-
-      {/* Toast Component */}
-      {ToastComponent}
     </div>
   );
 }
