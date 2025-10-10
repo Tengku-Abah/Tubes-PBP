@@ -1,4 +1,5 @@
 // Contoh penggunaan Review API untuk testing
+import { useState } from 'react';
 
 // 1. Mendapatkan ulasan untuk produk tertentu
 async function getProductReviews(productId: number) {
@@ -120,7 +121,7 @@ async function adminUpdateReview(reviewId: number, comment: string, rating: numb
 export function useReviews() {
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchReviews = async (productId: number) => {
         setLoading(true);
@@ -203,9 +204,20 @@ export function useAdminReviews() {
         }
     };
 
-    const verifyReview = async (reviewId: number, verified: boolean) => {
+    const verifyReview = async (reviewId: number, verified: boolean): Promise<any> => {
         try {
-            const data = await verifyReview(reviewId, verified);
+            const response = await fetch('/api/admin/reviews', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: reviewId,
+                    action: 'verify',
+                    verified
+                })
+            });
+            const data = await response.json();
             if (data.success) {
                 // Refresh reviews after verification
                 await fetchAdminReviews();

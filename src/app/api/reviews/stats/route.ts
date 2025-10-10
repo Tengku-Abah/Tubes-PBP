@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbHelpers, ApiResponse, supabase } from '../../../lib/supabase';
+import { dbHelpers, ApiResponse, supabase } from '../../../../lib/supabase';
 
 // Interface untuk Product Review Statistics
 interface ProductReviewStats {

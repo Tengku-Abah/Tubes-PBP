@@ -176,9 +176,11 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
 
     // Get reviews from database
-    const { data: reviews, error } = await dbHelpers.getReviews(
-      productId ? parseInt(productId) : undefined
-    );
+    const { data: reviews, error } = await dbHelpers.getReviews({
+      productId: productId ? parseInt(productId) : undefined,
+      page,
+      limit
+    });
 
     if (error) {
       console.error('Database error:', error);
@@ -268,7 +270,6 @@ export async function POST(request: NextRequest) {
       user_avatar: userAvatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
       rating: parseInt(rating),
       comment,
-      date: new Date().toISOString().split('T')[0],
       verified: false
     });
 

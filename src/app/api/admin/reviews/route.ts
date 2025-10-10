@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbHelpers, ApiResponse, supabase } from '../../../lib/supabase';
-import { requireApiAdmin, getCookieUser } from '../../../lib/api-auth';
+import { dbHelpers, ApiResponse, supabase } from '../../../../lib/supabase';
+import { requireApiAdmin, getCookieUser } from '../../../../lib/api-auth';
 
 // Interface untuk Admin Review Management
 interface AdminReviewResponse {
