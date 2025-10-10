@@ -41,8 +41,8 @@ export default function UserProfileDropdown({ user }: UserProfileDropdownProps) 
   const userRole = user?.user_metadata?.role || user?.role || 'Customer'
   const userEmail = user?.email || ''
   const userId = user?.id || ''
-  const userPhone = user?.user_metadata?.phone || '+62 812-3456-7890'
-  const userLocation = user?.user_metadata?.location || 'Jakarta, Indonesia'
+  const userPhone = user?.phone || '+62 812-3456-7890'
+  const userLocation = user?.location || 'Jakarta, Indonesia'
   const joinDate = user?.created_at ? new Date(user.created_at).toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
