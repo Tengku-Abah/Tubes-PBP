@@ -156,7 +156,10 @@ export default function LoginPage() {
       localStorage.removeItem('user')
       localStorage.removeItem('rememberMe')
       localStorage.removeItem('loginTime')
+      // Clear all auth cookies
       document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
       return
     }
 
@@ -176,8 +179,19 @@ export default function LoginPage() {
           sessionStorage.setItem('user', JSON.stringify(userData))
           sessionStorage.setItem('loginTime', now.toString())
 
-          // Set cookie for middleware
-          document.cookie = `auth-token=${JSON.stringify(userData)}; path=/; max-age=2592000` // 30 days
+          // Set role-specific cookies for middleware
+          const cookieOptions = 'max-age=2592000' // 30 days
+          
+          if (userData.role === 'admin') {
+            document.cookie = `admin-auth-token=${JSON.stringify(userData)}; path=/; ${cookieOptions}`
+            document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+          } else {
+            document.cookie = `user-auth-token=${JSON.stringify(userData)}; path=/; ${cookieOptions}`
+            document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+          }
+
+          // Keep general auth-token for backward compatibility
+          document.cookie = `auth-token=${JSON.stringify(userData)}; path=/; ${cookieOptions}`
 
           // Dispatch custom event to notify other components about login
           window.dispatchEvent(new CustomEvent('user-login', { detail: userData }))
@@ -204,9 +218,11 @@ export default function LoginPage() {
       }
     }
 
-    // Clear sessionStorage if no remembered login
+    // Clear sessionStorage if no remembered login and clear all auth cookies
     sessionStorage.removeItem('user')
     document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
   }, [router])
 
   // Function to show alert
@@ -295,23 +311,35 @@ export default function LoginPage() {
           sessionStorage.setItem('user', JSON.stringify(userData))
           sessionStorage.setItem('loginTime', Date.now().toString())
 
+          // Set role-specific cookies to prevent session conflicts
+          const cookieOptions = rememberMe ? 'max-age=2592000' : 'max-age=86400' // 30 days or 24 hours
+          
+          if (userData.role === 'admin') {
+            // Set admin-specific cookie
+            document.cookie = `admin-auth-token=${JSON.stringify(userData)}; path=/; ${cookieOptions}`
+            // Clear user cookie if exists
+            document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+          } else {
+            // Set user-specific cookie
+            document.cookie = `user-auth-token=${JSON.stringify(userData)}; path=/; ${cookieOptions}`
+            // Clear admin cookie if exists
+            document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+          }
+
+          // Keep general auth-token for backward compatibility
+          document.cookie = `auth-token=${JSON.stringify(userData)}; path=/; ${cookieOptions}`
+
           // Remember Me functionality
           if (rememberMe) {
             // Store in localStorage for persistent login (30 days)
             localStorage.setItem('user', JSON.stringify(userData))
             localStorage.setItem('rememberMe', 'true')
             localStorage.setItem('loginTime', Date.now().toString())
-
-            // Set cookie for middleware with longer expiration (30 days)
-            document.cookie = `auth-token=${JSON.stringify(userData)}; path=/; max-age=2592000` // 30 days
           } else {
             // Clear localStorage if not remembering
             localStorage.removeItem('user')
             localStorage.removeItem('rememberMe')
             localStorage.removeItem('loginTime')
-
-            // Set cookie for middleware with shorter expiration (24 hours)
-            document.cookie = `auth-token=${JSON.stringify(userData)}; path=/; max-age=86400` // 24 hours
           }
 
           // No alert for successful login - will show toast on dashboard

@@ -81,7 +81,20 @@ function ProductDetailPageContent() {
             // Restore session from localStorage
             sessionStorage.setItem('user', JSON.stringify(parsedUser))
             sessionStorage.setItem('loginTime', now.toString())
-            document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; max-age=2592000`
+            
+            // Set role-specific cookies for middleware
+            const cookieOptions = 'max-age=2592000' // 30 days
+            
+            if (parsedUser.role === 'admin') {
+              document.cookie = `admin-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
+              document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+            } else {
+              document.cookie = `user-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
+              document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+            }
+            
+            // Keep general auth-token for backward compatibility
+            document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
             userData = JSON.stringify(parsedUser)
           } else {
             // Login expired, clear localStorage

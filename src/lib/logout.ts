@@ -12,8 +12,10 @@ export const logout = () => {
     localStorage.removeItem('rememberMe');
     localStorage.removeItem('loginTime');
 
-    // Clear cookies
+    // Clear all auth cookies (general and role-specific)
     document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 
     // Redirect to login page
     if (typeof window !== 'undefined') {

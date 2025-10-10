@@ -6,8 +6,13 @@ export function middleware(request: NextRequest) {
 
   // Check if accessing admin routes
   if (pathname.startsWith('/Admin')) {
-    // Get auth token from cookie
-    const authToken = request.cookies.get('auth-token')?.value
+    // Get admin auth token from dedicated admin cookie
+    const adminToken = request.cookies.get('admin-auth-token')?.value
+    
+    // Fallback to general auth token for backward compatibility
+    const generalToken = request.cookies.get('auth-token')?.value
+
+    const authToken = adminToken || generalToken
 
     if (!authToken) {
       // No auth token, redirect to login
@@ -35,7 +40,13 @@ export function middleware(request: NextRequest) {
 
   // Check if accessing protected routes (cart, checkout, etc.)
   if (pathname.startsWith('/cart') || pathname.startsWith('/Detail') || pathname.startsWith('/checkout')) {
-    const authToken = request.cookies.get('auth-token')?.value
+    // Get user auth token from dedicated user cookie
+    const userToken = request.cookies.get('user-auth-token')?.value
+    
+    // Fallback to general auth token for backward compatibility
+    const generalToken = request.cookies.get('auth-token')?.value
+
+    const authToken = userToken || generalToken
 
     if (!authToken) {
       // No auth token, redirect to login

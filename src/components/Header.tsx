@@ -158,9 +158,11 @@ export default function Header({ searchTerm = '', onSearchChange, onSearchSubmit
     }, [user]);
 
     const handleLogout = async () => {
-        // Mirror page.tsx logout semantics: clear sessionStorage and cookie
+        // Mirror page.tsx logout semantics: clear sessionStorage and all cookies
         sessionStorage.clear();
         document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         try {
             await supabase.auth.signOut();
         } catch (e) {

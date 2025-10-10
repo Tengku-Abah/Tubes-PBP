@@ -48,29 +48,50 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         return
       }
 
-      // Check localStorage for "Remember Me" logins
-      const rememberedLogin = localStorage.getItem('rememberedLogin')
-      if (rememberedLogin) {
-        const loginData = JSON.parse(rememberedLogin)
-        const loginTime = new Date(loginData.timestamp)
-        const now = new Date()
-        const daysDiff = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60 * 24)
+      // Check localStorage for "Remember Me" logins (updated to match new system)
+      const rememberedUser = localStorage.getItem('user')
+      const rememberMe = localStorage.getItem('rememberMe')
+      
+      if (rememberedUser && rememberMe === 'true') {
+        try {
+          const parsedUser = JSON.parse(rememberedUser)
+          const loginTime = localStorage.getItem('loginTime')
+          const now = Date.now()
 
-        if (daysDiff <= 30 && loginData.user) {
-          // Restore session
-          sessionStorage.setItem('user', JSON.stringify(loginData.user))
-          
-          // Set cookie with appropriate expiration
-          const expirationDate = new Date()
-          expirationDate.setDate(expirationDate.getDate() + 30)
-          document.cookie = `auth-token=${loginData.user.id}; expires=${expirationDate.toUTCString()}; path=/`
-          
-          setUser(loginData.user)
-          setIsLoggedIn(true)
-          return
-        } else {
-          // Clear expired login
-          localStorage.removeItem('rememberedLogin')
+          // Check if login is still valid (within 30 days)
+          if (loginTime && (now - parseInt(loginTime)) < 2592000000) {
+            // Restore session
+            sessionStorage.setItem('user', JSON.stringify(parsedUser))
+            sessionStorage.setItem('loginTime', now.toString())
+            
+            // Set role-specific cookies for middleware
+            const cookieOptions = 'max-age=2592000' // 30 days
+            
+            if (parsedUser.role === 'admin') {
+              document.cookie = `admin-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
+              document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+            } else {
+              document.cookie = `user-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
+              document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+            }
+            
+            // Keep general auth-token for backward compatibility
+            document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
+            
+            setUser(parsedUser)
+            setIsLoggedIn(true)
+            return
+          } else {
+            // Login expired, clear localStorage
+            localStorage.removeItem('user')
+            localStorage.removeItem('rememberMe')
+            localStorage.removeItem('loginTime')
+          }
+        } catch (error) {
+          console.error('Error parsing remembered user data:', error)
+          localStorage.removeItem('user')
+          localStorage.removeItem('rememberMe')
+          localStorage.removeItem('loginTime')
         }
       }
 
