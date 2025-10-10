@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbHelpers, ApiResponse, Review, supabase } from '../../../lib/supabase';
+import { dbHelpers, ApiResponse, supabase } from '../../../lib/supabase';
 import { getCookieUser } from '../../../lib/api-auth';
 
 // Interface untuk Review response
@@ -99,8 +99,7 @@ export async function GET(request: NextRequest) {
                 limit,
                 total: transformedReviews.length,
                 totalPages: Math.ceil(transformedReviews.length / limit)
-            },
-            stats
+            }
         };
 
         return NextResponse.json(response);
