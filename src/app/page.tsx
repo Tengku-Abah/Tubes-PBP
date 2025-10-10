@@ -376,13 +376,6 @@ export default function HomePage() {
                     </div>
                   )}
                 </div>
-                <button
-                  type="submit"
-                  disabled={searchLoading}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {searchLoading ? 'Searching...' : 'Search'}
-                </button>
               </div>
             </form>
 

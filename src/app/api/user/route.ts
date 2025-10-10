@@ -150,6 +150,7 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
           user: userWithoutPassword,
+
           message: 'Registration successful'
         }
       });

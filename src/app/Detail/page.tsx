@@ -61,7 +61,42 @@ function ProductDetailPageContent() {
   }, [productId])
 
   const checkLoginStatus = () => {
-    const userData = sessionStorage.getItem('user')
+    // Check sessionStorage first, then localStorage for remembered login
+    let userData = sessionStorage.getItem('user')
+
+    if (!userData) {
+      // Check localStorage for remembered login
+      const rememberedUser = localStorage.getItem('user')
+      const rememberMe = localStorage.getItem('rememberMe')
+
+      if (rememberedUser && rememberMe === 'true') {
+        try {
+          const parsedUser = JSON.parse(rememberedUser)
+          const loginTime = localStorage.getItem('loginTime')
+          const now = Date.now()
+
+          // Check if login is still valid (within 30 days)
+          if (loginTime && (now - parseInt(loginTime)) < 2592000000) {
+            // Restore session from localStorage
+            sessionStorage.setItem('user', JSON.stringify(parsedUser))
+            sessionStorage.setItem('loginTime', now.toString())
+            document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; max-age=2592000`
+            userData = JSON.stringify(parsedUser)
+          } else {
+            // Login expired, clear localStorage
+            localStorage.removeItem('user')
+            localStorage.removeItem('rememberMe')
+            localStorage.removeItem('loginTime')
+          }
+        } catch (error) {
+          console.error('Error parsing remembered user data:', error)
+          localStorage.removeItem('user')
+          localStorage.removeItem('rememberMe')
+          localStorage.removeItem('loginTime')
+        }
+      }
+    }
+
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData)
@@ -70,9 +105,11 @@ function ProductDetailPageContent() {
       } catch (error) {
         console.error('Error parsing user data:', error)
         setIsLoggedIn(false)
+        setUser(null)
       }
     } else {
       setIsLoggedIn(false)
+      setUser(null)
     }
   }
 
