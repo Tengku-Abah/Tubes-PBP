@@ -203,7 +203,7 @@ export interface Database {
           email: string
           password: string
           name: string
-          role: 'admin' | 'pembeli'
+          role: 'admin' | 'user'
           phone?: string
           is_active: boolean
           created_at: string
@@ -214,7 +214,7 @@ export interface Database {
           email: string
           password: string
           name: string
-          role?: 'admin' | 'pembeli'
+          role?: 'admin' | 'user'
           phone?: string
           is_active?: boolean
           created_at?: string
@@ -225,7 +225,7 @@ export interface Database {
           email?: string
           password?: string
           name?: string
-          role?: 'admin' | 'pembeli'
+          role?: 'admin' | 'user'
           phone?: string
           is_active?: boolean
           created_at?: string
@@ -512,6 +512,61 @@ export const dbHelpers = {
         .select('*')
         .eq('email', email)
         .single();
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async getAllUsers() {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async updateUser(userId: string, updateData: UserUpdate) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .update(updateData)
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  },
+
+  async deleteUser(userId: string) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .delete()
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        return { data: null, error };
+      }
+
+      return { data, error: null };
     } catch (error) {
       return { data: null, error };
     }

@@ -1,32 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { dbHelpers, ApiResponse, User } from '../../../lib/supabase';
+import { dbHelpers } from '@/lib/supabase';
 
-// Dummy user data (akan diganti dengan database)
-const dummyUsers = [
-  {
-    id: 1,
-    email: 'admin@gmail.com',
-    password: '$2b$10$voXgrTXntv2g17ERAGbfo.VdpIWNwn9PIb29g8M3FvOTlxP3.nrMi', // Admin08
-    name: 'Admin User',
-    phone: '081234567890',
-    address: 'Jl. Admin No. 1, Jakarta',
-    role: 'admin',
-    createdAt: new Date().toISOString(),
-    isActive: true
-  },
-  {
-    id: 2,
-    email: 'user@gmail.com',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password123
-    name: 'Regular User',
-    phone: '081111222333',
-    address: 'Jl. User No. 2, Bandung',
-    role: 'pembeli',
-    createdAt: new Date().toISOString(),
-    isActive: true
-  }
-];
+
+// Interface untuk User response (tanpa password)
+interface UserResponse {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  role: 'admin' | 'user';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Interface untuk Login response
+interface LoginResponse {
+  success: boolean;
+  data?: {
+    user: UserResponse;
+    token: string;
+    expiresIn: string;
+  };
+  message: string;
+}
+
+// Interface untuk Registration data
+interface RegistrationData {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  address?: string;
+  role?: 'admin' | 'user';
+}
 
 // Helper function untuk menambahkan admin user ke database
 async function addAdminUserToDatabase() {
@@ -93,20 +102,18 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Cek apakah email sudah ada di database (case-sensitive)
+      // Cek apakah email sudah ada di database
       const { data: existingUser, error: checkError } = await dbHelpers.getUserByEmail(email);
 
-      // Jika database error, fallback ke dummy data
       if (checkError && (checkError as any).code !== 'PGRST116') {
-        console.warn('Database check failed, using dummy data fallback:', checkError);
-        const dummyUser = dummyUsers.find(u => u.email === email);
-        if (dummyUser) {
-          return NextResponse.json(
-            { success: false, message: 'Email already registered' },
-            { status: 409 }
-          );
-        }
-      } else if (existingUser) {
+        console.error('Database check failed:', checkError);
+        return NextResponse.json(
+          { success: false, message: 'Database error occurred' },
+          { status: 500 }
+        );
+      }
+
+      if (existingUser) {
         return NextResponse.json(
           { success: false, message: 'Email already registered' },
           { status: 409 }
@@ -126,16 +133,19 @@ export async function POST(request: NextRequest) {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Buat user baru untuk database
-      const newUserData = {
+      const newUserData: RegistrationData = {
         email: email,
         password: hashedPassword,
         name: name,
         phone: phoneNumber,
-        role: 'pembeli' as const // Default role untuk user yang registrasi
+        role: 'user' as const // Default role untuk user yang registrasi
       };
 
       // Simpan ke database
-      const { data: newUser, error: insertError } = await dbHelpers.registerUser(newUserData);
+      const { data: newUser, error: insertError } = await dbHelpers.registerUser({
+        ...newUserData,
+        role: newUserData.role === 'user' ? 'user' : newUserData.role
+      });
 
       if (insertError) {
         console.error('Database insert error:', insertError);
@@ -150,11 +160,8 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        data: {
-          user: userWithoutPassword,
-
-          message: 'Registration successful'
-        }
+        data: userWithoutPassword as UserResponse,
+        message: 'Registration successful'
       });
     }
 
@@ -166,14 +173,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cari user berdasarkan email di database (case-sensitive)
-    let userData: any = null;
-
     // Cari user berdasarkan email di database
-    const { data: user, error: userError } = await dbHelpers.getUserByEmail(email);
-    userData = user;
+    const { data: userData, error: userError } = await dbHelpers.getUserByEmail(email);
 
-    if (!userData) {
+    if (userError || !userData) {
       return NextResponse.json(
         { success: false, message: 'Invalid email or password' },
         { status: 401 }
@@ -202,15 +205,17 @@ export async function POST(request: NextRequest) {
     // Return user data (tanpa password)
     const { password: _, ...userWithoutPassword } = userData;
 
-    return NextResponse.json({
+    const loginResponse: LoginResponse = {
       success: true,
       data: {
-        user: userWithoutPassword,
-        token: 'dummy-jwt-token-' + userData.id, // Fixed: use userData instead of user
+        user: userWithoutPassword as UserResponse,
+        token: 'dummy-jwt-token-' + userData.id,
         expiresIn: '24h'
       },
       message: 'Login successful'
-    });
+    };
+
+    return NextResponse.json(loginResponse);
 
   } catch (error) {
     console.error('Authentication error:', error);
@@ -234,8 +239,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get all users from database
+    const { data: users, error } = await dbHelpers.getAllUsers();
+
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to retrieve users' },
+        { status: 500 }
+      );
+    }
+
     // Return users without passwords
-    const usersWithoutPasswords = dummyUsers.map(({ password, ...user }) => user);
+    const usersWithoutPasswords = users?.map((user: any) => {
+      const { password, ...rest } = user;
+      return rest as UserResponse;
+    }) || [];
 
     return NextResponse.json({
       success: true,
@@ -256,7 +275,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, email, phone, address, role, isActive } = body;
+    const { id, name, email, phone, address, role, is_active } = body;
 
     // Validasi input
     if (!id) {
@@ -266,31 +285,38 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const userIndex = dummyUsers.findIndex(u => u.id === parseInt(id));
+    // Update user in database
+    const updateData = {
+      ...(name && { name }),
+      ...(email && { email }),
+      ...(phone && { phone }),
+      ...(address && { address }),
+      ...(role && { role }),
+      ...(is_active !== undefined && { is_active })
+    };
 
-    if (userIndex === -1) {
+    const { data: updatedUser, error } = await dbHelpers.updateUser(id, updateData);
+
+    if (error) {
+      console.error('Database update error:', error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to update user' },
+        { status: 500 }
+      );
+    }
+
+    if (!updatedUser) {
       return NextResponse.json(
         { success: false, message: 'User not found' },
         { status: 404 }
       );
     }
 
-    // Update user data
-    dummyUsers[userIndex] = {
-      ...dummyUsers[userIndex],
-      ...(name && { name }),
-      ...(email && { email }),
-      ...(phone && { phone }),
-      ...(address && { address }),
-      ...(role && { role }),
-      ...(isActive !== undefined && { isActive })
-    };
-
-    const { password, ...updatedUser } = dummyUsers[userIndex];
+    const { password, ...userWithoutPassword } = updatedUser;
 
     return NextResponse.json({
       success: true,
-      data: updatedUser,
+      data: userWithoutPassword as UserResponse,
       message: 'User updated successfully'
     });
 
@@ -316,21 +342,29 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const userIndex = dummyUsers.findIndex(u => u.id === parseInt(id));
+    // Delete user from database
+    const { data: deletedUser, error } = await dbHelpers.deleteUser(id);
 
-    if (userIndex === -1) {
+    if (error) {
+      console.error('Database delete error:', error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to delete user' },
+        { status: 500 }
+      );
+    }
+
+    if (!deletedUser) {
       return NextResponse.json(
         { success: false, message: 'User not found' },
         { status: 404 }
       );
     }
 
-    const deletedUser = dummyUsers.splice(userIndex, 1)[0];
     const { password, ...userWithoutPassword } = deletedUser;
 
     return NextResponse.json({
       success: true,
-      data: userWithoutPassword,
+      data: userWithoutPassword as UserResponse,
       message: 'User deleted successfully'
     });
 

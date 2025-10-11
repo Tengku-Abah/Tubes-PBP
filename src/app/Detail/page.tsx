@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ShoppingCart, Heart, Lock } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import PopupAlert from '../../components/PopupAlert'
 import { usePopupAlert } from '../../hooks/usePopupAlert'
@@ -516,7 +517,7 @@ function ProductDetailPageContent() {
                   <button
                     onClick={handleAddToCart}
                     disabled={addingToCart || product.stock === 0}
-                    className={`flex-1 py-3 px-5 rounded-xl font-semibold text-sm transition-all duration-300 transform ${
+                    className={`flex-1 py-3 px-5 rounded-xl font-semibold text-sm transition-all duration-300 transform flex items-center justify-center gap-2 ${
                       product.stock > 0
                         ? isLoggedIn
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5'
@@ -524,16 +525,30 @@ function ProductDetailPageContent() {
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   >
-                    {addingToCart ? 'Menambahkan...' : 
-                     product.stock > 0 ? 
-                       (isLoggedIn ? '🛒 Tambah ke Keranjang' : '🔐 Login untuk Menambah ke Keranjang') : 
-                       'Stok Habis'}
+                    {addingToCart ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Menambahkan...
+                      </>
+                    ) : product.stock > 0 ? (
+                      isLoggedIn ? (
+                        <>
+                          <ShoppingCart className="w-4 h-4" />
+                          Tambah ke Keranjang
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-4 h-4" />
+                          Login untuk Menambah ke Keranjang
+                        </>
+                      )
+                    ) : (
+                      'Stok Habis'
+                    )}
                   </button>
                   
-                  <button className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-all duration-300 hover:scale-105">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
+                  <button className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-all duration-300 hover:scale-105 flex items-center justify-center">
+                    <Heart className="w-5 h-5" />
                   </button>
                 </div>
 

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { ShoppingCart } from "lucide-react";
 import React from "react";
 
 interface HeaderProps {
@@ -196,11 +197,19 @@ export default function Header({ searchTerm = '', onSearchChange, onSearchSubmit
                 </div>
 
                 <nav className="flex items-center gap-4 w-full md:w-auto transition-all duration-200 ease-in-out">
-                    <Link href="/cart" className="text-white flex items-center">
-                        <span>Cart</span>
-                        <span className="ml-2 inline-flex items-center justify-center bg-red-600 text-white text-xs font-semibold rounded-full px-2 py-0.5">
-                            {cartCount}
-                        </span>
+                    <Link href="/cart" className="text-white flex items-center gap-2 hover:text-blue-200 transition-colors duration-200">
+                        <div className="relative">
+                            <ShoppingCart className="w-5 h-5" />
+                            {cartCount > 0 && (
+                                <span className="absolute -top-2 -right-2 inline-flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 px-1">
+                                    {cartCount > 99 ? '99+' : cartCount}
+                                </span>
+                            )}
+                        </div>
+                        <span className="hidden sm:inline">Cart</span>
+                        {cartCount > 0 && (
+                            <span className="sm:hidden text-xs">({cartCount})</span>
+                        )}
                     </Link>
 
                     {/* Show profile only when user is present */}
