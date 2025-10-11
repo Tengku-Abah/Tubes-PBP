@@ -1,0 +1,190 @@
+{
+    "title": "PBP E-Commerce API Documentation",
+    "version": "1.0.0",
+    "description": "Simple API documentation for all routes",
+    "baseUrl": "/api",
+    "endpoints": [
+        {
+            "path": "/cart",
+            "methods": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE"
+            ],
+            "description": "Cart management",
+            "auth": "Required",
+            "examples": {
+                "GET": "Get user cart items",
+                "POST": "Add item to cart",
+                "PUT": "Update cart item quantity",
+                "DELETE": "Remove item from cart"
+            }
+        },
+        {
+            "path": "/financial",
+            "methods": [
+                "GET"
+            ],
+            "description": "Financial dashboard data",
+            "auth": "Admin only",
+            "examples": {
+                "GET": "Get revenue, sales statistics"
+            }
+        },
+        {
+            "path": "/orders",
+            "methods": [
+                "GET",
+                "POST",
+                "PUT"
+            ],
+            "description": "Order management",
+            "auth": "Required",
+            "examples": {
+                "GET": "Get user orders",
+                "POST": "Create new order",
+                "PUT": "Update order status"
+            }
+        },
+        {
+            "path": "/product",
+            "methods": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE"
+            ],
+            "description": "Product CRUD operations",
+            "auth": "Admin only",
+            "examples": {
+                "GET": "Get all products",
+                "POST": "Create new product",
+                "PUT": "Update product",
+                "DELETE": "Delete product"
+            }
+        },
+        {
+            "path": "/reviews",
+            "methods": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE"
+            ],
+            "description": "Product reviews (public)",
+            "auth": "POST/PUT/DELETE require login",
+            "examples": {
+                "GET": "Get product reviews",
+                "POST": "Add new review",
+                "PUT": "Update own review",
+                "DELETE": "Delete own review"
+            }
+        },
+        {
+            "path": "/reviews/stats",
+            "methods": [
+                "GET"
+            ],
+            "description": "Review statistics",
+            "auth": "None",
+            "examples": {
+                "GET": "Get review stats (avg rating, count, etc.)"
+            }
+        },
+        {
+            "path": "/admin/reviews",
+            "methods": [
+                "GET",
+                "PUT"
+            ],
+            "description": "Admin review management",
+            "auth": "Admin only",
+            "examples": {
+                "GET": "Get all reviews for admin",
+                "PUT": "Verify/update review"
+            }
+        },
+        {
+            "path": "/upload",
+            "methods": [
+                "POST"
+            ],
+            "description": "File upload",
+            "auth": "Admin only",
+            "examples": {
+                "POST": "Upload product images"
+            }
+        },
+        {
+            "path": "/upload-url",
+            "methods": [
+                "POST"
+            ],
+            "description": "Generate upload URL",
+            "auth": "Admin only",
+            "examples": {
+                "POST": "Get signed upload URL"
+            }
+        },
+        {
+            "path": "/user",
+            "methods": [
+                "GET",
+                "PUT"
+            ],
+            "description": "User management",
+            "auth": "Required",
+            "examples": {
+                "GET": "Get user profile",
+                "PUT": "Update user profile"
+            }
+        }
+    ],
+    "authentication": {
+        "type": "Cookie-based",
+        "description": "Uses session cookies for authentication",
+        "admin": "Requires admin role in user session"
+    },
+    "commonResponses": {
+        "200": "Success",
+        "400": "Bad Request - Invalid data",
+        "401": "Unauthorized - Login required",
+        "403": "Forbidden - Admin access required",
+        "404": "Not Found",
+        "500": "Internal Server Error"
+    },
+    "requestExamples": {
+        "addToCart": {
+            "method": "POST",
+            "url": "/api/cart",
+            "body": {
+                "productId": 1,
+                "quantity": 2
+            }
+        },
+        "createOrder": {
+            "method": "POST",
+            "url": "/api/orders",
+            "body": {
+                "items": [
+                    {
+                        "productId": 1,
+                        "quantity": 2
+                    }
+                ],
+                "shippingAddress": "123 Main St",
+                "paymentMethod": "credit_card"
+            }
+        },
+        "addReview": {
+            "method": "POST",
+            "url": "/api/reviews",
+            "body": {
+                "productId": 1,
+                "rating": 5,
+                "comment": "Great product!"
+            }
+        }
+    }
+}
