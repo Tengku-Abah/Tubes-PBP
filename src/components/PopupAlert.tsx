@@ -117,8 +117,8 @@ const PopupAlert: React.FC<PopupAlertProps> = ({
         return {
           icon: 'ℹ️',
           bgColor: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50',
-          borderColor: 'border-blue-200',
-          textColor: 'text-blue-800',
+          borderColor: 'border-primary-200',
+          textColor: 'text-primary-800',
           buttonColor: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-200',
           iconBg: 'bg-gradient-to-br from-blue-100 to-indigo-100',
           headerGradient: 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10'
@@ -201,7 +201,7 @@ const PopupAlert: React.FC<PopupAlertProps> = ({
             {showConfirmButton && (
               <button
                 onClick={handleConfirm}
-                className={`px-6 py-3 text-sm font-semibold text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-lg active:scale-95 ${styles.buttonColor}`}
+                className={`px-6 py-3 text-sm font-semibold text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 hover:shadow-lg active:scale-95 ${styles.buttonColor}`}
               >
                 {confirmText}
               </button>

@@ -45,7 +45,7 @@ export default function InlineAlert({ type, message, show, onClose, duration = 5
             case 'warning':
                 return <AlertCircle className="w-5 h-5 text-yellow-500" />
             case 'info':
-                return <AlertCircle className="w-5 h-5 text-blue-500" />
+                return <AlertCircle className="w-5 h-5 text-primary-500" />
             default:
                 return <AlertCircle className="w-5 h-5 text-gray-500" />
         }
@@ -73,9 +73,9 @@ export default function InlineAlert({ type, message, show, onClose, duration = 5
                 }
             case 'info':
                 return {
-                    bg: 'bg-blue-50',
-                    border: 'border-blue-200',
-                    text: 'text-blue-800'
+                    bg: 'bg-primary-50',
+                    border: 'border-primary-200',
+                    text: 'text-primary-800'
                 }
             default:
                 return {

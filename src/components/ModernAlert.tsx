@@ -42,7 +42,7 @@ export default function ModernAlert({ type, title, message, onClose, duration = 
             case 'warning':
                 return <AlertCircle className="w-6 h-6 text-yellow-500" />
             case 'info':
-                return <AlertCircle className="w-6 h-6 text-blue-500" />
+                return <AlertCircle className="w-6 h-6 text-primary-500" />
             default:
                 return <AlertCircle className="w-6 h-6 text-gray-500" />
         }
@@ -73,10 +73,10 @@ export default function ModernAlert({ type, title, message, onClose, duration = 
                 }
             case 'info':
                 return {
-                    bg: 'bg-blue-50',
-                    border: 'border-blue-200',
-                    text: 'text-blue-800',
-                    title: 'text-blue-900'
+                    bg: 'bg-primary-50',
+                    border: 'border-primary-200',
+                    text: 'text-primary-800',
+                    title: 'text-primary-900'
                 }
             default:
                 return {
@@ -144,7 +144,7 @@ export default function ModernAlert({ type, title, message, onClose, duration = 
                                         ? 'bg-red-600 hover:bg-red-700 text-white'
                                         : type === 'warning'
                                             ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                            : 'bg-primary-600 hover:bg-primary-700 text-white'
                                 }`}
                         >
                             OK

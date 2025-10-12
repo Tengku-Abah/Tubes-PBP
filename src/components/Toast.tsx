@@ -46,7 +46,7 @@ export default function Toast({ message, type, duration = 4000, onClose }: Toast
             case 'error':
                 return <X className="w-5 h-5 text-red-500" />
             case 'info':
-                return <CheckCircle className="w-5 h-5 text-blue-500" />
+                return <CheckCircle className="w-5 h-5 text-primary-500" />
             default:
                 return <CheckCircle className="w-5 h-5 text-gray-500" />
         }
@@ -73,8 +73,8 @@ export default function Toast({ message, type, duration = 4000, onClose }: Toast
             case 'info':
                 return {
                     bg: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50',
-                    border: 'border-blue-200',
-                    text: 'text-blue-800',
+                    border: 'border-primary-200',
+                    text: 'text-primary-800',
                     iconBg: 'bg-gradient-to-br from-blue-100 to-indigo-100',
                     shadow: 'shadow-xl shadow-blue-200/50'
                 }

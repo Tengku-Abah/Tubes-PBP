@@ -39,8 +39,8 @@ const getStrengthLabel = (score: number, length: number) => {
   if (score === 0) return { label: 'Lemah', color: 'bg-red-500', textColor: 'text-red-600' }
   if (score === 1) return { label: 'Lemah', color: 'bg-red-500', textColor: 'text-red-600' }
   if (score === 2) return { label: 'Sedang', color: 'bg-yellow-500', textColor: 'text-yellow-600' }
-  if (score === 3) return { label: 'Kuat', color: 'bg-blue-500', textColor: 'text-blue-600' }
-  if (score === 4) return { label: 'Kuat', color: 'bg-blue-500', textColor: 'text-blue-600' }
+  if (score === 3) return { label: 'Kuat', color: 'bg-gray-500', textColor: 'text-primary-600' }
+  if (score === 4) return { label: 'Kuat', color: 'bg-gray-500', textColor: 'text-primary-600' }
   return { label: 'Sangat Kuat', color: 'bg-green-500', textColor: 'text-green-600' }
 }
 
@@ -152,11 +152,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
       {/* Back to Home Button */}
       <Link
         href="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
+        className="absolute top-6 left-6 flex items-center gap-2 text-primary-600 hover:text-primary-800 transition-colors"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -167,32 +167,32 @@ export default function RegisterPage() {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center shadow-xl">
+            <div className="w-20 h-20 bg-primary-600 rounded-full flex items-center justify-center shadow-xl">
               <ShoppingCart className="w-10 h-10 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-blue-900 mb-2">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Buat Akun
           </h1>
-          <p className="text-blue-700 text-lg">
+          <p className="text-gray-700 text-lg">
             Daftar untuk mulai berbelanja produk elektronik
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-blue-100">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-gray-100">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-blue-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
                 Nama Lengkap
               </label>
               <div className="relative">
-                <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
+                <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-400" />
                 <input
                   type="text"
                   name="namaLengkap"
                   value={formData.namaLengkap}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.namaLengkap ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.namaLengkap ? 'border-red-400' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition bg-gray-50`}
                   placeholder="Masukkan nama lengkap"
                 />
               </div>
@@ -202,17 +202,17 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-blue-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
                 Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-400" />
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.email ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.email ? 'border-red-400' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition bg-gray-50`}
                   placeholder="email@example.com"
                 />
               </div>
@@ -222,17 +222,17 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-blue-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
                 Nomor Telepon
               </label>
               <div className="relative">
-                <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
+                <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-400" />
                 <input
                   type="tel"
                   name="noTelepon"
                   value={formData.noTelepon}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.noTelepon ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.noTelepon ? 'border-red-400' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition bg-gray-50`}
                   placeholder="08123456789"
                 />
               </div>
@@ -242,23 +242,23 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-blue-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-12 py-3.5 border-2 ${errors.password ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  className={`w-full pl-12 pr-12 py-3.5 border-2 ${errors.password ? 'border-red-400' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition bg-gray-50`}
                   placeholder="Minimal 8 karakter"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600 transition"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-primary-400 hover:text-primary-600 transition"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -294,7 +294,7 @@ export default function RegisterPage() {
                       {passwordStrength.checks.special ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                       <span>1 karakter khusus (!@#$%^&*)</span>
                     </div>
-                    <div className="flex items-center gap-2 text-blue-600">
+                    <div className="flex items-center gap-2 text-primary-600">
                       <span className="text-sm font-medium">Panjang: {formData.password.length} karakter</span>
                     </div>
                   </div>
@@ -307,23 +307,23 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-blue-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
                 Konfirmasi Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-400" />
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-12 py-3.5 border-2 ${errors.confirmPassword ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  className={`w-full pl-12 pr-12 py-3.5 border-2 ${errors.confirmPassword ? 'border-red-400' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition bg-gray-50`}
                   placeholder="Ulangi password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600 transition"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-primary-400 hover:text-primary-600 transition"
                 >
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -336,16 +336,16 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-primary-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-primary-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Mendaftar...' : 'Daftar Sekarang'}
             </button>
           </form>
 
-          <div className="mt-8 text-center border-t-2 border-blue-100 pt-6">
-            <p className="text-blue-700">
+          <div className="mt-8 text-center border-t-2 border-gray-100 pt-6">
+            <p className="text-gray-700">
               Sudah punya akun?{' '}
-              <Link href="/Login" className="text-blue-600 font-bold hover:text-blue-800 hover:underline transition">
+              <Link href="/Login" className="text-primary-600 font-bold hover:text-primary-800 hover:underline transition">
                 Masuk di sini
               </Link>
             </p>

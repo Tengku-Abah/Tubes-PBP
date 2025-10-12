@@ -250,9 +250,9 @@ export default function CartPage() {
 
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
           <p className="text-slate-600">Loading cart...</p>
         </div>
       </div>
@@ -261,7 +261,7 @@ export default function CartPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
+      <div className="min-h-screen bg-white">
         <div className="container mx-auto px-4 py-8">
           {/* Back to Home Button */}
           <Link
@@ -288,13 +288,13 @@ export default function CartPage() {
             <div className="flex gap-4 justify-center">
               <Link
                 href="/Login"
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 Login
               </Link>
               <Link
                 href="/Register"
-                className="px-6 py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                className="px-6 py-3 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
               >
                 Register
               </Link>
@@ -307,7 +307,7 @@ export default function CartPage() {
 
   if (!cartItems || cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
+      <div className="min-h-screen bg-white">
         <div className="container mx-auto px-4 py-8">
           {/* Back to Home Button */}
           <Link
@@ -331,7 +331,7 @@ export default function CartPage() {
             <p className="text-slate-600 mb-8">Looks like you haven&apos;t added any items to your cart yet.</p>
             <Link
               href="/"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -345,7 +345,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
+    <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-8">
         {/* Back to Home Button */}
         <Link
@@ -378,7 +378,7 @@ export default function CartPage() {
                     id="select-all"
                     checked={selectedItems.size === cartItems.length && cartItems.length > 0}
                     onChange={toggleAllSelection}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
                   />
                   <label htmlFor="select-all" className="text-sm font-medium text-slate-700 cursor-pointer">
                     Select All
@@ -392,7 +392,7 @@ export default function CartPage() {
                     key={item.id} 
                     className={`flex items-center gap-4 p-4 border rounded-lg transition-all ${
                       selectedItems.has(item.id) 
-                        ? 'border-blue-300 bg-blue-50/30' 
+                        ? 'border-primary-300 bg-primary-50/30' 
                         : 'border-slate-200 bg-slate-50/50 opacity-60'
                     }`}
                   >
@@ -402,7 +402,7 @@ export default function CartPage() {
                         type="checkbox"
                         checked={selectedItems.has(item.id)}
                         onChange={() => toggleItemSelection(item.id)}
-                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500 cursor-pointer"
                       />
                     </div>
 
@@ -428,7 +428,7 @@ export default function CartPage() {
                         {item.product.description}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
+                        <span className="inline-block bg-primary-100 text-primary-800 text-xs font-medium px-2 py-1 rounded">
                           {item.product.category}
                         </span>
                         <div className="flex items-center">
@@ -456,7 +456,7 @@ export default function CartPage() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="w-10 h-10 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 hover:text-blue-700 flex items-center justify-center transition-colors border border-blue-200"
+                        className="w-10 h-10 rounded-full bg-primary-100 hover:bg-primary-200 text-primary-600 hover:text-primary-700 flex items-center justify-center transition-colors border border-primary-200"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
@@ -465,7 +465,7 @@ export default function CartPage() {
                       <span className="w-12 text-center font-semibold text-slate-800 text-lg">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="w-10 h-10 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 hover:text-blue-700 flex items-center justify-center transition-colors border border-blue-200"
+                        className="w-10 h-10 rounded-full bg-primary-100 hover:bg-primary-200 text-primary-600 hover:text-primary-700 flex items-center justify-center transition-colors border border-primary-200"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -530,14 +530,14 @@ export default function CartPage() {
               <button
                 onClick={handleCheckout}
                 disabled={loading || selectedItems.size === 0}
-                className="w-full mt-6 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-6 bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Processing...' : `Proceed to Checkout (${selectedItems.size} item${selectedItems.size !== 1 ? 's' : ''})`}
               </button>
 
               <Link
                 href="/"
-                className="block w-full mt-3 text-center text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                className="block w-full mt-3 text-center text-primary-600 hover:text-primary-700 font-medium transition-colors"
               >
                 Continue Shopping
               </Link>

@@ -117,7 +117,7 @@ export default function OrderView() {
       case 'shipped':
         return 'bg-purple-100 text-purple-800';
       case 'processing':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-primary-100 text-primary-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
       case 'cancelled':
@@ -168,10 +168,10 @@ export default function OrderView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-blue-600 font-semibold">Memuat data pesanan...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-primary-600 font-semibold">Memuat data pesanan...</p>
         </div>
       </div>
     );
@@ -182,7 +182,7 @@ export default function OrderView() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-6">
+    <div className="min-h-screen bg-white p-6">
       <PopupAlert 
         isOpen={alertState.isOpen}
         type={alertState.type}
@@ -198,16 +198,16 @@ export default function OrderView() {
           <div className="flex items-center gap-3 mb-2">
             <button
               onClick={() => router.back()}
-              className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-primary-700 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
             <Package className="w-10 h-10" />
             <h1 className="text-4xl font-bold">Daftar Pesanan</h1>
           </div>
-          <p className="text-blue-100 text-lg">Kelola dan pantau semua pesanan Anda</p>
+          <p className="text-gray-100 text-lg">Kelola dan pantau semua pesanan Anda</p>
           {user && (
-            <p className="text-blue-200 text-sm mt-2">Selamat datang, {user.name}</p>
+            <p className="text-gray-200 text-sm mt-2">Selamat datang, {user.name}</p>
           )}
         </div>
 
@@ -218,7 +218,7 @@ export default function OrderView() {
             <p className="text-gray-500 mb-6">Anda belum memiliki pesanan apapun</p>
             <button
               onClick={() => router.push('/')}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all"
+              className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all"
             >
               Mulai Berbelanja
             </button>
@@ -227,18 +227,18 @@ export default function OrderView() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Order List */}
             <div className="lg:col-span-1 space-y-4">
-              <h2 className="text-xl font-bold text-blue-900 mb-4">Semua Pesanan ({orders.length})</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Semua Pesanan ({orders.length})</h2>
               {orders.map((order) => (
                 <div
                   key={order.id}
                   onClick={() => setSelectedOrder(order)}
                   className={`bg-white rounded-xl shadow-md p-5 cursor-pointer transition-all hover:shadow-lg hover:scale-105 border-2 ${
-                    selectedOrder?.id === order.id ? 'border-blue-500' : 'border-transparent'
+                    selectedOrder?.id === order.id ? 'border-primary-500' : 'border-transparent'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <p className="font-bold text-blue-900 text-lg">{order.order_number}</p>
+                      <p className="font-bold text-gray-900 text-lg">{order.order_number}</p>
                       <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
                         <Calendar className="w-4 h-4" />
                         {formatDate(order.created_at)}
@@ -250,7 +250,7 @@ export default function OrderView() {
                   </div>
                   <div className="flex justify-between items-center pt-3 border-t border-gray-200">
                     <p className="text-gray-600 text-sm">{getTotalItems(order)} item</p>
-                    <p className="font-bold text-blue-700">{formatCurrency(order.total_amount)}</p>
+                    <p className="font-bold text-primary-700">{formatCurrency(order.total_amount)}</p>
                   </div>
                 </div>
               ))}
@@ -260,10 +260,10 @@ export default function OrderView() {
             {selectedOrder && (
               <div className="lg:col-span-2">
                 <div className="bg-white rounded-2xl shadow-xl p-8">
-                  <div className="flex justify-between items-start mb-6 pb-6 border-b-2 border-blue-100">
+                  <div className="flex justify-between items-start mb-6 pb-6 border-b-2 border-gray-100">
                     <div>
-                      <h2 className="text-3xl font-bold text-blue-900 mb-2">Detail Pesanan</h2>
-                      <p className="text-blue-600 text-lg font-semibold">{selectedOrder.order_number}</p>
+                      <h2 className="text-3xl font-bold text-gray-900 mb-2">Detail Pesanan</h2>
+                      <p className="text-primary-600 text-lg font-semibold">{selectedOrder.order_number}</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedOrder.status)}`}>
                       {getStatusText(selectedOrder.status)}
@@ -271,15 +271,15 @@ export default function OrderView() {
                   </div>
 
                   {/* Customer Info */}
-                  <div className="mb-6 bg-blue-50 rounded-xl p-6">
-                    <h3 className="font-bold text-blue-900 mb-4 text-xl flex items-center gap-2">
+                  <div className="mb-6 bg-primary-50 rounded-xl p-6">
+                    <h3 className="font-bold text-gray-900 mb-4 text-xl flex items-center gap-2">
                       <Package className="w-5 h-5" />
                       Informasi Pelanggan
                     </h3>
                     <div className="space-y-3">
                       <div className="flex items-start gap-3">
-                        <div className="bg-blue-200 rounded-full p-2">
-                          <Package className="w-5 h-5 text-blue-700" />
+                        <div className="bg-primary-200 rounded-full p-2">
+                          <Package className="w-5 h-5 text-primary-700" />
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Nama Pelanggan</p>
@@ -287,8 +287,8 @@ export default function OrderView() {
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <div className="bg-blue-200 rounded-full p-2">
-                          <MapPin className="w-5 h-5 text-blue-700" />
+                        <div className="bg-primary-200 rounded-full p-2">
+                          <MapPin className="w-5 h-5 text-primary-700" />
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Alamat Pengiriman</p>
@@ -296,8 +296,8 @@ export default function OrderView() {
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <div className="bg-blue-200 rounded-full p-2">
-                          <Calendar className="w-5 h-5 text-blue-700" />
+                        <div className="bg-primary-200 rounded-full p-2">
+                          <Calendar className="w-5 h-5 text-primary-700" />
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Tanggal Pesanan</p>
@@ -310,7 +310,7 @@ export default function OrderView() {
                   {/* Order Items */}
                   {selectedOrder.order_items && selectedOrder.order_items.length > 0 && (
                     <div className="mb-6 bg-gray-50 rounded-xl p-6">
-                      <h3 className="font-bold text-blue-900 mb-4 text-xl flex items-center gap-2">
+                      <h3 className="font-bold text-gray-900 mb-4 text-xl flex items-center gap-2">
                         <ShoppingBag className="w-5 h-5" />
                         Produk yang Dipesan
                       </h3>
@@ -322,7 +322,7 @@ export default function OrderView() {
                               <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-semibold text-blue-700">{formatCurrency(item.price)}</p>
+                              <p className="font-semibold text-primary-700">{formatCurrency(item.price)}</p>
                               <p className="text-sm text-gray-600">per item</p>
                             </div>
                           </div>
@@ -340,8 +340,8 @@ export default function OrderView() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div className="bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl p-5">
                       <div className="flex items-center gap-2 mb-3">
-                        <CreditCard className="w-5 h-5 text-blue-700" />
-                        <h3 className="font-bold text-blue-900">Pembayaran</h3>
+                        <CreditCard className="w-5 h-5 text-primary-700" />
+                        <h3 className="font-bold text-gray-900">Pembayaran</h3>
                       </div>
                       <p className="text-gray-700">{selectedOrder.payment_method}</p>
                       {selectedOrder.payment_status && (
@@ -350,8 +350,8 @@ export default function OrderView() {
                     </div>
                     <div className="bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl p-5">
                       <div className="flex items-center gap-2 mb-3">
-                        <Truck className="w-5 h-5 text-blue-700" />
-                        <h3 className="font-bold text-blue-900">Status Pengiriman</h3>
+                        <Truck className="w-5 h-5 text-primary-700" />
+                        <h3 className="font-bold text-gray-900">Status Pengiriman</h3>
                       </div>
                       <p className="text-gray-700">{getStatusText(selectedOrder.status)}</p>
                     </div>
@@ -384,13 +384,13 @@ export default function OrderView() {
                   <div className="flex gap-4 mt-6">
                     <button 
                       onClick={() => showSuccess('Fitur lacak pesanan akan segera tersedia')}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg"
+                      className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg"
                     >
                       Lacak Pesanan
                     </button>
                     <button 
                       onClick={() => showSuccess('Fitur cetak invoice akan segera tersedia')}
-                      className="flex-1 bg-white hover:bg-gray-50 text-blue-600 font-semibold py-3 px-6 rounded-xl border-2 border-blue-600 transition-all"
+                      className="flex-1 bg-white hover:bg-gray-50 text-primary-600 font-semibold py-3 px-6 rounded-xl border-2 border-primary-600 transition-all"
                     >
                       Cetak Invoice
                     </button>

@@ -15,6 +15,7 @@ export default function CheckoutPage() {
     const [initialLoading, setInitialLoading] = useState(true)
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [user, setUser] = useState<any>(null)
+    const [shippingCharge, setShippingCharge] = useState()
 
     useEffect(() => {
         checkLoginStatus()
@@ -85,9 +86,9 @@ export default function CheckoutPage() {
 
     if (initialLoading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100 flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
                     <p className="text-slate-600">Loading...</p>
                 </div>
             </div>
@@ -96,7 +97,7 @@ export default function CheckoutPage() {
 
     if (!isLoggedIn) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
+            <div className="min-h-screen bg-white">
                 <div className="container mx-auto px-4 py-8">
                     {/* Back to Home Button */}
                     <Link
@@ -123,13 +124,13 @@ export default function CheckoutPage() {
                         <div className="flex gap-4 justify-center">
                             <Link
                                 href="/Login"
-                                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                             >
                                 Login
                             </Link>
                             <Link
                                 href="/Register"
-                                className="px-6 py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                                className="px-6 py-3 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
                             >
                                 Register
                             </Link>
@@ -285,7 +286,7 @@ export default function CheckoutPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100 py-12">
+        <div className="min-h-screen bg-white py-12">
             <div className="container mx-auto px-4">
                 <h1 className="text-3xl font-bold text-slate-800 mb-6">Checkout</h1>
 
@@ -299,7 +300,7 @@ export default function CheckoutPage() {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-4">
                                                 <div className="flex items-center gap-2">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}>1</div>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-700'}`}>1</div>
                                                     <div>
                                                         <div className="text-xs text-slate-500">Step 1</div>
                                                         <div className="font-medium">Shipping</div>
@@ -309,7 +310,7 @@ export default function CheckoutPage() {
                                                 <div className="flex-1 border-t border-slate-200 mx-3" />
 
                                                 <div className="flex items-center gap-2">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}>2</div>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-700'}`}>2</div>
                                                     <div>
                                                         <div className="text-xs text-slate-500">Step 2</div>
                                                         <div className="font-medium">Payment</div>
@@ -319,7 +320,7 @@ export default function CheckoutPage() {
                                                 <div className="flex-1 border-t border-slate-200 mx-3" />
 
                                                 <div className="flex items-center gap-2">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}>3</div>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 3 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-700'}`}>3</div>
                                                     <div>
                                                         <div className="text-xs text-slate-500">Step 3</div>
                                                         <div className="font-medium">Review</div>
@@ -342,39 +343,39 @@ export default function CheckoutPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600">Full name</label>
-                                        <input value={contactName} onChange={e => setContactName(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <input value={contactName} onChange={e => setContactName(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600">Email</label>
-                                        <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600">Phone</label>
-                                        <input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600">Province</label>
-                                        <input value={province} onChange={e => setProvince(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <input value={province} onChange={e => setProvince(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
                                     </div>
                                 </div>
 
                                 <div className="mt-4">
                                     <label className="block text-sm font-medium text-slate-600">Address</label>
-                                    <input value={address} onChange={e => setAddress(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <input value={address} onChange={e => setAddress(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600">City</label>
-                                        <input value={city} onChange={e => setCity(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <input value={city} onChange={e => setCity(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600">Postal Code</label>
-                                        <input value={postalCode} onChange={e => setPostalCode(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <input value={postalCode} onChange={e => setPostalCode(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600">Shipping Method</label>
-                                        <select value={shippingMethod} onChange={e => setShippingMethod(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <select value={shippingMethod} onChange={e => setShippingMethod(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
                                             <option value="standard">Standard (3-5 days)</option>
                                             <option value="express">Express (1-2 days)</option>
                                         </select>
@@ -392,7 +393,7 @@ export default function CheckoutPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600">Payment Method</label>
-                                        <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as 'cod' | 'bank' | 'credit-card')} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as 'cod' | 'bank' | 'credit-card')} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
                                             <option value="cod">Cash on Delivery</option>
                                             <option value="bank">Bank Transfer</option>
                                             <option value="credit-card">Credit Card</option>
@@ -424,7 +425,7 @@ export default function CheckoutPage() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600">Notes (optional)</label>
-                                        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add any special instructions..."></textarea>
+                                        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Add any special instructions..."></textarea>
                                     </div>
                                 </div>
                             </>
@@ -502,7 +503,7 @@ export default function CheckoutPage() {
 
                         {/* Navigation Buttons */}
                         <div className="mt-6 flex items-center justify-between gap-3">
-                            <Link href="/cart" className="text-blue-600 hover:underline font-medium">Back to cart</Link>
+                            <Link href="/cart" className="text-primary-600 hover:underline font-medium">Back to cart</Link>
                             <div className="flex gap-3">
                                 {/* Step 1: Shipping - Show "Go to Payment" */}
                                 {currentStep === 1 && (
@@ -510,7 +511,7 @@ export default function CheckoutPage() {
                                         type="button"
                                         disabled={!canProceedToPayment}
                                         onClick={() => setCurrentStep(2)}
-                                        className="px-6 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                                        className="px-6 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                                     >
                                         Go to Payment
                                     </button>
@@ -529,7 +530,7 @@ export default function CheckoutPage() {
                                         <button
                                             type="button"
                                             onClick={() => setCurrentStep(3)}
-                                            className="px-6 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium"
+                                            className="px-6 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 font-medium"
                                         >
                                             Go to Review
                                         </button>

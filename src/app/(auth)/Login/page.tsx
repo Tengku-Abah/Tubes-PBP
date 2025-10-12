@@ -23,7 +23,7 @@ function SimpleAlert({ type, title, message, onClose }: AlertProps) {
       case 'warning':
         return <AlertCircle className="w-6 h-6 text-yellow-500" />
       case 'info':
-        return <AlertCircle className="w-6 h-6 text-blue-500" />
+        return <AlertCircle className="w-6 h-6 text-primary-500" />
       default:
         return <AlertCircle className="w-6 h-6 text-gray-500" />
     }
@@ -57,11 +57,11 @@ function SimpleAlert({ type, title, message, onClose }: AlertProps) {
         }
       case 'info':
         return {
-          bg: 'bg-blue-50',
-          border: 'border-blue-200',
-          text: 'text-blue-800',
-          title: 'text-blue-900',
-          button: 'bg-blue-600 hover:bg-blue-700'
+          bg: 'bg-primary-50',
+          border: 'border-primary-200',
+          text: 'text-primary-800',
+          title: 'text-primary-900',
+          button: 'bg-primary-600 hover:bg-primary-700'
         }
       default:
         return {
@@ -373,7 +373,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
       {showAlert && alertData && (
         <SimpleAlert
           type={alertData.type}
@@ -385,7 +385,7 @@ export default function LoginPage() {
       {/* Back to Home Button */}
       <Link
         href="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
+        className="absolute top-6 left-6 flex items-center gap-2 text-primary-600 hover:text-primary-800 transition-colors"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -396,32 +396,32 @@ export default function LoginPage() {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center shadow-xl">
+            <div className="w-20 h-20 bg-primary-600 rounded-full flex items-center justify-center shadow-xl">
               <ShoppingCart className="w-10 h-10 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-blue-900 mb-2">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Selamat Datang
           </h1>
-          <p className="text-blue-700 text-lg">
+          <p className="text-gray-700 text-lg">
             Masuk untuk melanjutkan belanja Anda
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-blue-100">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-gray-100">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-blue-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
                 Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-400" />
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.email ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.email ? 'border-red-400' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition bg-gray-50`}
                   placeholder="email@example.com"
                 />
               </div>
@@ -431,23 +431,23 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-blue-900 mb-2">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-400" />
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-12 py-3.5 border-2 ${errors.password ? 'border-red-400' : 'border-blue-200'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-blue-50`}
+                  className={`w-full pl-12 pr-12 py-3.5 border-2 ${errors.password ? 'border-red-400' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition bg-gray-50`}
                   placeholder="Masukkan password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600 transition"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-primary-400 hover:text-primary-600 transition"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -464,9 +464,9 @@ export default function LoginPage() {
                 id="rememberMe"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 text-blue-600 bg-blue-50 border-blue-300 rounded focus:ring-blue-500 focus:ring-2"
+                className="w-4 h-4 text-primary-600 bg-gray-50 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
               />
-              <label htmlFor="rememberMe" className="ml-2 text-sm text-blue-700 font-medium">
+              <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-700 font-medium">
                 Ingat saya
               </label>
             </div>
@@ -474,16 +474,16 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-primary-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-primary-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Memproses...' : 'Masuk'}
             </button>
           </form>
 
-          <div className="mt-8 text-center border-t-2 border-blue-100 pt-6">
-            <p className="text-blue-700">
+          <div className="mt-8 text-center border-t-2 border-gray-100 pt-6">
+            <p className="text-gray-700">
               Belum punya akun?{' '}
-              <Link href="/Register" className="text-blue-600 font-bold hover:text-blue-800 hover:underline transition">
+              <Link href="/Register" className="text-primary-600 font-bold hover:text-primary-800 hover:underline transition">
                 Daftar sekarang
               </Link>
             </p>
@@ -491,7 +491,7 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-blue-700">
+          <p className="text-sm text-gray-700">
             © 2025 UMKM Elektronik. Semua hak dilindungi.
           </p>
         </div>

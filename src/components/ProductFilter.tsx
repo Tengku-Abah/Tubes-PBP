@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 interface ProductFilterProps {
   categories: string[]
@@ -27,59 +27,78 @@ export default function ProductFilter({
   totalCount,
   onReset
 }: ProductFilterProps) {
+  const [categoryExpanded, setCategoryExpanded] = useState(true)
+  const [priceExpanded, setPriceExpanded] = useState(true)
+  const [ratingExpanded, setRatingExpanded] = useState(true)
+
   const hasActiveFilter = useMemo(() => {
     return selectedCategory !== '' || priceSort !== '' || ratingSort !== ''
   }, [selectedCategory, priceSort, ratingSort])
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0
+    if (selectedCategory !== '') count++
+    if (priceSort !== '') count++
+    if (ratingSort !== '') count++
+    return count
+  }, [selectedCategory, priceSort, ratingSort])
+
   return (
-    <aside className="w-full md:w-72 md:flex-shrink-0">
-      <div className="sticky top-4 bg-white/80 backdrop-blur rounded-2xl border border-gray-200 shadow-sm">
+    <aside className="w-full">
+      <div className="sticky top-24 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none">
-              <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                d="M3 4h18v2.6L14.6 13a2 2 0 00-.6 1.4V21l-4-2.2v-4.4a2 2 0 00-.6-1.4L3 6.6V4z" />
-            </svg>
-            <h3 className="text-base font-semibold text-gray-900">Filter Produk</h3>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  d="M3 4h18v2.6L14.6 13a2 2 0 00-.6 1.4V21l-4-2.2v-4.4a2 2 0 00-.6-1.4L3 6.6V4z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900">Filters</h3>
+              {activeFilterCount > 0 && (
+                <p className="text-xs text-gray-600">{activeFilterCount} active</p>
+              )}
+            </div>
           </div>
 
-          <button
-            onClick={onReset}
-            disabled={!hasActiveFilter}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium
-                       transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                       text-blue-700 hover:text-blue-900 hover:bg-blue-50"
-            aria-label="Reset semua filter"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-              <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                d="M4 4v5h5M20 20v-5h-5M20 9A8 8 0 006 6M4 15a8 8 0 0014 3" />
-            </svg>
-            Reset
-          </button>
+          {hasActiveFilter && (
+            <button
+              onClick={onReset}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold
+                         text-blue-700 hover:bg-blue-100 transition-all duration-200 border border-blue-200"
+              aria-label="Reset semua filter"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  d="M4 4v5h5M20 20v-5h-5M20 9A8 8 0 006 6M4 15a8 8 0 0014 3" />
+              </svg>
+              Clear All
+            </button>
+          )}
         </div>
 
-        <div className="h-px bg-gray-100" />
-
         {/* Body */}
-        <div className="px-5 py-4 space-y-6">
-          {/* Category */}
-          <fieldset>
-            <legend className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-800">
-              <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="none">
+        <div className="divide-y divide-gray-100">
+          {/* Category Section */}
+          <CollapsibleSection
+            title="Categories"
+            icon={
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                   d="M7 7h.01M7 3h5a2 2 0 011.4.6l7 7a2 2 0 010 2.8l-7 7a2 2 0 01-2.8 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
               </svg>
-              Kategori
-            </legend>
-
-            <div className="space-y-1.5">
+            }
+            isExpanded={categoryExpanded}
+            onToggle={() => setCategoryExpanded(!categoryExpanded)}
+          >
+            <div className="space-y-2">
               <RadioRow
                 name="category"
                 checked={selectedCategory === ''}
                 onChange={() => setSelectedCategory('')}
-                label="Semua Kategori"
+                label="All Categories"
               />
               {categories && categories.length > 0 ? categories.map((c) => (
                 <RadioRow
@@ -90,72 +109,156 @@ export default function ProductFilter({
                   label={capitalize(c)}
                 />
               )) : (
-                <div className="text-sm text-gray-500 italic">Tidak ada kategori tersedia</div>
+                <div className="text-xs text-gray-500 italic px-3 py-2">Tidak ada kategori</div>
               )}
             </div>
-          </fieldset>
+          </CollapsibleSection>
 
-          <div className="h-px bg-gray-100" />
-
-          {/* Price sort */}
-          <fieldset>
-            <legend className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-800">
-              <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="none">
+          {/* Price Section */}
+          <CollapsibleSection
+            title="Price"
+            icon={
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  d="M12 8c-1.7 0-3 .9-3 2s1.3 2 3 2 3 .9 3 2-1.3 2-3 2M12 8V7m0 10v1" />
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
               </svg>
-              Urutkan Harga
-            </legend>
+            }
+            isExpanded={priceExpanded}
+            onToggle={() => setPriceExpanded(!priceExpanded)}
+          >
+            <div className="space-y-2">
+              <RadioRow
+                name="price"
+                checked={priceSort === ''}
+                onChange={() => setPriceSort('')}
+                label="Default"
+              />
+              <RadioRow
+                name="price"
+                checked={priceSort === 'low-to-high'}
+                onChange={() => setPriceSort('low-to-high')}
+                label="Low to High"
+              />
+              <RadioRow
+                name="price"
+                checked={priceSort === 'high-to-low'}
+                onChange={() => setPriceSort('high-to-low')}
+                label="High to Low"
+              />
+            </div>
+          </CollapsibleSection>
 
-            <Select
-              value={priceSort}
-              onChange={(v) => setPriceSort(v)}
-              options={[
-                { value: '', label: 'Default' },
-                { value: 'low-to-high', label: 'Murah → Mahal' },
-                { value: 'high-to-low', label: 'Mahal → Murah' }
-              ]}
-              ariaLabel="Urutkan harga"
-            />
-          </fieldset>
-
-          <div className="h-px bg-gray-100" />
-
-          {/* Rating sort */}
-          <fieldset>
-            <legend className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-800">
-              <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="none">
-                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  d="M3 4h13M3 8h9M3 12h6m9-2l4 4-4 4" />
+          {/* Rating Section */}
+          <CollapsibleSection
+            title="Rating"
+            icon={
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path fill="currentColor"
+                  d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
               </svg>
-              Urutkan Rating
-            </legend>
-
-            <Select
-              value={ratingSort}
-              onChange={(v) => setRatingSort(v)}
-              options={[
-                { value: '', label: 'Default' },
-                { value: 'low-to-high', label: 'Rendah → Tinggi' },
-                { value: 'high-to-low', label: 'Tinggi → Rendah' }
-              ]}
-              ariaLabel="Urutkan rating"
-            />
-          </fieldset>
+            }
+            isExpanded={ratingExpanded}
+            onToggle={() => setRatingExpanded(!ratingExpanded)}
+          >
+            <div className="space-y-2">
+              <RadioRow
+                name="rating"
+                checked={ratingSort === ''}
+                onChange={() => setRatingSort('')}
+                label="Default"
+              />
+              <RadioRowWithIcon
+                name="rating"
+                checked={ratingSort === 'high-to-low'}
+                onChange={() => setRatingSort('high-to-low')}
+                label="Highest First"
+                icon={
+                  <div className="flex items-center gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <svg key={i} className="w-3 h-3 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                  </div>
+                }
+              />
+              <RadioRow
+                name="rating"
+                checked={ratingSort === 'low-to-high'}
+                onChange={() => setRatingSort('low-to-high')}
+                label="Lowest First"
+              />
+            </div>
+          </CollapsibleSection>
         </div>
 
-        {/* Footer: count */}
-        <div className="px-5 pb-5">
+        {/* Results Counter */}
+        <div className="px-5 py-3 bg-gray-50 border-t border-gray-200">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Showing Results</span>
+            <span className="font-bold text-blue-700">{filteredCount} of {totalCount}</span>
+          </div>
         </div>
       </div>
     </aside>
   )
 }
 
-/* ───────── helpers ───────── */
+/* ───────── Helper Components ───────── */
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+function CollapsibleSection({
+  title,
+  icon,
+  isExpanded,
+  onToggle,
+  children
+}: {
+  title: string
+  icon: React.ReactNode
+  isExpanded: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div className="bg-white">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="text-blue-600">
+            {icon}
+          </div>
+          <span className="text-sm font-semibold text-gray-900">{title}</span>
+        </div>
+        <svg
+          className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+            isExpanded ? 'rotate-180' : ''
+          }`}
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <path
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+      {isExpanded && (
+        <div className="px-5 pb-4">
+          {children}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function RadioRow({
@@ -171,19 +274,80 @@ function RadioRow({
 }) {
   return (
     <label
-      className={`group flex items-center gap-3 rounded-xl border p-2.5 cursor-pointer
-                  transition-colors select-none
-                  ${checked ? 'border-blue-300 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}
+      className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 cursor-pointer
+                  transition-all duration-200 select-none hover:bg-gray-50
+                  ${checked ? 'bg-blue-50' : ''}`}
     >
-      <input
-        type="radio"
-        name={name}
-        checked={checked}
-        onChange={onChange}
-        className="shrink-0 mt-0.5 h-4 w-4 accent-blue-600"
-        aria-checked={checked}
-      />
-      <span className="text-sm text-gray-800">{label}</span>
+      <div className="relative flex items-center">
+        <input
+          type="radio"
+          name={name}
+          checked={checked}
+          onChange={onChange}
+          className="sr-only"
+          aria-checked={checked}
+        />
+        {/* Custom Radio Button */}
+        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200
+                        ${checked ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'}`}>
+          {checked && (
+            <div className="w-2 h-2 rounded-full bg-white"></div>
+          )}
+        </div>
+      </div>
+      <span className={`text-sm transition-colors ${checked ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
+        {label}
+      </span>
+    </label>
+  )
+}
+
+function RadioRowWithIcon({
+  name,
+  checked,
+  onChange,
+  label,
+  icon
+}: {
+  name: string
+  checked: boolean
+  onChange: () => void
+  label: string
+  icon: React.ReactNode
+}) {
+  return (
+    <label
+      className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 cursor-pointer
+                  transition-all duration-200 select-none hover:bg-gray-50
+                  ${checked ? 'bg-blue-50' : ''}`}
+    >
+      <div className="relative flex items-center">
+        <input
+          type="radio"
+          name={name}
+          checked={checked}
+          onChange={onChange}
+          className="sr-only"
+          aria-checked={checked}
+        />
+        {/* Custom Radio Button */}
+        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200
+                        ${checked ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'}`}>
+          {checked && (
+            <div className="w-2 h-2 rounded-full bg-white"></div>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-between">
+        <span className={`text-sm transition-colors ${checked ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
+          {label}
+        </span>
+        {icon && (
+          <div className="ml-2">
+            {icon}
+          </div>
+        )}
+      </div>
     </label>
   )
 }
@@ -205,9 +369,9 @@ function Select({
         aria-label={ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm
-                   focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500
-                   hover:border-gray-300 transition-colors"
+        className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+                   hover:border-gray-300 transition-all cursor-pointer"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -216,7 +380,7 @@ function Select({
         ))}
       </select>
       <svg
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500"
+        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500"
         viewBox="0 0 24 24"
         fill="none"
       >

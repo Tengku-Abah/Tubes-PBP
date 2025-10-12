@@ -98,23 +98,23 @@ export default function UserProfileDropdown({ user }: UserProfileDropdownProps) 
       {/* User Profile Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        className="flex items-center gap-2 md:gap-3 p-2 rounded-lg hover:bg-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
       >
         {/* Avatar */}
         {avatarUrl ? (
           <img
             src={avatarUrl}
             alt="Avatar"
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-9 h-9 rounded-full object-cover ring-2 ring-yellow-400 shadow-md"
             onError={(e) => {
               const target = e.target as HTMLImageElement
               target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`
             }}
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-yellow-400 flex items-center justify-center shadow-md">
             <svg
-              className="w-6 h-6 text-white"
+              className="w-5 h-5 text-blue-900"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -127,19 +127,19 @@ export default function UserProfileDropdown({ user }: UserProfileDropdownProps) 
           </div>
         )}
 
-        {/* User Info */}
-        <div className="flex flex-col items-start text-left">
-          <span className="text-sm font-semibold text-slate-800">
+        {/* User Info - Desktop only */}
+        <div className="hidden lg:flex flex-col items-start text-left">
+          <span className="text-sm font-semibold text-white">
             {displayName}
           </span>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-blue-200">
             {userRole}
           </span>
         </div>
 
         {/* Dropdown Arrow */}
         <svg
-          className={`w-4 h-4 text-slate-600 transition-transform duration-200 ${
+          className={`w-4 h-4 text-white transition-transform duration-200 ${
             isOpen ? 'rotate-180' : ''
           }`}
           fill="none"

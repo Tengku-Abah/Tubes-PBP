@@ -305,21 +305,21 @@ export default function ProfileSettings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-blue-600">Memuat data profil...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-primary-600">Memuat data profil...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 py-8 px-4">
+    <div className="min-h-screen bg-white py-8 px-4">
       {/* Back Button - Positioned at screen edge */}
       <button
         onClick={handleBackToHome}
-        className="fixed top-8 left-4 z-10 flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 hover:bg-white/50 rounded-lg transition-all duration-200 group shadow-sm"
+        className="fixed top-8 left-4 z-10 flex items-center gap-2 px-4 py-2 text-primary-600 hover:text-primary-800 hover:bg-white/50 rounded-lg transition-all duration-200 group shadow-sm"
       >
         <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform duration-200" />
         <span className="font-medium">Kembali ke Beranda</span>
@@ -328,8 +328,8 @@ export default function ProfileSettings() {
       <div className="max-w-3xl mx-auto">
         {/* Page Title - Centered */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-blue-900">Pengaturan Profil</h1>
-          <p className="text-sm text-blue-600">Kelola informasi pribadi Anda</p>
+          <h1 className="text-2xl font-bold text-gray-900">Pengaturan Profil</h1>
+          <p className="text-sm text-primary-600">Kelola informasi pribadi Anda</p>
         </div>
 
         {/* Profile Card */}
@@ -350,12 +350,12 @@ export default function ProfileSettings() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={avatarUrl} alt="Foto Profil" className="w-full h-full object-cover" />
                 ) : (
-                  <User size={64} className="text-blue-600" />
+                  <User size={64} className="text-primary-600" />
                 )}
                 {uploadingAvatar && (
                   <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] flex items-center justify-center">
                     <div
-                      className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
+                      className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"
                       aria-label="Mengunggah foto"
                     />
                   </div>
@@ -370,7 +370,7 @@ export default function ProfileSettings() {
                 onChange={handleAvatarInputChange}
               />
               <h2 className="text-2xl font-bold text-white">{profile.name}</h2>
-              <p className="text-blue-100 mt-1">Member sejak 2024</p>
+              <p className="text-gray-100 mt-1">Member sejak 2024</p>
             </div>
           </div>
 
@@ -379,8 +379,8 @@ export default function ProfileSettings() {
             <div className="space-y-6">
               {/* Nama */}
               <div className="group">
-                <label className="flex items-center text-sm font-semibold text-blue-900 mb-2">
-                  <User size={18} className="mr-2 text-blue-600" />
+                <label className="flex items-center text-sm font-semibold text-gray-900 mb-2">
+                  <User size={18} className="mr-2 text-primary-600" />
                   Nama Lengkap
                 </label>
                 <input
@@ -390,7 +390,7 @@ export default function ProfileSettings() {
                   disabled={!isEditing}
                   className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
                     isEditing
-                      ? 'border-blue-400 focus:border-blue-600 focus:outline-none bg-white'
+                      ? 'border-primary-400 focus:border-primary-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
                   }`}
                 />
@@ -398,8 +398,8 @@ export default function ProfileSettings() {
 
               {/* Email */}
               <div className="group">
-                <label className="flex items-center text-sm font-semibold text-blue-900 mb-2">
-                  <Mail size={18} className="mr-2 text-blue-600" />
+                <label className="flex items-center text-sm font-semibold text-gray-900 mb-2">
+                  <Mail size={18} className="mr-2 text-primary-600" />
                   Email
                 </label>
                 <input
@@ -409,7 +409,7 @@ export default function ProfileSettings() {
                   disabled={!isEditing}
                   className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
                     isEditing
-                      ? 'border-blue-400 focus:border-blue-600 focus:outline-none bg-white'
+                      ? 'border-primary-400 focus:border-primary-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
                   }`}
                 />
@@ -417,8 +417,8 @@ export default function ProfileSettings() {
 
               {/* No HP */}
               <div className="group">
-                <label className="flex items-center text-sm font-semibold text-blue-900 mb-2">
-                  <Phone size={18} className="mr-2 text-blue-600" />
+                <label className="flex items-center text-sm font-semibold text-gray-900 mb-2">
+                  <Phone size={18} className="mr-2 text-primary-600" />
                   Nomor Telepon
                 </label>
                 <input
@@ -428,7 +428,7 @@ export default function ProfileSettings() {
                   disabled={!isEditing}
                   className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
                     isEditing
-                      ? 'border-blue-400 focus:border-blue-600 focus:outline-none bg-white'
+                      ? 'border-primary-400 focus:border-primary-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
                   }`}
                 />
@@ -436,8 +436,8 @@ export default function ProfileSettings() {
 
               {/* Alamat */}
               <div className="group">
-                <label className="flex items-center text-sm font-semibold text-blue-900 mb-2">
-                  <MapPin size={18} className="mr-2 text-blue-600" />
+                <label className="flex items-center text-sm font-semibold text-gray-900 mb-2">
+                  <MapPin size={18} className="mr-2 text-primary-600" />
                   Alamat
                 </label>
                 <textarea
@@ -447,7 +447,7 @@ export default function ProfileSettings() {
                   rows={3}
                   className={`w-full px-4 py-3 rounded-lg border-2 transition-all resize-none ${
                     isEditing
-                      ? 'border-blue-400 focus:border-blue-600 focus:outline-none bg-white'
+                      ? 'border-primary-400 focus:border-primary-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
                   }`}
                 />

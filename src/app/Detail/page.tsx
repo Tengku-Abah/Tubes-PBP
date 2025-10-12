@@ -312,12 +312,12 @@ function ProductDetailPageContent() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-slate-800 mb-4">Produk tidak ditemukan</h1>
           <Link 
             href="/"
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             Kembali ke Beranda
           </Link>
@@ -327,7 +327,7 @@ function ProductDetailPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+    <div className="min-h-screen bg-white">
       {/* Header dengan desain yang lebih menarik */}
       <div className="bg-white/80 backdrop-blur-md shadow-lg border-b border-white/20 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
@@ -547,7 +547,7 @@ function ProductDetailPageContent() {
                     )}
                   </button>
                   
-                  <button className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-all duration-300 hover:scale-105 flex items-center justify-center">
+                  <button className="px-4 py-2 border-2 border-primary-600 text-primary-600 rounded-lg font-medium hover:bg-primary-50 transition-all duration-300 hover:scale-105 flex items-center justify-center">
                     <Heart className="w-5 h-5" />
                   </button>
                 </div>
@@ -669,7 +669,7 @@ function ProductDetailPageContent() {
               
               {reviewsLoading ? (
                 <div className="flex justify-center py-6">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
                 </div>
               ) : reviews.length === 0 ? (
                 <div className="text-center py-6">

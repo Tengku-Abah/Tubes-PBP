@@ -103,10 +103,10 @@ export default function SupabaseStatus({ showDetails = false }: SupabaseStatusPr
           </div>
         )}
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-sm text-blue-700">
+        <div className="bg-primary-50 border border-primary-200 rounded-lg p-3">
+          <p className="text-sm text-primary-700">
             <strong>Note:</strong> Currently using dummy data. 
-            Configure your Supabase credentials in <code className="bg-blue-100 px-1 rounded">.env.local</code> to connect to the database.
+            Configure your Supabase credentials in <code className="bg-primary-100 px-1 rounded">.env.local</code> to connect to the database.
           </p>
         </div>
 

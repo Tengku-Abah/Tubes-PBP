@@ -18,7 +18,7 @@ export default function AdminLayout({
   return (
     <AdminProtection>
       <AdminProvider>
-        <div className="flex h-screen bg-gray-50">
+        <div className="flex h-screen bg-white">
           {/* Sidebar */}
           {sidebar}
 
