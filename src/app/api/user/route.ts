@@ -14,6 +14,7 @@ interface UserResponse {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  user_avatar?: string | null;
 }
 
 // Interface untuk Login response
@@ -275,7 +276,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, email, phone, address, role, is_active } = body;
+    const { id, name, email, phone, address, role, is_active, user_avatar } = body;
 
     // Validasi input
     if (!id) {
@@ -292,7 +293,8 @@ export async function PUT(request: NextRequest) {
       ...(phone && { phone }),
       ...(address && { address }),
       ...(role && { role }),
-      ...(is_active !== undefined && { is_active })
+      ...(is_active !== undefined && { is_active }),
+      ...(user_avatar !== undefined && { user_avatar })
     };
 
     const { data: updatedUser, error } = await dbHelpers.updateUser(id, updateData);

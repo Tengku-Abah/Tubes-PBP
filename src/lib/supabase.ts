@@ -665,65 +665,70 @@ export const dbHelpers = {
   // Orders operations
   async getOrders(filters?: { status?: string; customerEmail?: string; limit?: number; page?: number }) {
     try {
-      let query = supabase
-        .from('orders')
-        .select(`
-          *,
-          users (
-            id,
-            name,
-            email
-          ),
-          order_items (
-            id,
-            product_id,
-            product_name,
-            quantity,
-            price
-          )
-        `);
+      const buildQuery = (includeAvatar: boolean) => {
+        const userFields = includeAvatar ? 'id,\n              name,\n              email,\n              user_avatar' : 'id,\n              name,\n              email';
 
-      if (filters?.status) {
-        query = query.eq('status', filters.status);
-      }
-
-      if (filters?.customerEmail) {
-        // Create a new query for filtering by email
-        query = supabase
-          .from('orders')
-          .select(`
-            *,
-            users!inner (
-              id,
-              name,
-              email
-            ),
-            order_items (
-              id,
-              product_id,
-              product_name,
-              quantity,
-              price
-            )
-          `)
-          .eq('users.email', filters.customerEmail);
-
-        // Apply status filter if needed
-        if (filters?.status) {
-          query = query.eq('status', filters.status);
+        let q;
+        if (filters?.customerEmail) {
+          q = supabase
+            .from('orders')
+            .select(`
+              *,
+              users!inner (
+                ${userFields}
+              ),
+              order_items (
+                id,
+                product_id,
+                product_name,
+                quantity,
+                price
+              )
+            `)
+            .eq('users.email', filters.customerEmail);
+        } else {
+          q = supabase
+            .from('orders')
+            .select(`
+              *,
+              users (
+                ${userFields}
+              ),
+              order_items (
+                id,
+                product_id,
+                product_name,
+                quantity,
+                price
+              )
+            `);
         }
-      }
 
-      if (filters?.limit) {
-        query = query.limit(filters.limit);
-      }
+        if (filters?.status) {
+          q = q.eq('status', filters.status);
+        }
+        if (filters?.limit) {
+          q = q.limit(filters.limit);
+        }
+        if (filters?.page && filters?.limit) {
+          const offset = (filters.page - 1) * filters.limit;
+          q = q.range(offset, offset + filters.limit - 1);
+        }
+        return q;
+      };
 
-      if (filters?.page && filters?.limit) {
-        const offset = (filters.page - 1) * filters.limit;
-        query = query.range(offset, offset + filters.limit - 1);
-      }
+      // First attempt: include avatar
+      let query = buildQuery(true);
+      let { data, error } = await query.order('created_at', { ascending: false });
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      // Fallback: if column does not exist, retry without avatar
+      const msg = error?.message || '';
+      if (msg.includes('does not exist') && msg.includes('user_avatar')) {
+        query = buildQuery(false);
+        const retry = await query.order('created_at', { ascending: false });
+        data = retry.data;
+        error = retry.error;
+      }
 
       return { data, error: error?.message || null };
     } catch (error) {
@@ -876,19 +881,17 @@ export const dbHelpers = {
   async uploadFile(file: File, folder: string = 'products') {
     try {
       const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
+      const client = supabaseAdmin || supabase;
 
       // Generate unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
 
-      // Convert file to buffer
-      const fileBuffer = await file.arrayBuffer();
-
       // Upload file to Supabase Storage
-      const { data, error } = await supabase.storage
+      const { data, error } = await client.storage
         .from(BUCKET_NAME)
-        .upload(filePath, fileBuffer, {
+        .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
           contentType: file.type
@@ -899,7 +902,7 @@ export const dbHelpers = {
       }
 
       // Get public URL
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = client.storage
         .from(BUCKET_NAME)
         .getPublicUrl(filePath);
 
@@ -919,8 +922,9 @@ export const dbHelpers = {
   async deleteFile(filePath: string) {
     try {
       const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
+      const client = supabaseAdmin || supabase;
 
-      const { error } = await supabase.storage
+      const { error } = await client.storage
         .from(BUCKET_NAME)
         .remove([filePath]);
 

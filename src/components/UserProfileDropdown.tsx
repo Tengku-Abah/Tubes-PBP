@@ -9,6 +9,7 @@ interface UserProfileDropdownProps {
 
 export default function UserProfileDropdown({ user }: UserProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -25,6 +26,31 @@ export default function UserProfileDropdown({ user }: UserProfileDropdownProps) 
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+
+  // Derive avatar URL from sessionStorage or user metadata
+  const resolveAvatarUrl = () => {
+    try {
+      const stored = typeof window !== 'undefined' ? sessionStorage.getItem('user_avatar_url') : null
+      const metaAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.avatar
+      const directAvatar = user?.avatar_url || user?.avatar
+      return stored || metaAvatar || directAvatar || null
+    } catch {
+      return null
+    }
+  }
+
+  useEffect(() => {
+    setAvatarUrl(resolveAvatarUrl())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
+
+  // Refresh avatar whenever dropdown toggles (helps pick up recent sessionStorage changes)
+  useEffect(() => {
+    if (isOpen) {
+      setAvatarUrl(resolveAvatarUrl())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   const handleProfileClick = () => {
     router.push('/Profile')
@@ -75,19 +101,31 @@ export default function UserProfileDropdown({ user }: UserProfileDropdownProps) 
         className="flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
       >
         {/* Avatar */}
-        <div className="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center">
-          <svg
-            className="w-6 h-6 text-white"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </div>
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt="Avatar"
+            className="w-10 h-10 rounded-full object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement
+              target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`
+            }}
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center">
+            <svg
+              className="w-6 h-6 text-white"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+        )}
 
         {/* User Info */}
         <div className="flex flex-col items-start text-left">
@@ -123,19 +161,31 @@ export default function UserProfileDropdown({ user }: UserProfileDropdownProps) 
           {/* User Info Header */}
           <div className="px-6 pb-4 border-b border-gray-100">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gray-500 flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-white"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Avatar Besar"
+                  className="w-16 h-16 rounded-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`
+                  }}
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gray-500 flex items-center justify-center">
+                  <svg
+                    className="w-8 h-8 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-bold text-gray-900 truncate">
                   {displayName}

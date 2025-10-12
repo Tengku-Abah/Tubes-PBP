@@ -1,12 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbHelpers, ApiResponse, supabase } from '../../../lib/supabase';
 
+// Normalisasi URL/path avatar menjadi public URL yang valid dari bucket 'product-images'
+const resolveAvatarUrlForApi = (raw: string | null, name: string): string => {
+  if (!raw) {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+  }
+
+  const val = String(raw);
+  // Jika sudah full URL
+  if (/^https?:\/\//.test(val)) {
+    // Perbaiki URL yang mengarah ke bucket yang tidak ada ("/public/avatars/")
+    if (/\/storage\/v1\/object\/public\/avatars\//i.test(val)) {
+      return val.replace(
+        /\/storage\/v1\/object\/public\/avatars\//i,
+        '/storage/v1/object/public/product-images/avatars/'
+      );
+    }
+    return val;
+  }
+
+  // Jika berupa path relatif, asumsikan berada di bucket 'product-images'
+  // Contoh: 'avatars/filename.jpg' -> public URL pada bucket 'product-images'
+  const { data } = supabase.storage.from('product-images').getPublicUrl(val);
+  return data?.publicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+};
+
 // Interface untuk pesanan response
 interface OrderResponse {
   id: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  userId?: string;
+  userAvatar?: string | null;
   items: {
     productId: number;
     productName: string;
@@ -84,27 +111,36 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data dari database ke format yang diharapkan frontend
-    const transformedOrders = data?.map(order => ({
-      id: order.id,
-      customerName: (order.users as any)?.name || 'Unknown',
-      customerEmail: (order.users as any)?.email || '',
-      customerPhone: '', // Phone tidak tersedia di tabel users
-      items: order.order_items || [], // Use the order_items from the join
-      totalAmount: order.total_amount,
-      status: order.status,
-      shippingAddress: {
-        street: order.shipping_address || '',
-        city: '',
-        postalCode: '',
-        province: ''
-      },
-      paymentMethod: order.payment_method,
-      paymentStatus: 'pending', // TODO: Add payment_status field
-      orderDate: order.created_at,
-      shippingDate: null,
-      deliveryDate: null,
-      notes: null
-    })) || [];
+    const transformedOrders = data?.map(order => {
+      const user = (order.users as any) || {};
+      const name = user?.name || 'Unknown';
+      const avatarPath = user?.user_avatar || null;
+      const avatarUrl = resolveAvatarUrlForApi(avatarPath, name);
+
+      return {
+        id: order.id,
+        customerName: name,
+        customerEmail: user?.email || '',
+        customerPhone: '', // Phone tidak tersedia di tabel users
+        userId: user?.id || undefined,
+        userAvatar: avatarUrl,
+        items: order.order_items || [], // Use the order_items dari join
+        totalAmount: order.total_amount,
+        status: order.status,
+        shippingAddress: {
+          street: order.shipping_address || '',
+          city: '',
+          postalCode: '',
+          province: ''
+        },
+        paymentMethod: order.payment_method,
+        paymentStatus: 'pending', // TODO: tambahkan field payment_status jika tersedia
+        orderDate: order.created_at,
+        shippingDate: null,
+        deliveryDate: null,
+        notes: null
+      };
+    }) || [];
 
     // Pagination
     const startIndex = (page - 1) * limit;

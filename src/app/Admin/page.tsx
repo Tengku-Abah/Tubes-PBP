@@ -6,8 +6,6 @@ import PopupAlert from '../../components/PopupAlert';
 import { usePopupAlert } from '../../hooks/usePopupAlert';
 import { useToast } from '../../components/Toast';
 import { requireAdmin, getAuthHeaders } from '../../lib/auth';
-import { logout } from '../../lib/logout';
-import AdminProtection from '../../components/AdminProtection';
 import { useAdminContext } from './AdminContext';
 import { DollarSign, X, ShoppingCart, Package, Users, TrendingUp, CheckCircle, Clock, ArrowUpRight, ArrowDownRight, Activity, ShoppingBag, Pencil, Trash, Eye, Tags } from 'lucide-react';
 
@@ -29,6 +27,7 @@ interface Product {
 interface Order {
   id: number;
   customerName: string;
+  customerAvatar?: string | null;
   products: Array<{
     id: number;
     name: string;
@@ -62,6 +61,54 @@ const Search = (props: any) => <span {...props}>🔍</span>;
 const Check = (props: any) => <span {...props}>✅</span>;
 
 const AdminPanel = () => {
+  // Helper untuk membangun URL publik avatar dari path/bucket Supabase atau URL eksternal
+  const resolveAvatarUrl = (avatar?: string | null): string | null => {
+    console.log('[Admin] resolveAvatarUrl input:', avatar);
+    if (!avatar) return null;
+    // Jika sudah berupa URL penuh, langsung gunakan
+    if (/^https?:\/\//.test(avatar)) {
+      // Deteksi URL salah yang menunjuk ke bucket 'avatars' yang tidak ada,
+      // lalu ubah ke bucket yang benar 'product-images/avatars/...'
+      const invalidBucketPattern = /\/storage\/v1\/object\/public\/avatars\//i;
+      if (invalidBucketPattern.test(avatar)) {
+        const fixed = avatar.replace(
+          /\/storage\/v1\/object\/public\/avatars\//i,
+          '/storage/v1/object/public/product-images/avatars/'
+        );
+        console.log('[Admin] resolveAvatarUrl: fixed invalid bucket URL', { before: avatar, after: fixed });
+        return fixed;
+      }
+      console.log('[Admin] resolveAvatarUrl: using direct URL', avatar);
+      return avatar;
+    }
+
+    // Jika string berformat "bucket/path/to/object"
+    const parts = avatar.split('/');
+    if (parts.length > 1 && (parts[0] === 'product-images' || parts[0] === 'avatars')) {
+      const bucket = parts[0];
+      const path = parts.slice(1).join('/');
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+      console.log('[Admin] resolveAvatarUrl: bucket-path', { bucket, path, publicUrl: data?.publicUrl });
+      return data?.publicUrl || null;
+    }
+
+    // Default: asumsikan path di bucket 'product-images'
+    const { data } = supabase.storage.from('product-images').getPublicUrl(avatar);
+    console.log('[Admin] resolveAvatarUrl: default bucket product-images', { path: avatar, publicUrl: data?.publicUrl });
+    return data?.publicUrl || null;
+  };
+
+  // Helper untuk menentukan URL avatar yang ditampilkan.
+  // Jika avatar dari ui-avatars.com (fallback), kita anggap tidak ada foto profil
+  // sehingga UI akan menampilkan ikon default.
+  const getDisplayAvatarUrl = (avatar?: string | null): string | null => {
+    console.log('[Admin] getDisplayAvatarUrl input:', avatar);
+    if (!avatar) return null;
+    if (/ui-avatars\.com/i.test(avatar)) return null;
+    const url = resolveAvatarUrl(avatar);
+    console.log('[Admin] getDisplayAvatarUrl output:', url);
+    return url;
+  };
   // State untuk dashboard
   const [selectedStat, setSelectedStat] = useState('Pesanan Baru');
 
@@ -123,20 +170,7 @@ const AdminPanel = () => {
             // Restore session from localStorage
             sessionStorage.setItem('user', JSON.stringify(parsedUser));
             sessionStorage.setItem('loginTime', now.toString());
-            
-            // Set role-specific cookies for middleware
-            const cookieOptions = 'max-age=2592000'; // 30 days
-            
-            if (parsedUser.role === 'admin') {
-              document.cookie = `admin-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`;
-              document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-            } else {
-              document.cookie = `user-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`;
-              document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-            }
-            
-            // Keep general auth-token for backward compatibility
-            document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`;
+            document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; max-age=2592000`;
             userData = JSON.stringify(parsedUser);
           } else {
             // Login expired, clear localStorage
@@ -247,11 +281,21 @@ const AdminPanel = () => {
         const transformedOrders = result.data.map((order: any) => ({
           id: order.id,
           customerName: order.customerName,
+          customerAvatar: order.userAvatar || null,
           products: order.items || [], // Menggunakan items dari API
           total: order.totalAmount,
           status: order.status,
           date: new Date(order.orderDate).toLocaleDateString('id-ID')
         }));
+
+        // Debug: tampilkan avatar dari API
+        try {
+          result.data.forEach((order: any) => {
+            console.log('[Admin] API orders userAvatar', { id: order.id, name: order.customerName, userAvatar: order.userAvatar });
+          });
+        } catch (e) {
+          console.log('[Admin] Debug logging error:', e);
+        }
 
         setOrders(transformedOrders);
       } else {
@@ -1008,17 +1052,10 @@ const AdminPanel = () => {
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{order.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.customerName}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                      {order.products && order.products.length > 0 ? (
-                        <div className="truncate" title={order.products.map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')}>
-                          {order.products.length <= 2 
-                            ? order.products.map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')
-                            : `${order.products.slice(0, 2).map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')}... +${order.products.length - 2} lainnya`
-                          }
-                        </div>
-                      ) : (
-                        'No items'
-                      )}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {order.products.length > 0
+                        ? order.products.map((p: any) => `${p.productName || p.name} (${p.quantity})`).join(', ')
+                        : 'No items'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(order.total)}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1747,11 +1784,23 @@ const AdminPanel = () => {
                       pendingOrders.map((order) => (
                         <div key={order.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border-2 border-gray-200 shadow-sm">
-                              <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                              </svg>
-                            </div>
+                            {(() => {
+                              const displayUrl = getDisplayAvatarUrl(order.customerAvatar);
+                              console.log('[Admin] Render avatar', { orderId: order.id, customerName: order.customerName, customerAvatarRaw: order.customerAvatar, displayUrl });
+                              return displayUrl ? (
+                                <img
+                                  src={displayUrl}
+                                  alt={order.customerName}
+                                  className="w-12 h-12 rounded-xl object-cover border-2 border-gray-200 shadow-sm"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border-2 border-gray-200 shadow-sm">
+                                  <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              );
+                            })()}
                             <div>
                               <h4 className="font-semibold text-gray-900">{order.customerName}</h4>
                               <p className="text-sm text-gray-500">{order.date}</p>
@@ -2058,21 +2107,13 @@ const AdminPanel = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Produk</label>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                  <div className="space-y-2">
                     {selectedItem.products.map((product: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                        <span className="text-sm text-gray-900">{product.name || product.product_name || product.productName || 'Unknown Product'}</span>
-                        <span className="text-sm font-medium text-gray-900">x{product.quantity}</span>
+                      <div key={index} className="flex justify-between">
+                        <span className="text-sm text-gray-900">{product.name}</span>
+                        <span className="text-sm text-gray-900">x{product.quantity}</span>
                       </div>
                     ))}
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                      <span className="text-sm font-medium text-gray-700">
-                        Total Item: {selectedItem.products.reduce((sum: number, p: any) => sum + p.quantity, 0)}
-                      </span>
-                      <span className="text-sm font-medium text-gray-700">
-                        Total Produk: {selectedItem.products.length}
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>

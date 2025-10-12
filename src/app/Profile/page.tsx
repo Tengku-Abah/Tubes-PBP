@@ -1,8 +1,9 @@
 'use client'
-import { User, Mail, Phone, MapPin, Edit2, Save, ArrowLeft } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { User, Mail, Phone, MapPin, Edit2, Save, ArrowLeft, Camera, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCurrentUser } from '../../lib/auth';
+import { supabase } from '@/lib/supabase';
 
 interface UserProfile {
   id: string;
@@ -24,6 +25,10 @@ export default function ProfileSettings() {
     phone: '',
     address: ''
   });
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [tempProfile, setTempProfile] = useState({
     name: '',
@@ -57,6 +62,10 @@ export default function ProfileSettings() {
           phone: userProfile.phone,
           address: userProfile.address
         });
+        const storedAvatarUrl = sessionStorage.getItem('user_avatar_url');
+        const storedAvatarPath = sessionStorage.getItem('user_avatar_path');
+        if (storedAvatarUrl) setAvatarUrl(storedAvatarUrl);
+        if (storedAvatarPath) setAvatarPath(storedAvatarPath);
         setLoading(false);
       } catch (error) {
         console.error('Error loading user data:', error);
@@ -114,7 +123,8 @@ export default function ProfileSettings() {
           name: tempProfile.name,
           email: tempProfile.email,
           phone: tempProfile.phone,
-          address: tempProfile.address
+          address: tempProfile.address,
+          avatar: avatarUrl || undefined
         };
         sessionStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
@@ -129,6 +139,149 @@ export default function ProfileSettings() {
       alert('Terjadi kesalahan saat memperbarui profil');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (!isEditing || uploadingAvatar) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      // 1) Minta signed upload URL dari server (pakai service role)
+      const signRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder: 'avatars', fileExt: file.name.split('.').pop() }),
+      });
+      const signText = await signRes.text();
+      let signData: any = null;
+      try { signData = JSON.parse(signText); } catch { /* non-JSON body */ }
+      if (!signRes.ok || !signData || !signData.success || !signData.path || !signData.token) {
+        // Fallback: coba unggah via server multipart/form-data jika pembuatan signed URL gagal
+        try {
+          const form = new FormData();
+          form.append('file', file);
+          form.append('folder', 'avatars');
+          const upRes = await fetch('/api/upload', { method: 'POST', body: form });
+          const upData = await upRes.json().catch(() => ({}));
+          if (!upRes.ok || !upData?.success || !upData?.path || !upData?.url) {
+            alert('Gagal membuat URL unggah. ' + (signData?.error || signText || ''));
+            return;
+          }
+          // Jika fallback berhasil, set avatar dan simpan path ke database
+          setAvatarUrl(upData.url);
+          setAvatarPath(upData.path);
+          sessionStorage.setItem('user_avatar_url', upData.url);
+          sessionStorage.setItem('user_avatar_path', upData.path);
+          try {
+            const currentUser = getCurrentUser();
+            if (currentUser?.id) {
+              await fetch('/api/user', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: currentUser.id, user_avatar: upData.path })
+              });
+            }
+          } catch (saveErr) {
+            console.error('Save avatar path error:', saveErr);
+          }
+          return;
+        } catch (fErr) {
+          console.error('Fallback upload error:', fErr);
+          alert('Gagal membuat URL unggah. ' + (signData?.error || signText || ''));
+          return;
+        }
+      }
+
+      // 2) Unggah langsung dari browser ke Supabase Storage memakai signed URL
+      const BUCKET_NAME = 'product-images';
+      const { error: uploadErr } = await supabase.storage
+        .from(BUCKET_NAME)
+        .uploadToSignedUrl(signData.path, signData.token, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type,
+        });
+
+      if (uploadErr) {
+        alert('Gagal mengunggah foto. ' + (uploadErr.message || ''));
+        return;
+      }
+
+      // 3) Ambil public URL dari path
+      const { data: urlData } = supabase.storage
+        .from(BUCKET_NAME)
+        .getPublicUrl(signData.path);
+
+      setAvatarUrl(urlData.publicUrl);
+      setAvatarPath(signData.path);
+      sessionStorage.setItem('user_avatar_url', urlData.publicUrl);
+      sessionStorage.setItem('user_avatar_path', signData.path);
+      // Simpan path ke database users.user_avatar
+      try {
+        const currentUser = getCurrentUser();
+        if (currentUser?.id) {
+          await fetch('/api/user', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: currentUser.id, user_avatar: signData.path })
+          });
+        }
+      } catch (saveErr) {
+        console.error('Save avatar path error:', saveErr);
+      }
+    } catch (err) {
+      console.error('Upload avatar error:', err);
+      alert('Terjadi kesalahan saat mengunggah foto.');
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    if (!avatarPath) {
+      setAvatarUrl(null);
+      sessionStorage.removeItem('user_avatar_url');
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const response = await fetch(`/api/upload?path=${encodeURIComponent(avatarPath)}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        alert('Gagal menghapus foto. ' + (result?.error?.message || result?.error || ''));
+        return;
+      }
+      setAvatarUrl(null);
+      setAvatarPath(null);
+      sessionStorage.removeItem('user_avatar_url');
+      sessionStorage.removeItem('user_avatar_path');
+      // Hapus path avatar di database
+      try {
+        const currentUser = getCurrentUser();
+        if (currentUser?.id) {
+          await fetch('/api/user', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: currentUser.id, user_avatar: null })
+          });
+        }
+      } catch (saveErr) {
+        console.error('Remove avatar path error:', saveErr);
+      }
+    } catch (err) {
+      console.error('Delete avatar error:', err);
+      alert('Gagal menghapus foto.');
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -188,9 +341,34 @@ export default function ProfileSettings() {
               <div className="absolute bottom-4 right-4 w-32 h-32 bg-white rounded-full"></div>
             </div>
             <div className="relative">
-              <div className="w-32 h-32 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
-                <User size={64} className="text-blue-600" />
+              <div
+                className="w-32 h-32 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg overflow-hidden relative cursor-pointer hover:ring-2 hover:ring-white/70 transition"
+                onClick={handleAvatarClick}
+                title={isEditing ? 'Klik untuk mengganti foto' : undefined}
+              >
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="Foto Profil" className="w-full h-full object-cover" />
+                ) : (
+                  <User size={64} className="text-blue-600" />
+                )}
+                {uploadingAvatar && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] flex items-center justify-center">
+                    <div
+                      className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
+                      aria-label="Mengunggah foto"
+                    />
+                  </div>
+                )}
               </div>
+              {/* Hidden input untuk upload avatar */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarInputChange}
+              />
               <h2 className="text-2xl font-bold text-white">{profile.name}</h2>
               <p className="text-blue-100 mt-1">Member sejak 2024</p>
             </div>
@@ -290,10 +468,11 @@ export default function ProfileSettings() {
                 <>
                   <button
                     onClick={handleSave}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                    disabled={saving || uploadingAvatar}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-60"
                   >
                     <Save size={20} />
-                    Simpan
+                    {saving || uploadingAvatar ? 'Menyimpan...' : 'Simpan'}
                   </button>
                   <button
                     onClick={handleCancel}

@@ -179,3 +179,54 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Perbaikan Database: Kolom `user_avatar` pada tabel `users`
+
+Jika Anda melihat error seperti:
+
+```
+Database error: column users_1.user_avatar does not exist
+```
+
+itu berarti kolom `user_avatar` belum ada di tabel `users`. Aplikasi Admin kini melakukan join ke `users.user_avatar` untuk menampilkan foto pelanggan di "Pesanan Terbaru" dan tabel Orders.
+
+### Langkah Perbaikan (melalui Supabase SQL Editor)
+
+- Buka Supabase Project → SQL → New Query, lalu jalankan:
+
+```
+ALTER TABLE public.users
+ADD COLUMN IF NOT EXISTS user_avatar text;
+
+ALTER TABLE public.users
+ALTER COLUMN user_avatar DROP NOT NULL;
+```
+
+- Verifikasi kolom sudah ada:
+
+```
+SELECT column_name
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'users'
+  AND column_name = 'user_avatar';
+```
+
+### Mengisi Nilai Avatar
+
+- Simpan path file avatar (bukan URL penuh) ke kolom `user_avatar`, contoh: `avatars/nama-file.jpg`.
+- File avatar diletakkan di bucket Storage `product-images` pada folder `avatars/`.
+- Contoh update:
+
+```
+UPDATE public.users
+SET user_avatar = 'avatars/contoh.jpg'
+WHERE email = 'user@example.com';
+```
+
+### Alternatif: Jalankan Migration dari Repo
+
+- File migration tersedia di `migrations/add_user_avatar.sql`. Anda bisa menyalin isi file tersebut ke Supabase SQL Editor dan mengeksekusinya.
+
+### Setelah Perbaikan
+
+- Restart dev server jika perlu dan buka `/admin`. Avatar pelanggan akan muncul jika `user_avatar` berisi path yang valid dan file tersedia di Storage.
