@@ -3,7 +3,7 @@ import { User, Mail, Phone, MapPin, Edit2, Save, ArrowLeft, Camera, Trash2 } fro
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCurrentUser } from '../../lib/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabaseClient';
 
 interface UserProfile {
   id: string;

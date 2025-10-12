@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Package, Calendar, MapPin, CreditCard, Truck, CheckCircle, Clock, ArrowLeft, ShoppingBag } from 'lucide-react';
-import { supabase, dbHelpers } from '../../lib/supabase';
+import { supabase } from '../../lib/supabaseClient';
 import { getCurrentUser, requireAuth } from '../../lib/auth';
 import { useRouter } from 'next/navigation';
 import PopupAlert from '../../components/PopupAlert';

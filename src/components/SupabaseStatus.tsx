@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { checkSupabaseConnection } from '@/lib/supabase'
+import { checkSupabaseConnection } from '@/lib/supabaseClient'
 
 interface SupabaseStatusProps {
   showDetails?: boolean

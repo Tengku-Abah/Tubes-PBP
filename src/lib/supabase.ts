@@ -1,16 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
+import { SUPABASE_URL, SUPABASE_ANON_KEY, supabase as supabaseBrowserClient } from './supabaseClient'
 
-// Supabase configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Optional service key for admin operations (server-side only)
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// Create Supabase client with fallback
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Share the lightweight browser client for general use
+export const supabase = supabaseBrowserClient
 
 // Create admin Supabase client for bypassing RLS
 export const supabaseAdmin = supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, {
+  ? createClient(SUPABASE_URL, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -269,7 +268,7 @@ export interface Database {
 }
 
 // Typed Supabase client
-export const supabaseTyped = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export const supabaseTyped = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 // Type definitions for API responses
 export type Product = Database['public']['Tables']['products']['Row']
@@ -1038,20 +1037,3 @@ export const dbHelpers = {
   }
 }
 
-// Connection status checker
-export const checkSupabaseConnection = async () => {
-  try {
-    // Test connection dengan query sederhana
-    const { data, error } = await supabase.from('products').select('count').limit(1)
-
-    if (error) {
-      console.warn('Supabase connection failed:', error.message)
-      return { connected: false, error: error.message }
-    }
-
-    return { connected: true, error: null }
-  } catch (error) {
-    console.warn('Supabase connection test failed:', error)
-    return { connected: false, error: 'Connection test failed' }
-  }
-}

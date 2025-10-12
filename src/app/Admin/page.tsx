@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabaseClient';
 import PopupAlert from '../../components/PopupAlert';
 import { usePopupAlert } from '../../hooks/usePopupAlert';
 import { useToast } from '../../components/Toast';
@@ -200,7 +200,7 @@ const AdminPanel = () => {
         console.error('Error parsing user data:', error);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array to prevent infinite fetches
 
   const loadProducts = async () => {
@@ -245,11 +245,11 @@ const AdminPanel = () => {
 
   // Tambahkan state untuk mencegah multiple fetch
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
-  
+
   const loadOrders = async () => {
     // Cek apakah sedang loading, jika ya, jangan fetch lagi
     if (isLoadingOrders) return;
-    
+
     // Verifikasi user adalah admin sebelum memuat data
     const userData = sessionStorage.getItem('user');
     if (!userData) {
@@ -262,7 +262,7 @@ const AdminPanel = () => {
       console.error('Akses admin diperlukan');
       return;
     }
-    
+
     try {
       setIsLoadingOrders(true);
       const response = await fetch('/api/orders', {
@@ -586,7 +586,7 @@ const AdminPanel = () => {
       console.log('Order ID:', orderId);
       console.log('New Status:', newStatus);
       console.log('Current orders state:', orders);
-      
+
       setUpdatingStatus(orderId);
 
       // Validasi status
@@ -607,7 +607,7 @@ const AdminPanel = () => {
 
       const user = JSON.parse(userData);
       console.log('User data:', user);
-      
+
       if (user.role !== 'admin') {
         console.log('User is not admin:', user.role);
         showError('Anda tidak memiliki akses admin');
@@ -618,7 +618,7 @@ const AdminPanel = () => {
         id: orderId,
         status: newStatus
       };
-      
+
       console.log('Request body:', requestBody);
 
       // Tambahkan header Authorization untuk memastikan request dari admin
@@ -648,7 +648,7 @@ const AdminPanel = () => {
 
       if (result.success) {
         console.log('Update successful, updating local state...');
-        
+
         // Update state dengan data terbaru dari server
         setOrders(prevOrders => {
           const updatedOrders = prevOrders.map(order =>
@@ -659,7 +659,7 @@ const AdminPanel = () => {
           console.log('Updated orders state:', updatedOrders);
           return updatedOrders;
         });
-        
+
         // Reload data untuk memastikan sinkronisasi dengan database
         console.log('Reloading orders from database...');
         setTimeout(async () => {
@@ -670,7 +670,7 @@ const AdminPanel = () => {
             console.error('Error reloading orders:', error);
           }
         }, 100); // Reduced timeout for faster refresh
-        
+
         showSuccess('Status order berhasil diupdate');
       } else {
         console.error('Error updating order status:', result.message);
@@ -1019,8 +1019,8 @@ const AdminPanel = () => {
               {tab.label}
               <span
                 className={`ml-1 px-2 py-0.5 text-xs rounded-full ${selectedStatus === tab.key
-                    ? `${tab.color} text-white`
-                    : 'bg-gray-200 text-gray-700'
+                  ? `${tab.color} text-white`
+                  : 'bg-gray-200 text-gray-700'
                   }`}
               >
                 {countByStatus[tab.key as keyof typeof countByStatus]}
@@ -1054,7 +1054,7 @@ const AdminPanel = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.customerName}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {order.products.length > 0
-                        ? order.products.map((p: any) => `${p.productName || p.name} (${p.quantity})`).join(', ')
+                        ? order.products.map((p: any) => `${p.product_name || p.productName || p.name} (${p.quantity})`).join(', ')
                         : 'No items'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(order.total)}</td>
@@ -1064,11 +1064,11 @@ const AdminPanel = () => {
                         onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
                         disabled={updatingStatus === order.id}
                         className={`px-3 py-1 rounded-full text-xs font-medium border-0 ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                              order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                                order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                  order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                    'bg-yellow-100 text-yellow-800'
+                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                              order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                  'bg-yellow-100 text-yellow-800'
                           } ${updatingStatus === order.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <option value="pending">Pending</option>
@@ -1272,7 +1272,7 @@ const AdminPanel = () => {
     // Load data when period changes
     useEffect(() => {
       loadFinancialData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedPeriod, selectedYear, selectedMonth, selectedQuarter, selectedSemester]);
 
     // Use API data or fallback to local calculation
@@ -1809,11 +1809,11 @@ const AdminPanel = () => {
                           <div className="text-right">
                             <p className="font-bold text-gray-900">{formatCurrency(order.total)}</p>
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                                  order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                                    order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                      order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                        'bg-yellow-100 text-yellow-800'
+                              order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                                order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                                  order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                    order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                      'bg-yellow-100 text-yellow-800'
                               }`}>
                               {order.status}
                             </span>
