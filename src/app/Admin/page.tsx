@@ -265,7 +265,7 @@ const AdminPanel = () => {
 
     try {
       setIsLoadingOrders(true);
-      const response = await fetch('/api/orders', {
+      const response = await fetch('/api/orders?limit=1000', {
         // Tambahkan cache: 'no-store' untuk mencegah caching yang mungkin menyebabkan fetch berulang
         cache: 'no-store',
         headers: {

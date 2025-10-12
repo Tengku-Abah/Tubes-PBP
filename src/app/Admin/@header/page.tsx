@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Bell, User, ChevronDown, Mail, Phone, MapPin, Calendar } from 'lucide-react';
+import AdminNotification from '../../../components/AdminNotification';
 
 interface AdminHeaderProps {
   title?: string;
@@ -42,15 +43,10 @@ export default function AdminHeader({
           <h1 className="text-3xl font-bold text-gray-800">{title}</h1>
           <p className="text-gray-600 mt-1">{subtitle}</p>
         </div>
-        
+
         <div className="flex items-center gap-4">
           {/* Notifications */}
-          <div className="relative">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <Bell className="w-6 h-6 text-gray-600" />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-medium">3</span>
-            </button>
-          </div>
+          <AdminNotification />
 
           {/* Profile Section */}
           <div className="relative">

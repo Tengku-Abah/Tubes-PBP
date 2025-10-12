@@ -1,4 +1,4 @@
- 'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -79,7 +79,7 @@ export default function CheckoutPage() {
 
     // Eligibility to proceed to payment
     const canProceedToPayment = Boolean(
-    contactName && contactEmail && phoneNumber && address && city && postalCode && province &&
+        contactName && contactEmail && phoneNumber && address && city && postalCode && province &&
         ((cartItems && cartItems.length > 0) || (localSummary?.items?.length > 0))
     )
 
@@ -261,8 +261,8 @@ export default function CheckoutPage() {
         if (!localSummary) {
             // derive from cartItems
             const derived = {
-                items: cartItems.map(it => ({ 
-                    productId: it.product.id, 
+                items: cartItems.map(it => ({
+                    productId: it.product.id,
                     productName: it.product.name,
                     quantity: it.quantity,
                     price: it.product.price,
@@ -433,70 +433,70 @@ export default function CheckoutPage() {
                         {/* Step 3: Review Panel */}
                         {currentStep === 3 && (
                             <>
-                            <h2 className="text-xl font-semibold mb-4">Review Order</h2>
-                            <div className="grid grid-cols-1 gap-4">
-                                <div className="border rounded-xl p-4">
-                                    <h3 className="font-medium text-slate-800 mb-2">Contact</h3>
-                                    <p className="text-sm text-slate-700">{contactName} • {contactEmail} • {phoneNumber}</p>
-                                </div>
-                                <div className="border rounded-xl p-4">
-                                    <h3 className="font-medium text-slate-800 mb-2">Shipping Address</h3>
-                                    <p className="text-sm text-slate-700">{address}, {city}, {province} {postalCode}</p>
-                                    <p className="text-sm text-slate-600 mt-1">Method: {shippingMethod === 'express' ? 'Express (1-2 days)' : 'Standard (3-5 days)'}</p>
-                                </div>
-                                <div className="border rounded-xl p-4">
-                                    <h3 className="font-medium text-slate-800 mb-2">Payment</h3>
-                                    <p className="text-sm text-slate-700">{paymentMethod === 'bank' ? 'Bank Transfer' : (paymentMethod === 'credit-card' ? 'Credit Card' : 'Cash on Delivery')}</p>
-                                    {notes && <p className="text-sm text-slate-600 mt-1">Notes: {notes}</p>}
-                                </div>
-                                <div className="border rounded-xl p-4">
-                                    <h3 className="font-medium text-slate-800 mb-3">Items</h3>
-                                    <div className="space-y-2">
-                                        {(
-                                            (cartItems && cartItems.length > 0)
-                                                ? cartItems.map((c: any) => ({
-                                                    key: c.id,
-                                                    name: c.product?.name ?? 'Item',
-                                                    qty: c.quantity ?? 1,
-                                                    price: Number((c.product as any)?.price ?? 0)
-                                                }))
-                                                : (localSummary?.items ?? []).map((it: any, idx: number) => ({
-                                                    key: idx,
-                                                    name: it.product?.name ?? it.productName ?? 'Item',
-                                                    qty: it.quantity ?? 1,
-                                                    price: Number(it.product?.price ?? it.price ?? 0)
-                                                }))
-                                        ).map((row: any) => (
-                                            <div key={row.key} className="flex items-center justify-between text-sm">
-                                                <div className="text-slate-700">{row.name} <span className="text-slate-500">× {row.qty}</span></div>
-                                                <div className="font-medium text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.price * row.qty)}</div>
+                                <h2 className="text-xl font-semibold mb-4">Review Order</h2>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="border rounded-xl p-4">
+                                        <h3 className="font-medium text-slate-800 mb-2">Contact</h3>
+                                        <p className="text-sm text-slate-700">{contactName} • {contactEmail} • {phoneNumber}</p>
+                                    </div>
+                                    <div className="border rounded-xl p-4">
+                                        <h3 className="font-medium text-slate-800 mb-2">Shipping Address</h3>
+                                        <p className="text-sm text-slate-700">{address}, {city}, {province} {postalCode}</p>
+                                        <p className="text-sm text-slate-600 mt-1">Method: {shippingMethod === 'express' ? 'Express (1-2 days)' : 'Standard (3-5 days)'}</p>
+                                    </div>
+                                    <div className="border rounded-xl p-4">
+                                        <h3 className="font-medium text-slate-800 mb-2">Payment</h3>
+                                        <p className="text-sm text-slate-700">{paymentMethod === 'bank' ? 'Bank Transfer' : (paymentMethod === 'credit-card' ? 'Credit Card' : 'Cash on Delivery')}</p>
+                                        {notes && <p className="text-sm text-slate-600 mt-1">Notes: {notes}</p>}
+                                    </div>
+                                    <div className="border rounded-xl p-4">
+                                        <h3 className="font-medium text-slate-800 mb-3">Items</h3>
+                                        <div className="space-y-2">
+                                            {(
+                                                (cartItems && cartItems.length > 0)
+                                                    ? cartItems.map((c: any) => ({
+                                                        key: c.id,
+                                                        name: c.product?.name ?? 'Item',
+                                                        qty: c.quantity ?? 1,
+                                                        price: Number((c.product as any)?.price ?? 0)
+                                                    }))
+                                                    : (localSummary?.items ?? []).map((it: any, idx: number) => ({
+                                                        key: idx,
+                                                        name: it.product?.name ?? it.productName ?? 'Item',
+                                                        qty: it.quantity ?? 1,
+                                                        price: Number(it.product?.price ?? it.price ?? 0)
+                                                    }))
+                                            ).map((row: any) => (
+                                                <div key={row.key} className="flex items-center justify-between text-sm">
+                                                    <div className="text-slate-700">{row.name} <span className="text-slate-500">× {row.qty}</span></div>
+                                                    <div className="font-medium text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.price * row.qty)}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="border-t mt-3 pt-3 space-y-1 text-sm">
+                                            <div className="flex justify-between text-slate-600">
+                                                <span>Subtotal</span>
+                                                <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.subtotal ?? subtotal)}</span>
                                             </div>
-                                        ))}
-                                    </div>
-                                    <div className="border-t mt-3 pt-3 space-y-1 text-sm">
-                                        <div className="flex justify-between text-slate-600">
-                                            <span>Subtotal</span>
-                                            <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.subtotal ?? subtotal)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-slate-600">
-                                            <span>Shipping</span>
-                                            <span>{(localSummary?.shipping ?? shipping) === 0 ? 'Free' : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.shipping ?? shipping)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-slate-600">
-                                            <span>Tax (11%)</span>
-                                            <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.subtotal ?? subtotal) * 0.11)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-slate-800 font-semibold text-base pt-1">
-                                            <span>Total</span>
-                                            <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.total ?? total)}</span>
+                                            <div className="flex justify-between text-slate-600">
+                                                <span>Shipping</span>
+                                                <span>{(localSummary?.shipping ?? shipping) === 0 ? 'Free' : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.shipping ?? shipping)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-slate-600">
+                                                <span>Tax (11%)</span>
+                                                <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.subtotal ?? subtotal) * 0.11)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-slate-800 font-semibold text-base pt-1">
+                                                <span>Total</span>
+                                                <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.total ?? total)}</span>
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <input id="agree" type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="w-4 h-4 text-blue-600 rounded" />
+                                        <label htmlFor="agree" className="text-sm text-slate-700">I confirm the information above is correct.</label>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <input id="agree" type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="w-4 h-4 text-blue-600 rounded" />
-                                    <label htmlFor="agree" className="text-sm text-slate-700">I confirm the information above is correct.</label>
-                                </div>
-                            </div>
                             </>
                         )}
 
@@ -538,9 +538,9 @@ export default function CheckoutPage() {
 
                                 {/* Step 3: Review - Show "Place Order" */}
                                 {currentStep === 3 && (
-                                    <button 
-                                        type="submit" 
-                                        disabled={loading || !agreed} 
+                                    <button
+                                        type="submit"
+                                        disabled={loading || !agreed}
                                         className="px-6 py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg"
                                     >
                                         {loading ? 'Placing order...' : 'Place Order'}
