@@ -131,6 +131,73 @@ const AdminPanel = () => {
   // State untuk UI - menggunakan Context
   const { activeMenu, setActiveMenu } = useAdminContext();
 
+  // State untuk laporan keuangan
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedQuarter, setSelectedQuarter] = useState(1);
+  const [selectedSemester, setSelectedSemester] = useState(1);
+  const [financialData, setFinancialData] = useState<any>(null);
+  const [financialLoading, setFinancialLoading] = useState(false);
+
+  // Load financial data from API
+  const loadFinancialData = async () => {
+    setFinancialLoading(true);
+    try {
+      const params = new URLSearchParams({
+        period: selectedPeriod,
+        year: selectedYear.toString(),
+        month: selectedMonth.toString(),
+        quarter: selectedQuarter.toString(),
+        semester: selectedSemester.toString()
+      });
+
+    const response = await fetch(`/api/financial?${params}`);
+    const result = await response.json();
+
+    if (result.success) {
+      setFinancialData(result.data);
+    } else {
+        console.error('Error loading financial data:', result.message);
+        showError('Gagal memuat data laporan keuangan');
+      }
+    } catch (error) {
+      console.error('Error loading financial data:', error);
+      showError('Gagal memuat data laporan keuangan');
+    } finally {
+      setFinancialLoading(false);
+    }
+  };
+
+  // Load data when period changes
+  useEffect(() => {
+    loadFinancialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedPeriod, selectedYear, selectedMonth, selectedQuarter, selectedSemester]);
+
+  // Use API data or fallback to local calculation
+  const productSales = financialData?.productPerformance || [];
+  const financialTotalRevenue = financialData?.summary?.totalRevenue || 0;
+  const totalUnitsSold = financialData?.summary?.totalUnitsSold || 0;
+  const totalOrders = financialData?.summary?.totalOrders || 0;
+
+
+  // Fungsi untuk mendapatkan status berikutnya
+  const getNextStatuses = (currentStatus: string) => {
+    switch (currentStatus) {
+      case "pending":
+        return ["processing", "cancelled"];
+      case "processing":
+        return ["shipped", "cancelled"];
+      case "shipped":
+        return ["delivered"];
+      case "delivered":
+        return ["completed"];
+      default:
+        return []; // completed / cancelled tidak bisa diubah lagi
+    }
+  };
+
   // Sync activeMenu dengan URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -425,13 +492,13 @@ const AdminPanel = () => {
     },
     {
       title: 'Total Produk Terjual',
-      value: '10',
+      value: totalUnitsSold.toString(),
       icon: ShoppingBag,
       color: 'bg-blue-700'
     },
     {
       title: 'Total Pendapatan',
-      value: `Rp ${stats.totalRevenue.toLocaleString('id-ID')}`,
+      value: `Rp ${financialTotalRevenue.toLocaleString('id-ID')}`,
       icon: DollarSign,
       color: 'bg-blue-800'
     }
@@ -1052,31 +1119,46 @@ const AdminPanel = () => {
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{order.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.customerName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.products.length > 0
-                        ? order.products.map((p: any) => `${p.product_name || p.productName || p.name} (${p.quantity})`).join(', ')
-                        : 'No items'}
+                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
+                      {order.products && order.products.length > 0 ? (
+                        <div className="truncate" title={order.products.map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')}>
+                          {order.products.length <= 2 
+                            ? order.products.map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')
+                            : `${order.products.slice(0, 2).map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')}... +${order.products.length - 2} lainnya`
+                          }
+                        </div>
+                      ) : (
+                        'No items'
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(order.total)}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <select
                         value={order.status}
                         onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                        disabled={updatingStatus === order.id}
-                        className={`px-3 py-1 rounded-full text-xs font-medium border-0 ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                            order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                              order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                  'bg-yellow-100 text-yellow-800'
-                          } ${updatingStatus === order.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={updatingStatus === order.id || ["completed", "cancelled"].includes(order.status)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border-0 ${
+                          order.status === "completed"
+                            ? "bg-green-100 text-green-800"
+                            : order.status === "processing"
+                            ? "bg-blue-100 text-blue-800"
+                            : order.status === "shipped"
+                            ? "bg-purple-100 text-purple-800"
+                            : order.status === "delivered"
+                            ? "bg-green-100 text-green-800"
+                            : order.status === "cancelled"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        } ${updatingStatus === order.id ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
-                        <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
+                        <option value={order.status}>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </option>
+                        {getNextStatuses(order.status).map((next) => (
+                          <option key={next} value={next}>
+                            {next.charAt(0).toUpperCase() + next.slice(1)}
+                          </option>
+                        ))}
                       </select>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.date}</td>
@@ -1232,55 +1314,6 @@ const AdminPanel = () => {
 
   // Financial Report Component
   const Analytics = () => {
-    const [selectedPeriod, setSelectedPeriod] = useState('all');
-    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-    const [selectedQuarter, setSelectedQuarter] = useState(1);
-    const [selectedSemester, setSelectedSemester] = useState(1);
-    const [financialData, setFinancialData] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
-
-    // Load financial data from API
-    const loadFinancialData = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams({
-          period: selectedPeriod,
-          year: selectedYear.toString(),
-          month: selectedMonth.toString(),
-          quarter: selectedQuarter.toString(),
-          semester: selectedSemester.toString()
-        });
-
-        const response = await fetch(`/api/financial?${params}`);
-        const result = await response.json();
-
-        if (result.success) {
-          setFinancialData(result.data);
-        } else {
-          console.error('Error loading financial data:', result.message);
-          showError('Gagal memuat data laporan keuangan');
-        }
-      } catch (error) {
-        console.error('Error loading financial data:', error);
-        showError('Gagal memuat data laporan keuangan');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Load data when period changes
-    useEffect(() => {
-      loadFinancialData();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedPeriod, selectedYear, selectedMonth, selectedQuarter, selectedSemester]);
-
-    // Use API data or fallback to local calculation
-    const productSales = financialData?.productPerformance || [];
-    const financialTotalRevenue = financialData?.summary?.totalRevenue || 0;
-    const totalUnitsSold = financialData?.summary?.totalUnitsSold || 0;
-    const totalOrders = financialData?.summary?.totalOrders || 0;
-
     return (
       <div className="space-y-8">
         {/* Header */}
@@ -2109,9 +2142,9 @@ const AdminPanel = () => {
                   <label className="block text-sm font-medium text-gray-700">Produk</label>
                   <div className="space-y-2">
                     {selectedItem.products.map((product: any, index: number) => (
-                      <div key={index} className="flex justify-between">
-                        <span className="text-sm text-gray-900">{product.name}</span>
-                        <span className="text-sm text-gray-900">x{product.quantity}</span>
+                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                        <span className="text-sm text-gray-900">{product.name || product.product_name || product.productName || 'Unknown Product'}</span>
+                        <span className="text-sm font-medium text-gray-900">x{product.quantity}</span>
                       </div>
                     ))}
                   </div>
