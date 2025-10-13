@@ -1105,8 +1105,8 @@ const AdminPanel = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avatar</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produk</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -1117,8 +1117,38 @@ const AdminPanel = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{order.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.customerName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {(() => {
+                        const displayUrl = getDisplayAvatarUrl(order.customerAvatar);
+                        return (
+                          <div className="flex items-center">
+                            {displayUrl ? (
+                              <img
+                                src={displayUrl}
+                                alt={order.customerName}
+                                className="w-9 h-9 rounded-full object-cover ring-1 ring-gray-200"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement | null;
+                                  if (fallback) fallback.style.display = 'inline-flex';
+                                }}
+                              />
+                            ) : null}
+                            <span
+                              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-500 ring-1 ring-gray-200"
+                              style={{ display: displayUrl ? 'none' : 'inline-flex' }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-3.866 0-7 3.134-7 7h14c0-3.866-3.134-7-7-7z" />
+                              </svg>
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <span className="font-medium text-gray-900">{order.customerName}</span>
+            </td>
                     <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
                       {order.products && order.products.length > 0 ? (
                         <div className="truncate" title={order.products.map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')}>
