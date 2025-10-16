@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
         const response: ApiResponse<ReviewResponse[]> = {
             success: true,
             data: paginatedReviews,
+            stats: stats, // Include stats in response
             pagination: {
                 page,
                 limit,
@@ -453,7 +454,7 @@ function calculateReviewStats(reviews: ReviewResponse[]): ReviewStats {
 
     return {
         totalReviews,
-        averageRating: Math.round((totalRating / totalReviews) * 10) / 10,
+        averageRating: parseFloat((totalRating / totalReviews).toFixed(2)),
         ratingDistribution,
         verifiedReviews: verifiedCount,
         recentReviews: recentCount
@@ -482,9 +483,9 @@ async function updateProductRating(productId: number) {
             return;
         }
 
-        // Calculate average rating
+        // Calculate average rating - use precise calculation
         const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-        const averageRating = Math.round((totalRating / reviews.length) * 10) / 10;
+        const averageRating = parseFloat((totalRating / reviews.length).toFixed(2));
 
         // Update product
         await supabase

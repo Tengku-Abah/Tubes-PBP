@@ -92,9 +92,9 @@ export async function GET(request: NextRequest) {
         const totalReviews = reviews.length;
         const verifiedReviews = reviews.filter(r => r.verified).length;
 
-        // Calculate average rating
+        // Calculate average rating - use precise calculation
         const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-        const averageRating = Math.round((totalRating / totalReviews) * 10) / 10;
+        const averageRating = parseFloat((totalRating / totalReviews).toFixed(2));
 
         // Calculate rating distribution
         const ratingDistribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };

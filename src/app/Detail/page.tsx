@@ -211,15 +211,98 @@ function ProductDetailPageContent() {
   const fetchReviews = async () => {
     try {
       setReviewsLoading(true)
-      const response = await fetch(`/api/Review?productId=${productId}`)
+      // Fetch reviews dari API
+      const response = await fetch(`/api/reviews?productId=${productId}&limit=100`)
       const data = await response.json()
       
       if (data.success && data.data) {
         setReviews(data.data)
-        setReviewStats(data.stats)
+        
+        // Use stats from API if available, otherwise calculate from data
+        if (data.stats) {
+          setReviewStats(data.stats)
+          
+          // Update product rating to match actual reviews
+          if (product && data.stats.averageRating !== product.rating) {
+            setProduct({
+              ...product,
+              rating: data.stats.averageRating,
+              reviews: data.stats.totalReviews
+            })
+          }
+        } else {
+          // Calculate stats from reviews data
+          const totalReviews = data.data.length
+          if (totalReviews > 0) {
+            const ratingDistribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+            let totalRating = 0
+            
+            data.data.forEach((review: Review) => {
+              ratingDistribution[review.rating as keyof typeof ratingDistribution]++
+              totalRating += review.rating
+            })
+            
+            // Calculate precise average rating without rounding
+            const averageRating = parseFloat((totalRating / totalReviews).toFixed(2))
+            // const averageRating = product.rating?.toFixed(1)
+            
+            setReviewStats({
+              totalReviews,
+              averageRating,
+              ratingDistribution
+            })
+            
+            // Update product rating to match actual reviews
+            if (product && averageRating !== product.rating) {
+              setProduct({
+                ...product,
+                rating: averageRating,
+                reviews: totalReviews
+              })
+            }
+          } else {
+            setReviewStats({
+              totalReviews: 0,
+              averageRating: 0,
+              ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+            })
+            
+            // Update product with zero reviews
+            if (product) {
+              setProduct({
+                ...product,
+                rating: 0,
+                reviews: 0
+              })
+            }
+          }
+        }
+      } else {
+        // No reviews found
+        setReviews([])
+        setReviewStats({
+          totalReviews: 0,
+          averageRating: 0,
+          ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+        })
+        
+        // Update product with zero reviews
+        if (product) {
+          setProduct({
+            ...product,
+            rating: 0,
+            reviews: 0
+          })
+        }
       }
     } catch (error) {
       console.error('Error fetching reviews:', error)
+      setReviews([])
+      setReviewStats({
+        totalReviews: 0,
+        averageRating: 0,
+        ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+      })
     } finally {
       setReviewsLoading(false)
     }
@@ -294,14 +377,6 @@ function ProductDetailPageContent() {
       month: 'long',
       day: 'numeric'
     })
-  }
-
-  const getRatingStats = () => {
-    const stats = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
-    reviews.forEach(review => {
-      stats[review.rating as keyof typeof stats]++
-    })
-    return stats
   }
 
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3)
@@ -556,17 +631,17 @@ function ProductDetailPageContent() {
         </div>
       </div>
 
-      {/* Reviews Section - Modern Design */}
+      {/* Reviews Section - Modern Design with Summary */}
       <div className="max-w-[1400px] mx-auto px-6 lg:px-8 pb-12">
         <div className="bg-white rounded-2xl shadow-sm p-6 lg:p-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
             <div className="text-sm text-gray-500">
-              {reviewStats.totalReviews} reviews
+              {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'review' : 'reviews'}
             </div>
           </div>
 
-          {/* Rating Summary */}
+          {/* Rating Summary - Always Visible */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 pb-8 border-b border-gray-100">
             {/* Overall Rating */}
             <div className="lg:col-span-1">
@@ -575,21 +650,32 @@ function ProductDetailPageContent() {
                   {reviewStats.averageRating.toFixed(1)}
                 </div>
                 <div className="flex items-center justify-center lg:justify-start mb-2">
-                  {[...Array(5)].map((_, i) => (
-                    <svg
-                      key={i}
-                      className={`w-6 h-6 ${
-                        i < Math.floor(reviewStats.averageRating)
-                          ? 'text-yellow-400 fill-current'
-                          : 'text-gray-300 fill-current'
-                      }`}
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
+                  {[...Array(5)].map((_, i) => {
+                    const fillPercentage = Math.min(Math.max(reviewStats.averageRating - i, 0), 1) * 100;
+                    return (
+                      <div key={i} className="relative w-6 h-6">
+                        {/* Background star (gray) */}
+                        <svg
+                          className="absolute inset-0 w-6 h-6 text-gray-300 fill-current"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        {/* Foreground star (yellow) with clip for partial fill */}
+                        <svg
+                          className="absolute inset-0 w-6 h-6 text-yellow-400 fill-current"
+                          viewBox="0 0 20 20"
+                          style={{ clipPath: `inset(0 ${100 - fillPercentage}% 0 0)` }}
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      </div>
+                    );
+                  })}
                 </div>
-                <p className="text-gray-500 text-sm">Based on {reviewStats.totalReviews} reviews</p>
+                <p className="text-gray-500 text-sm">
+                  Based on {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'review' : 'reviews'}
+                </p>
               </div>
             </div>
 
@@ -622,26 +708,46 @@ function ProductDetailPageContent() {
             </div>
           </div>
 
-          {/* Reviews List */}
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Reviews</h3>
-            
-            {reviewsLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
+          {/* Expandable Reviews List */}
+          {reviewsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
               </div>
-            ) : reviews.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              <p className="text-gray-500 font-medium">No reviews yet</p>
+              <p className="text-gray-400 text-sm mt-1">Be the first to review this product</p>
+            </div>
+          ) : (
+            <>
+              {/* Clickable section header to toggle all reviews */}
+              <div 
+                onClick={() => setShowAllReviews(!showAllReviews)}
+                className="flex items-center justify-between mb-6 cursor-pointer group"
+              >
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  Recent Reviews
+                </h3>
+                <button className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors">
+                  <span>{showAllReviews ? 'Show Less' : `View All ${reviews.length} Reviews`}</span>
+                  <svg 
+                    className={`w-5 h-5 transition-transform duration-200 ${showAllReviews ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
-                </div>
-                <p className="text-gray-500 font-medium">No reviews yet</p>
-                <p className="text-gray-400 text-sm mt-1">Be the first to review this product</p>
+                </button>
               </div>
-            ) : (
-              <>
+
+              {/* Reviews List with Animation */}
+              <div className={`space-y-6 overflow-hidden transition-all duration-300 ${showAllReviews ? 'max-h-[10000px]' : 'max-h-[800px]'}`}>
                 {displayedReviews.map((review) => (
                   <div key={review.id} className="border-b border-gray-100 last:border-0 pb-6 last:pb-0">
                     <div className="flex items-start gap-3">
@@ -649,6 +755,10 @@ function ProductDetailPageContent() {
                         src={review.userAvatar}
                         alt={review.userName}
                         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(review.userName)}&background=random`
+                        }}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
@@ -682,21 +792,29 @@ function ProductDetailPageContent() {
                     </div>
                   </div>
                 ))}
- 
-                {/* Show More/Less Button */}
-                {reviews.length > 3 && (
-                  <div className="text-center pt-6">
-                    <button
-                      onClick={() => setShowAllReviews(!showAllReviews)}
-                      className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md active:scale-[0.98]"
+              </div>
+
+              {/* Show More/Less Button - Alternative position */}
+              {reviews.length > 3 && (
+                <div className="text-center pt-6 mt-6 border-t border-gray-100">
+                  <button
+                    onClick={() => setShowAllReviews(!showAllReviews)}
+                    className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md active:scale-[0.98] inline-flex items-center gap-2"
+                  >
+                    <span>{showAllReviews ? 'Show Less' : `View All ${reviews.length} Reviews`}</span>
+                    <svg 
+                      className={`w-4 h-4 transition-transform duration-200 ${showAllReviews ? 'rotate-180' : ''}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
                     >
-                      {showAllReviews ? 'Show Less' : `View All ${reviews.length} Reviews`}
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
       

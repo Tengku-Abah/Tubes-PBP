@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbHelpers, ApiResponse, Product } from '../../../lib/supabase';
+import { dbHelpers, ApiResponse, Product, ProductWithReviews } from '../../../lib/supabase';
 import { requireApiAdmin, getCookieUser } from '../../../lib/api-auth';
 
 // Product data now comes from Supabase database
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (data) {
-        const response: ApiResponse<Product> = {
+        const response: ApiResponse<ProductWithReviews> = {
           success: true,
           data: {
             id: data.id,
@@ -33,8 +33,9 @@ export async function GET(request: NextRequest) {
             image: data.image,
             category: data.category,
             stock: data.stock,
-            rating: data.rating,
-            reviews_count: data.reviews_count,
+            rating: data.rating || 0,
+            reviews: data.reviews_count || 0,
+            reviews_count: data.reviews_count || 0,
             created_at: data.created_at,
             updated_at: data.updated_at
           }
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const transformedData = data?.map(product => ({
+    const transformedData: ProductWithReviews[] = data?.map(product => ({
       id: product.id,
       name: product.name,
       price: product.price,
@@ -82,13 +83,14 @@ export async function GET(request: NextRequest) {
       image: product.image,
       category: product.category,
       stock: product.stock,
-      rating: product.rating,
-      reviews_count: product.reviews_count,
+      rating: product.rating || 0,
+      reviews: product.reviews_count || 0,
+      reviews_count: product.reviews_count || 0,
       created_at: product.created_at,
       updated_at: product.updated_at
     })) || [];
 
-    const response: ApiResponse<Product[]> = {
+    const response: ApiResponse<ProductWithReviews[]> = {
       success: true,
       data: transformedData,
       pagination: {
