@@ -317,7 +317,7 @@ function ProductDetailPageContent() {
           <h1 className="text-2xl font-bold text-slate-800 mb-4">Produk tidak ditemukan</h1>
           <Link 
             href="/"
-            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Kembali ke Beranda
           </Link>
@@ -327,267 +327,227 @@ function ProductDetailPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header dengan desain yang lebih menarik */}
-      <div className="bg-white/80 backdrop-blur-md shadow-lg border-b border-white/20 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header - match home theme */}
+      <div className="sticky top-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 border-b border-blue-700 shadow-lg">
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link 
               href="/"
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-all duration-300 group"
+              className="flex items-center gap-2 text-white hover:text-white transition-colors group"
             >
-              <div className="p-1.5 rounded-full bg-slate-100 group-hover:bg-slate-200 transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </div>
-              <span className="font-medium text-sm">Kembali ke Beranda</span>
+              <svg className="w-5 h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span className="font-medium text-sm">Kembali</span>
             </Link>
             
-            <div className="flex items-center gap-3">
-              <Link
-                href="/cart"
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-                </svg>
-                Keranjang ({cartCount})
-              </Link>
-            </div>
+            <Link
+              href="/cart"
+              className="relative flex items-center gap-2 px-3 md:px-4 py-2 text-white hover:bg-blue-700 rounded-lg transition-colors text-sm font-medium"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>Keranjang</span>
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-yellow-400 text-blue-900 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Product Detail */}
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-white/20">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Product Image dengan desain yang lebih menarik */}
-            <div className="relative p-6">
-              <div className="aspect-square bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl overflow-hidden shadow-inner">
+      {/* Product Detail - Clean Modern Layout */}
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 lg:p-8">
+            {/* Product Image */}
+            <div className="relative">
+              <div className="aspect-square bg-gray-50 rounded-xl overflow-hidden">
                 <img
                   src={product.image}
                   alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
                     target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800'
                   }}
                 />
               </div>
-              
-              {/* Category Badge dengan efek glassmorphism */}
-              <div className="absolute top-4 left-4">
-                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg backdrop-blur-sm">
-                  {product.category}
-                </span>
-              </div>
-
-              {/* Stock Badge dengan animasi */}
-              <div className="absolute top-4 right-4">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold shadow-lg backdrop-blur-sm ${
-                  product.stock > 10 
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
-                    : product.stock > 0 
-                      ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white'
-                      : 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
-                }`}>
-                  {product.stock > 0 ? `${product.stock} tersedia` : 'Habis'}
-                </span>
-              </div>
-
-              {/* Floating action buttons */}
-              <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-                <button className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all duration-300 hover:scale-110">
-                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                </button>
-                <button className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all duration-300 hover:scale-110">
-                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                  </svg>
-                </button>
-              </div>
             </div>
 
-            {/* Product Info dengan desain yang lebih menarik */}
-            <div className="p-6">
-              <div className="mb-4">
-                <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-3">
-                  {product.name}
-                </h1>
-                
-                {/* Rating dengan desain yang lebih menarik */}
-                <div className="flex items-center mb-4">
-                  <div className="flex items-center bg-yellow-50 px-3 py-1.5 rounded-full">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <svg
-                          key={i}
-                          className={`w-4 h-4 ${
-                            i < Math.floor(product.rating)
-                              ? 'text-yellow-400'
-                              : 'text-gray-300'
-                          }`}
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
-                    </div>
-                    <span className="ml-2 text-slate-700 font-medium text-sm">
-                      {formatRating(product.rating)} ({product.reviews} ulasan)
-                    </span>
-                  </div>
-                </div>
-
-                {/* Price dengan desain yang lebih menarik */}
-                <div className="mb-5">
-                  <div className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1">
-                    {formatPrice(product.price)}
-                  </div>
-                  <div className="text-xs text-slate-500">Harga sudah termasuk PPN</div>
-                </div>
-
-                {/* Description */}
-                <div className="mb-5">
-                  <h3 className="text-base font-semibold text-slate-800 mb-2">Deskripsi Produk</h3>
-                  <p className="text-slate-600 leading-relaxed text-sm">
-                    {product.description}
-                  </p>
-                </div>
-
-                {/* Quantity Selector */}
-                <div className="mb-5">
-                  <h3 className="text-base font-semibold text-slate-800 mb-2">Jumlah</h3>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-8 h-8 rounded-full border border-slate-300 flex items-center justify-center hover:bg-slate-50 transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                      </svg>
-                    </button>
-                    <span className="text-lg font-semibold text-slate-800 min-w-[2.5rem] text-center">
-                      {quantity}
-                    </span>
-                    <button
-                      onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                      className="w-8 h-8 rounded-full border border-slate-300 flex items-center justify-center hover:bg-slate-50 transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Login Status Indicator */}
-                {!isLoggedIn && (
-                  <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
-                    <div className="flex items-center gap-2">
-                      <div className="text-yellow-600 text-sm">⚠️</div>
-                      <div>
-                        <p className="text-yellow-800 font-medium text-sm">Login Diperlukan</p>
-                        <p className="text-yellow-700 text-xs">Anda harus login untuk menambahkan produk ke keranjang</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* User Info */}
-                {isLoggedIn && user && (
-                  <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-xl">
-                    <div className="flex items-center gap-2">
-                      <div className="text-green-600 text-sm">✅</div>
-                      <div>
-                        <p className="text-green-800 font-medium text-sm">Selamat datang, {user.name}!</p>
-                        <p className="text-green-700 text-xs">Anda dapat menambahkan produk ke keranjang</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Buttons dengan desain yang lebih menarik */}
-                <div className="flex gap-3 mb-5">
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={addingToCart || product.stock === 0}
-                    className={`flex-1 py-3 px-5 rounded-xl font-semibold text-sm transition-all duration-300 transform flex items-center justify-center gap-2 ${
-                      product.stock > 0
-                        ? isLoggedIn
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5'
-                          : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            {/* Product Info */}
+            <div className="flex flex-col">
+              {/* Product Name */}
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1">
+                {product.name}
+              </h1>
+              {/* Category & Stock (clean inline, no badges) */}
+              <div className="flex items-center gap-3 text-sm text-gray-600 mb-4">
+                <span>
+                  Kategori: <span className="font-medium text-gray-900">{product.category}</span>
+                </span>
+                <span className="text-gray-300">•</span>
+                <span>
+                  Stok: {" "}
+                  <span
+                    className={`font-medium ${
+                      product.stock > 10
+                        ? 'text-blue-600'
+                        : product.stock > 0
+                          ? 'text-gray-700'
+                          : 'text-gray-400'
                     }`}
                   >
-                    {addingToCart ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        Menambahkan...
-                      </>
-                    ) : product.stock > 0 ? (
-                      isLoggedIn ? (
-                        <>
-                          <ShoppingCart className="w-4 h-4" />
-                          Tambah ke Keranjang
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="w-4 h-4" />
-                          Login untuk Menambah ke Keranjang
-                        </>
-                      )
-                    ) : (
-                      'Stok Habis'
-                    )}
+                    {product.stock > 0 ? product.stock : 'Habis'}
+                  </span>
+                </span>
+              </div>
+              
+              {/* Price */}
+              <div className="my-4 py-4 border-y border-gray-100">
+                <div className="text-3xl lg:text-4xl font-bold text-blue-600 mb-1">
+                  {formatPrice(product.price)}
+                </div>
+                <div className="text-xs text-gray-500">Termasuk PPN</div>
+              </div>
+
+              {/* Description */}
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">Deskripsi</h3>
+                <p className="text-gray-600 leading-relaxed text-sm">
+                  {product.description}
+                </p>
+              </div>
+
+              {/* Quantity Selector */}
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Jumlah</h3>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={quantity <= 1}
+                    className="w-10 h-10 rounded-lg border-2 border-gray-200 flex items-center justify-center hover:border-blue-600 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    </svg>
                   </button>
-                  
-                  <button className="px-4 py-2 border-2 border-primary-600 text-primary-600 rounded-lg font-medium hover:bg-primary-50 transition-all duration-300 hover:scale-105 flex items-center justify-center">
-                    <Heart className="w-5 h-5" />
+                  <span className="text-xl font-semibold text-gray-900 min-w-[3rem] text-center">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                    disabled={quantity >= product.stock}
+                    className="w-10 h-10 rounded-lg border-2 border-gray-200 flex items-center justify-center hover:border-blue-600 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
                   </button>
                 </div>
+              </div>
 
-                {/* Product Features */}
-                <div className="mt-6 pt-6 border-t border-slate-200">
-                  <h3 className="text-base font-semibold text-slate-800 mb-3">Fitur Produk</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="text-slate-600 text-sm">Garansi Resmi</span>
+              {/* Login Status */}
+              {!isLoggedIn && (
+                <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <div className="text-gray-600">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="text-slate-600 text-sm">Pengiriman Cepat</span>
+                    <div className="flex-1">
+                      <p className="text-gray-900 font-medium text-sm">Login Required</p>
+                      <p className="text-gray-700 text-xs mt-0.5">Silakan login untuk menambahkan produk ke keranjang</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="text-slate-600 text-sm">Original</span>
+                  </div>
+                </div>
+              )}
+
+              {isLoggedIn && user && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <div className="text-blue-600">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="text-slate-600 text-sm">Customer Service 24/7</span>
+                    <div className="flex-1">
+                      <p className="text-blue-900 font-medium text-sm">Hi, {user.name}!</p>
+                      <p className="text-blue-700 text-xs mt-0.5">Anda dapat menambahkan produk ke keranjang</p>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Add to Cart Button */}
+              <button
+                onClick={handleAddToCart}
+                disabled={addingToCart || product.stock === 0}
+                className={`w-full py-4 px-6 rounded-xl font-semibold text-base transition-all duration-200 flex items-center justify-center gap-2 ${
+                  product.stock > 0
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {addingToCart ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    <span>Adding...</span>
+                  </>
+                ) : product.stock > 0 ? (
+                  isLoggedIn ? (
+                    <>
+                      <ShoppingCart className="w-5 h-5" />
+                      <span>Add to Cart</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-5 h-5" />
+                      <span>Login to Add to Cart</span>
+                    </>
+                  )
+                ) : (
+                  'Out of Stock'
+                )}
+              </button>
+
+              {/* Product Features */}
+              <div className="mt-8 pt-6 border-t border-gray-100">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-700 text-sm font-medium">Official Warranty</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-700 text-sm font-medium">Fast Shipping</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-700 text-sm font-medium">100% Original</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-700 text-sm font-medium">24/7 Support</span>
                   </div>
                 </div>
               </div>
@@ -596,150 +556,146 @@ function ProductDetailPageContent() {
         </div>
       </div>
 
-      {/* Section Ulasan Produk */}
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-white/20">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                Ulasan Produk
-              </h2>
-              <div className="text-sm text-slate-500">
-                {reviewStats.totalReviews} ulasan
-              </div>
+      {/* Reviews Section - Modern Design */}
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-8 pb-12">
+        <div className="bg-white rounded-2xl shadow-sm p-6 lg:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
+            <div className="text-sm text-gray-500">
+              {reviewStats.totalReviews} reviews
             </div>
+          </div>
 
-            {/* Rating Summary */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-              {/* Overall Rating */}
-              <div className="text-center">
-                <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+          {/* Rating Summary */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 pb-8 border-b border-gray-100">
+            {/* Overall Rating */}
+            <div className="lg:col-span-1">
+              <div className="text-center lg:text-left">
+                <div className="text-5xl font-bold text-blue-700 mb-2">
                   {reviewStats.averageRating.toFixed(1)}
                 </div>
-                <div className="flex items-center justify-center mb-2">
+                <div className="flex items-center justify-center lg:justify-start mb-2">
                   {[...Array(5)].map((_, i) => (
                     <svg
                       key={i}
-                      className={`w-5 h-5 ${
+                      className={`w-6 h-6 ${
                         i < Math.floor(reviewStats.averageRating)
-                          ? 'text-yellow-400'
-                          : 'text-gray-300'
+                          ? 'text-yellow-400 fill-current'
+                          : 'text-gray-300 fill-current'
                       }`}
-                      fill="currentColor"
                       viewBox="0 0 20 20"
                     >
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                   ))}
                 </div>
-                <div className="text-slate-600 text-sm">Berdasarkan {reviewStats.totalReviews} ulasan</div>
-              </div>
-
-              {/* Rating Distribution */}
-              <div className="lg:col-span-2">
-                <h3 className="text-base font-semibold text-slate-800 mb-3">Distribusi Rating</h3>
-                {[5, 4, 3, 2, 1].map((rating) => {
-                  const count = reviewStats.ratingDistribution[rating as keyof typeof reviewStats.ratingDistribution]
-                  const percentage = reviewStats.totalReviews > 0 ? (count / reviewStats.totalReviews) * 100 : 0
-                  
-                  return (
-                    <div key={rating} className="flex items-center gap-3 mb-2">
-                      <div className="flex items-center gap-1 w-6">
-                        <span className="text-sm font-medium text-slate-600">{rating}</span>
-                        <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-sm text-slate-600 w-8 text-right">{count}</span>
-                    </div>
-                  )
-                })}
+                <p className="text-gray-500 text-sm">Based on {reviewStats.totalReviews} reviews</p>
               </div>
             </div>
 
-            {/* Reviews List */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">Ulasan Terbaru</h3>
-              
-              {reviewsLoading ? (
-                <div className="flex justify-center py-6">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-                </div>
-              ) : reviews.length === 0 ? (
-                <div className="text-center py-6">
-                  <div className="text-slate-400 mb-3">
-                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
+            {/* Rating Distribution */}
+            <div className="lg:col-span-2 space-y-3">
+              {[5, 4, 3, 2, 1].map((rating) => {
+                const count = reviewStats.ratingDistribution[rating as keyof typeof reviewStats.ratingDistribution]
+                const percentage = reviewStats.totalReviews > 0 ? (count / reviewStats.totalReviews) * 100 : 0
+                
+                return (
+                  <div key={rating} className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 min-w-[60px]">
+                      <span className="text-sm font-medium text-gray-700">{rating}</span>
+                      <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600 min-w-[45px] text-right">
+                      {count}
+                    </span>
                   </div>
-                  <p className="text-slate-500 text-sm">Belum ada ulasan untuk produk ini</p>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Reviews List */}
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Reviews</h3>
+            
+            {reviewsLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
+              </div>
+            ) : reviews.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                  </svg>
                 </div>
-              ) : (
-                <>
-                  {displayedReviews.map((review) => (
-                    <div key={review.id} className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                      <div className="flex items-start gap-3">
-                        <img
-                          src={review.userAvatar}
-                          alt={review.userName}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-slate-800 text-sm">{review.userName}</h4>
+                <p className="text-gray-500 font-medium">No reviews yet</p>
+                <p className="text-gray-400 text-sm mt-1">Be the first to review this product</p>
+              </div>
+            ) : (
+              <>
+                {displayedReviews.map((review) => (
+                  <div key={review.id} className="border-b border-gray-100 last:border-0 pb-6 last:pb-0">
+                    <div className="flex items-start gap-3">
+                      <img
+                        src={review.userAvatar}
+                        alt={review.userName}
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-gray-900 text-sm">{review.userName}</h4>
                             {review.verified && (
-                              <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                                ✓ Terverifikasi
+                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+                                ✓ Verified
                               </span>
                             )}
                           </div>
-                          
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, i) => (
-                                <svg
-                                  key={i}
-                                  className={`w-3 h-3 ${
-                                    i < review.rating
-                                      ? 'text-yellow-400'
-                                      : 'text-gray-300'
-                                  }`}
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                              ))}
-                            </div>
-                            <span className="text-xs text-slate-500">{formatDate(review.date)}</span>
+                          <div className="flex items-center gap-0.5 flex-shrink-0">
+                            {[...Array(5)].map((_, i) => (
+                              <svg
+                                key={i}
+                                className={`w-4 h-4 ${
+                                  i < review.rating
+                                    ? 'text-yellow-400 fill-current'
+                                    : 'text-gray-300 fill-current'
+                                }`}
+                                viewBox="0 0 20 20"
+                              >
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            ))}
                           </div>
-                          
-                          <p className="text-slate-700 leading-relaxed text-sm">{review.comment}</p>
                         </div>
+                        <p className="text-xs text-gray-500 mb-2">{formatDate(review.date)}</p>
+                        <p className="text-gray-700 leading-relaxed text-sm">{review.comment}</p>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                ))}
  
-                  {/* Show More/Less Button */}
-                  {reviews.length > 3 && (
-                    <div className="text-center pt-4">
-                      <button
-                        onClick={() => setShowAllReviews(!showAllReviews)}
-                        className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-medium text-sm"
-                      >
-                        {showAllReviews ? 'Tampilkan Lebih Sedikit' : `Lihat Semua ${reviews.length} Ulasan`}
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                {/* Show More/Less Button */}
+                {reviews.length > 3 && (
+                  <div className="text-center pt-6">
+                    <button
+                      onClick={() => setShowAllReviews(!showAllReviews)}
+                      className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md active:scale-[0.98]"
+                    >
+                      {showAllReviews ? 'Show Less' : `View All ${reviews.length} Reviews`}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>

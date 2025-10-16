@@ -93,7 +93,7 @@ export default function Toast({ message, type, duration = 4000, onClose }: Toast
 
     return (
         <div
-            className={`fixed top-4 right-4 z-50 flex items-center space-x-3 p-5 rounded-2xl border-2 ${colors.bg} ${colors.border} ${colors.shadow} backdrop-blur-sm transform transition-all duration-500 ease-out ${isVisible && isEntering
+            className={`fixed top-4 right-4 z-[1000] flex items-center space-x-3 p-5 rounded-2xl border-2 ${colors.bg} ${colors.border} ${colors.shadow} backdrop-blur-sm transform transition-all duration-500 ease-out ${isVisible && isEntering
                 ? 'translate-x-0 opacity-100 scale-100 rotate-0'
                 : 'translate-x-full opacity-0 scale-95 rotate-1'
                 }`}
