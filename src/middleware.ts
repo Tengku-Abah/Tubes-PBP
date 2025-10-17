@@ -38,8 +38,9 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Check if accessing protected routes (cart, checkout, etc.)
-  if (pathname.startsWith('/cart') || pathname.startsWith('/Detail') || pathname.startsWith('/checkout')) {
+  // Check if accessing protected routes (cart, checkout)
+  // NOTE: Detail page is publicly accessible to avoid SSR hydration issues.
+  if (pathname.startsWith('/cart') || pathname.startsWith('/checkout')) {
     // Get user auth token from dedicated user cookie
     const userToken = request.cookies.get('user-auth-token')?.value
     
@@ -73,7 +74,6 @@ export const config = {
   matcher: [
     '/Admin/:path*',
     '/cart/:path*',
-    '/Detail/:path*',
     '/checkout/:path*',
   ]
 }

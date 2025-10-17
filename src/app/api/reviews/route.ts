@@ -2,6 +2,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbHelpers, ApiResponse, supabase } from '../../../lib/supabase';
 import { getCookieUser } from '../../../lib/api-auth';
 
+// Normalisasi URL/path avatar menjadi public URL yang valid
+const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
+const resolveAvatarUrlForApi = (raw: string | null | undefined, name: string): string => {
+    if (!raw) {
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+    }
+
+    const val = String(raw);
+    // Jika sudah berupa full URL
+    if (/^https?:\/\//.test(val)) {
+        // Perbaiki URL yang mengarah ke bucket yang tidak sesuai ("/public/avatars/")
+        if (/\/storage\/v1\/object\/public\/avatars\//i.test(val)) {
+            return val.replace(
+                /\/storage\/v1\/object\/public\/avatars\//i,
+                `/storage/v1/object/public/${STORAGE_BUCKET}/avatars/`
+            );
+        }
+        return val;
+    }
+
+    // Jika berupa path relatif, asumsikan berada di bucket STORAGE_BUCKET
+    // Contoh: 'avatars/filename.jpg' -> public URL pada bucket STORAGE_BUCKET
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(val);
+    return data?.publicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+};
+
 // Interface untuk Review response
 interface ReviewResponse {
     id: number;
@@ -68,20 +94,47 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Transform database reviews to expected format
-        const transformedReviews = reviews?.map(review => ({
-            id: review.id,
-            productId: review.product_id,
-            userId: review.user_id,
-            userName: review.user_name,
-            userAvatar: review.user_avatar,
-            rating: review.rating,
-            comment: review.comment,
-            date: review.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-            verified: review.verified,
-            createdAt: review.created_at,
-            updatedAt: review.updated_at
-        })) || [];
+        // Jika ada avatar yang kosong, ambil dari tabel users sekaligus (efisien)
+        let usersMap: Record<string, { name?: string; user_avatar?: string | null }> = {};
+        const missingAvatarUserIds = (reviews || [])
+            .filter(r => (!r.user_avatar || String(r.user_avatar).trim() === '') && r.user_id)
+            .map(r => r.user_id as string);
+
+        const uniqueMissingIds = Array.from(new Set(missingAvatarUserIds));
+        if (uniqueMissingIds.length > 0) {
+            const { data: usersData } = await supabase
+                .from('users')
+                .select('id, name, user_avatar')
+                .in('id', uniqueMissingIds);
+            if (usersData && usersData.length) {
+                usersMap = usersData.reduce((acc: Record<string, any>, u: any) => {
+                    acc[u.id] = { name: u.name, user_avatar: u.user_avatar };
+                    return acc;
+                }, {});
+            }
+        }
+
+        // Transform database reviews ke format yang diharapkan, termasuk resolusi avatar
+        const transformedReviews = (reviews || []).map(review => {
+            const fallbackUser = usersMap[review.user_id as string] || {};
+            const name = review.user_name || fallbackUser.name || 'Unknown';
+            const rawAvatar = review.user_avatar || fallbackUser.user_avatar || null;
+            const avatarUrl = resolveAvatarUrlForApi(rawAvatar, name);
+
+            return {
+                id: review.id,
+                productId: review.product_id,
+                userId: review.user_id,
+                userName: name,
+                userAvatar: avatarUrl,
+                rating: review.rating,
+                comment: review.comment,
+                date: review.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+                verified: review.verified,
+                createdAt: review.created_at,
+                updatedAt: review.updated_at
+            } as ReviewResponse;
+        });
 
         // Calculate statistics
         const stats = calculateReviewStats(transformedReviews);
@@ -180,12 +233,22 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create new review
+        // Tentukan avatar yang akan disimpan: prioritas body.userAvatar -> users.user_avatar -> ui-avatars
+        let avatarToPersist: string | null | undefined = userAvatar;
+        if (!avatarToPersist) {
+            const { data: userRow } = await supabase
+                .from('users')
+                .select('name, user_avatar')
+                .eq('id', user.id)
+                .single();
+            avatarToPersist = userRow?.user_avatar || null;
+        }
+
         const reviewData = {
             product_id: parseInt(productId),
             user_id: user.id,
             user_name: user.name,
-            user_avatar: userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`,
+            user_avatar: avatarToPersist || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`,
             rating: parseInt(rating),
             comment: comment.trim(),
             verified: false
@@ -204,13 +267,13 @@ export async function POST(request: NextRequest) {
         // Update product rating and review count
         await updateProductRating(parseInt(productId));
 
-        // Transform to expected format
+        // Transform ke format yang diharapkan, dengan URL avatar publik
         const transformedReview: ReviewResponse = {
             id: newReview.id,
             productId: newReview.product_id,
             userId: newReview.user_id,
             userName: newReview.user_name,
-            userAvatar: newReview.user_avatar,
+            userAvatar: resolveAvatarUrlForApi(newReview.user_avatar, newReview.user_name),
             rating: newReview.rating,
             comment: newReview.comment,
             date: newReview.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
@@ -314,13 +377,13 @@ export async function PUT(request: NextRequest) {
             await updateProductRating(existingReview.product_id);
         }
 
-        // Transform to expected format
+        // Transform ke format yang diharapkan, dengan URL avatar publik
         const transformedReview: ReviewResponse = {
             id: updatedReview.id,
             productId: updatedReview.product_id,
             userId: updatedReview.user_id,
             userName: updatedReview.user_name,
-            userAvatar: updatedReview.user_avatar,
+            userAvatar: resolveAvatarUrlForApi(updatedReview.user_avatar, updatedReview.user_name),
             rating: updatedReview.rating,
             comment: updatedReview.comment,
             date: updatedReview.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],

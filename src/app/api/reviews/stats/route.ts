@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbHelpers, ApiResponse, supabase } from '../../../../lib/supabase';
 
+// Normalisasi URL/path avatar menjadi public URL yang valid
+const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
+const resolveAvatarUrlForApi = (raw: string | null | undefined, name: string): string => {
+    if (!raw) {
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+    }
+
+    const val = String(raw);
+    // Jika sudah berupa full URL
+    if (/^https?:\/\//.test(val)) {
+        // Perbaiki URL yang mengarah ke bucket yang tidak sesuai ("/public/avatars/")
+        if (/\/storage\/v1\/object\/public\/avatars\//i.test(val)) {
+            return val.replace(
+                /\/storage\/v1\/object\/public\/avatars\//i,
+                `/storage/v1/object/public/${STORAGE_BUCKET}/avatars/`
+            );
+        }
+        return val;
+    }
+
+    // Jika berupa path relatif, asumsikan berada di bucket STORAGE_BUCKET
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(val);
+    return data?.publicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+};
+
 // Interface untuk Product Review Statistics
 interface ProductReviewStats {
     productId: number;
@@ -125,7 +150,7 @@ export async function GET(request: NextRequest) {
             .map(review => ({
                 id: review.id,
                 userName: review.user_name,
-                userAvatar: review.user_avatar,
+                userAvatar: resolveAvatarUrlForApi(review.user_avatar, review.user_name),
                 rating: review.rating,
                 comment: review.comment,
                 date: review.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],

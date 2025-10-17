@@ -44,6 +44,13 @@ function ProductDetailPageContent() {
     averageRating: 0,
     ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
   })
+  // Review form state
+  const [newReviewRating, setNewReviewRating] = useState(0)
+  const [newReviewComment, setNewReviewComment] = useState('')
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [ratingError, setRatingError] = useState<string | null>(null)
+  const [commentError, setCommentError] = useState<string | null>(null)
+  const [showReviewForm, setShowReviewForm] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [cartCount, setCartCount] = useState(0)
@@ -379,6 +386,86 @@ function ProductDetailPageContent() {
     })
   }
 
+  // Validate and submit review
+  const validateReviewForm = () => {
+    let valid = true
+    setRatingError(null)
+    setCommentError(null)
+
+    if (newReviewRating < 1 || newReviewRating > 5) {
+      setRatingError('Rating harus antara 1 dan 5')
+      valid = false
+    }
+
+    const length = newReviewComment.trim().length
+    if (length < 10) {
+      setCommentError('Komentar minimal 10 karakter')
+      valid = false
+    }
+    return valid
+  }
+
+  const handleSubmitReview = async () => {
+    if (!isLoggedIn) {
+      showConfirm(
+        'Anda harus login terlebih dahulu untuk menulis ulasan. Ingin login sekarang?',
+        'Login Diperlukan',
+        () => router.push('/Login'),
+        () => {},
+        'Login',
+        'Nanti'
+      )
+      return
+    }
+
+    if (!validateReviewForm()) return
+
+    setSubmittingReview(true)
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          productId: product?.id,
+          rating: newReviewRating,
+          comment: newReviewComment,
+          userAvatar: user?.avatar || undefined
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        showSuccess('Review berhasil dikirim!')
+        setNewReviewRating(0)
+        setNewReviewComment('')
+        await fetchReviews()
+      } else {
+        if (response.status === 409) {
+          showWarning(data.message || 'Anda sudah mereview produk ini')
+        } else if (response.status === 401) {
+          showConfirm(
+            'Sesi login tidak valid. Silakan login untuk mengirim ulasan.',
+            'Login Diperlukan',
+            () => router.push('/Login'),
+            () => {},
+            'Login',
+            'Nanti'
+          )
+        } else {
+          showError(data.message || 'Gagal mengirim review')
+        }
+      }
+    } catch (error) {
+      console.error('Error submit review:', error)
+      showError('Terjadi kesalahan jaringan saat mengirim review')
+    } finally {
+      setSubmittingReview(false)
+    }
+  }
+
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3)
 
   if (loading) {
@@ -677,36 +764,165 @@ function ProductDetailPageContent() {
                   Based on {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'review' : 'reviews'}
                 </p>
               </div>
-            </div>
-
-            {/* Rating Distribution */}
-            <div className="lg:col-span-2 space-y-3">
-              {[5, 4, 3, 2, 1].map((rating) => {
-                const count = reviewStats.ratingDistribution[rating as keyof typeof reviewStats.ratingDistribution]
-                const percentage = reviewStats.totalReviews > 0 ? (count / reviewStats.totalReviews) * 100 : 0
-                
-                return (
-                  <div key={rating} className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 min-w-[60px]">
-                      <span className="text-sm font-medium text-gray-700">{rating}</span>
-                      <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                    <span className="text-sm text-gray-600 min-w-[45px] text-right">
-                      {count}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
           </div>
+          
+          {/* Rating Distribution */}
+          <div className="lg:col-span-2 space-y-3">
+            {[5, 4, 3, 2, 1].map((rating) => {
+              const count = reviewStats.ratingDistribution[rating as keyof typeof reviewStats.ratingDistribution]
+              const percentage = reviewStats.totalReviews > 0 ? (count / reviewStats.totalReviews) * 100 : 0
+              
+              return (
+                <div key={rating} className="flex items-center gap-3">
+                  <div className="flex items-center gap-1 min-w-[60px]">
+                    <span className="text-sm font-medium text-gray-700">{rating}</span>
+                    <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                  <span className="text-sm text-gray-600 min-w-[45px] text-right">
+                    {count}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Review Form: tampil setelah tombol diklik */}
+        <div className="mt-2">
+          {!showReviewForm ? (
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 lg:p-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Tulis Ulasan</h3>
+                <p className="text-sm text-gray-500">Bagikan pengalaman Anda dengan produk ini.</p>
+              </div>
+              <button
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    return showConfirm(
+                      'Anda harus login terlebih dahulu untuk menulis ulasan. Ingin login sekarang?',
+                      'Login Diperlukan',
+                      () => router.push('/Login'),
+                      () => {},
+                      'Login',
+                      'Nanti'
+                    )
+                  }
+                  setShowReviewForm(true)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+              >
+                Tulis Ulasan
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 lg:p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Tulis Ulasan</h3>
+                  <p className="text-sm text-gray-500">Bagikan pengalaman Anda dengan produk ini.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!isLoggedIn && (
+                    <button
+                      onClick={() =>
+                        showConfirm(
+                          'Anda harus login terlebih dahulu untuk menulis ulasan. Ingin login sekarang?',
+                          'Login Diperlukan',
+                          () => router.push('/Login'),
+                          () => {},
+                          'Login',
+                          'Nanti'
+                        )
+                      }
+                      className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 inline-flex items-center gap-2"
+                    >
+                      <Lock className="w-4 h-4" />
+                      <span>Login untuk mereview</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowReviewForm(false)}
+                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* Rating input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        aria-label={`${star} bintang`}
+                        onClick={() => setNewReviewRating(star)}
+                        disabled={!isLoggedIn || submittingReview}
+                        className={`p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${!isLoggedIn ? 'cursor-not-allowed opacity-60' : ''}`}
+                      >
+                        <svg
+                          className={`w-7 h-7 ${newReviewRating >= star ? 'text-yellow-400 fill-current' : 'text-gray-300 fill-current'}`}
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+                  {ratingError && <p className="text-red-600 text-xs mt-1">{ratingError}</p>}
+                </div>
+
+                {/* Comment input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Komentar</label>
+                  <textarea
+                    value={newReviewComment}
+                    onChange={(e) => {
+                      setNewReviewComment(e.target.value)
+                      if (e.target.value.trim().length >= 10) setCommentError(null)
+                    }}
+                    disabled={!isLoggedIn || submittingReview}
+                    placeholder="Tulis pengalaman Anda (min. 10 karakter)"
+                    className={`w-full min-h-[110px] rounded-lg border ${commentError ? 'border-red-300' : 'border-gray-200'} bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  />
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-gray-500">{newReviewComment.trim().length} / 500</p>
+                    {commentError && <p className="text-xs text-red-600">{commentError}</p>}
+                  </div>
+                </div>
+
+                {/* Submit button */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleSubmitReview}
+                    disabled={submittingReview || !isLoggedIn}
+                    className={`px-5 py-2.5 rounded-lg font-medium text-white ${submittingReview || !isLoggedIn ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} inline-flex items-center gap-2`}
+                  >
+                    {submittingReview ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        <span>Mengirim...</span>
+                      </>
+                    ) : (
+                      <span>Kirim Review</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
           {/* Expandable Reviews List */}
           {reviewsLoading ? (

@@ -39,7 +39,7 @@ export default function ProfileSettings() {
 
   // Load user data on component mount
   useEffect(() => {
-    const loadUserData = () => {
+    const loadUserData = async () => {
       try {
         const currentUser = getCurrentUser();
         if (!currentUser) {
@@ -66,6 +66,43 @@ export default function ProfileSettings() {
         const storedAvatarPath = sessionStorage.getItem('user_avatar_path');
         if (storedAvatarUrl) setAvatarUrl(storedAvatarUrl);
         if (storedAvatarPath) setAvatarPath(storedAvatarPath);
+
+        // Jika URL avatar belum ada di sessionStorage, coba ambil dari database
+        if (!storedAvatarUrl && currentUser?.id) {
+          try {
+            const { data: dbUser } = await supabase
+              .from('users')
+              .select('user_avatar, name')
+              .eq('id', currentUser.id)
+              .single();
+
+            const rawAvatar = (dbUser as any)?.user_avatar as string | null;
+            if (rawAvatar) {
+              // Jika sudah berupa URL penuh, langsung gunakan
+              if (/^https?:\/\//.test(rawAvatar)) {
+                setAvatarUrl(rawAvatar);
+                sessionStorage.setItem('user_avatar_url', rawAvatar);
+              } else {
+                // Asumsikan path berada di bucket 'product-images'
+                let path = rawAvatar;
+                if (path.startsWith('product-images/')) {
+                  path = path.replace('product-images/', '');
+                }
+                const { data: urlData } = supabase.storage
+                  .from('product-images')
+                  .getPublicUrl(path);
+                if (urlData?.publicUrl) {
+                  setAvatarUrl(urlData.publicUrl);
+                  setAvatarPath(path);
+                  sessionStorage.setItem('user_avatar_url', urlData.publicUrl);
+                  sessionStorage.setItem('user_avatar_path', path);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Resolve avatar from DB error:', e);
+          }
+        }
         setLoading(false);
       } catch (error) {
         console.error('Error loading user data:', error);
