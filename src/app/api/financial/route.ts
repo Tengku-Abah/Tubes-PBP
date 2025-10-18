@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-import { supabase } from '../../../lib/supabase';
+import { supabase, supabaseAdmin } from '../../../lib/supabase';
 
 // GET endpoint untuk laporan keuangan
 export async function GET(request: NextRequest) {
@@ -60,8 +60,11 @@ export async function GET(request: NextRequest) {
       endDate: endDate.toISOString()
     });
 
+    // Choose client: use service role when available to bypass RLS for server-side analytics
+    const client = supabaseAdmin || supabase;
+
     // Get orders within date range
-    const { data: orders, error: ordersError } = await supabase
+    const { data: orders, error: ordersError } = await client
       .from('orders')
       .select(`
         id,
@@ -85,7 +88,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all products for reference
-    const { data: products, error: productsError } = await supabase
+    const { data: products, error: productsError } = await client
       .from('products')
       .select('*')
       .order('created_at', { ascending: false });
@@ -113,27 +116,48 @@ export async function GET(request: NextRequest) {
     ).length || 0;
 
     // Get order items to calculate actual product performance
-    const { data: orderItems, error: orderItemsError } = await supabase
-      .from('order_items')
-      .select(`
-        quantity,
-        price,
-        order_id,
-        product_id,
-        products!inner(name, category, image, stock)
-      `)
-      .in('order_id', orders?.map(order => order.id) || []);
+    let orderItems: any[] | null = null;
+    let orderItemsError = null;
+
+    if (orders && orders.length > 0) {
+      const { data, error } = await client
+        .from('order_items')
+        .select(`
+          quantity,
+          price,
+          order_id,
+          product_id,
+          products!inner(name, category, image, stock)
+        `)
+        .in('order_id', orders.map(order => order.id));
+
+      orderItems = data;
+      orderItemsError = error;
+    } else {
+      // No orders in range => nothing to fetch
+      orderItems = [];
+    }
+
+    if (orderItemsError) {
+      console.error('Error fetching order items:', orderItemsError);
+    }
 
     console.log('Order items found:', orderItems?.length || 0);
 
+    // Restrict calculations to completed/delivered orders only
+    const relevantStatuses = new Set(['completed', 'delivered']);
+    const relevantOrderIds = new Set(
+      (orders || [])
+        .filter(order => relevantStatuses.has(order.status))
+        .map(order => order.id)
+    );
+
     let productPerformance: any[] = [];
 
-    if (orderItemsError || !orderItems || orderItems.length === 0) {
+    if (orderItemsError || !orderItems || orderItems.length === 0 || relevantOrderIds.size === 0) {
       console.log('Order items not available, using fallback calculation');
       // Fallback: Calculate based on completed orders only
-      const completedOrdersCount = orders?.filter(order =>
-        order.status === 'completed' || order.status === 'delivered'
-      ).length || 0;
+      const completedOrdersCount = relevantOrderIds.size;
 
       // Calculate product performance with realistic distribution
       productPerformance = products?.map(product => {
@@ -165,6 +189,9 @@ export async function GET(request: NextRequest) {
       const productSalesMap = new Map();
 
       orderItems.forEach(item => {
+        if (!relevantOrderIds.has(item.order_id)) {
+          return;
+        }
         const productId = item.product_id;
         if (!productSalesMap.has(productId)) {
           productSalesMap.set(productId, {
