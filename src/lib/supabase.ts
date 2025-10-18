@@ -1007,7 +1007,7 @@ export const dbHelpers = {
 
       // Prevent negative stock
       if (newStock < 0) {
-        return { data: null, error: new Error(`Insufficient stock. Available: ${product.stock}, Requested: ${quantityToReduce}`) };
+        return { data: null, error: new Error(`Stok tidak mencukupi. Tersedia: ${product.stock} unit, Diminta: ${quantityToReduce} unit`) };
       }
 
       // Update the stock

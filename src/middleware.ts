@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith('/Admin')) {
     // Get admin auth token from dedicated admin cookie
     const adminToken = request.cookies.get('admin-auth-token')?.value
-    
+
     // Fallback to general auth token for backward compatibility
     const generalToken = request.cookies.get('auth-token')?.value
 
@@ -43,7 +43,7 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith('/cart') || pathname.startsWith('/checkout')) {
     // Get user auth token from dedicated user cookie
     const userToken = request.cookies.get('user-auth-token')?.value
-    
+
     // Fallback to general auth token for backward compatibility
     const generalToken = request.cookies.get('auth-token')?.value
 

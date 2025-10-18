@@ -5,11 +5,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import useCart from '../../hooks/useCart'
 import { getCurrentUser, getAuthHeaders } from '../../lib/auth'
+import PopupAlert from '../../components/PopupAlert'
+import { usePopupAlert } from '../../hooks/usePopupAlert'
 
 
 export default function CheckoutPage() {
     const router = useRouter()
     const { cartItems, loading: cartLoading, subtotal, shipping, totalItem, total, refresh } = useCart()
+    const { alertState, showError, showSuccess, hideAlert } = usePopupAlert()
     const [localSummary, setLocalSummary] = useState<any | null>(null)
     const [loading, setLoading] = useState(false)
     const [initialLoading, setInitialLoading] = useState(true)
@@ -213,7 +216,10 @@ export default function CheckoutPage() {
 
             if (!resp.ok || !result.success) {
                 console.error('Order creation failed', result)
-                alert('Failed to place order: ' + (result.message || 'Server error'))
+                showError(
+                    result.message || 'Server error',
+                    'Gagal Memproses Pesanan'
+                )
                 return
             }
 
@@ -240,11 +246,21 @@ export default function CheckoutPage() {
             sessionStorage.removeItem('checkout_allowed')
             sessionStorage.removeItem('checkout_summary')
 
-            // navigate to success page (dummy payment flow)
-            router.push('/checkout/success')
+            // Show success message before redirect
+            showSuccess(
+                'Pesanan berhasil dibuat! Anda akan diarahkan ke halaman konfirmasi.',
+                'Pesanan Berhasil',
+                () => {
+                    // navigate to success page (dummy payment flow)
+                    router.push('/checkout/success')
+                }
+            )
         } catch (error) {
             console.error('placeOrder error', error)
-            alert('Something went wrong placing the order')
+            showError(
+                'Terjadi kesalahan saat memproses pesanan. Silakan coba lagi.',
+                'Error Memproses Pesanan'
+            )
         } finally {
             setLoading(false)
         }
@@ -254,7 +270,10 @@ export default function CheckoutPage() {
         e.preventDefault()
         // Minimal validation
         if (!contactName.trim() || !contactEmail.trim() || !address.trim()) {
-            alert('Please fill name, email and shipping address')
+            showError(
+                'Harap isi nama, email dan alamat pengiriman',
+                'Data Tidak Lengkap'
+            )
             return
         }
 
@@ -607,6 +626,23 @@ export default function CheckoutPage() {
                     </aside>
                 </div>
             </div>
+
+            {/* Popup Alert */}
+            <PopupAlert
+                isOpen={alertState.isOpen}
+                onClose={hideAlert}
+                title={alertState.title}
+                message={alertState.message}
+                type={alertState.type}
+                showConfirmButton={alertState.showConfirmButton}
+                confirmText={alertState.confirmText}
+                onConfirm={alertState.onConfirm}
+                showCancelButton={alertState.showCancelButton}
+                cancelText={alertState.cancelText}
+                onCancel={alertState.onCancel}
+                autoClose={alertState.autoClose}
+                autoCloseDelay={alertState.autoCloseDelay}
+            />
         </div>
     )
 }

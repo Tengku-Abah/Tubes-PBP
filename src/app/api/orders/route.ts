@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     // Verifikasi bahwa request berasal dari admin untuk akses ke semua pesanan
     const authHeader = request.headers.get('authorization');
     const userRole = request.headers.get('x-user-role');
-    
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const customerEmail = searchParams.get('customerEmail');
@@ -80,14 +80,14 @@ export async function GET(request: NextRequest) {
         .select('*')
         .eq('id', parseInt(id))
         .single();
-      
+
       if (!order) {
         return NextResponse.json(
           { success: false, message: 'Order not found' },
           { status: 404 }
         );
       }
-      
+
       return NextResponse.json({
         success: true,
         data: order,
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
     }));
 
     const { data: stockUpdateResult, error: stockError } = await dbHelpers.reduceMultipleProductsStock(stockItems);
-    
+
     if (stockError) {
       console.error('Stock reduction error:', stockError);
       return NextResponse.json(
@@ -257,21 +257,21 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     console.log('=== API PUT /api/orders DEBUG ===');
-    
+
     // Verifikasi bahwa request berasal dari admin
     const authHeader = request.headers.get('authorization');
     const userRole = request.headers.get('x-user-role');
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ') || userRole !== 'admin') {
       return NextResponse.json(
         { success: false, message: 'Unauthorized: Admin access required' },
         { status: 403 }
       );
     }
-    
+
     const body = await request.json();
     console.log('Request body:', body);
-    
+
     const { id, status, paymentStatus, shippingDate, deliveryDate, notes } = body;
 
     // Validasi input
@@ -305,9 +305,9 @@ export async function PUT(request: NextRequest) {
 
     // Pastikan id adalah angka
     const orderId = typeof id === 'string' ? parseInt(id, 10) : id;
-    
+
     console.log('Updating order with ID:', orderId, 'Data:', updateData);
-    
+
     const { data, error } = await dbHelpers.updateOrder(orderId, updateData);
     console.log('Database update result - data:', data, 'error:', error);
 
@@ -319,7 +319,7 @@ export async function PUT(request: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     // Periksa apakah data ditemukan
     // Jika data adalah null atau undefined, maka order tidak ditemukan
     if (!data) {
@@ -328,7 +328,7 @@ export async function PUT(request: NextRequest) {
         { status: 404 }
       );
     }
-    
+
     // Jika data adalah array kosong, maka order mungkin ditemukan tapi tidak ada perubahan
     if (Array.isArray(data) && data.length === 0) {
       // Coba ambil data order untuk memastikan order ada (tanpa .single())
@@ -336,14 +336,14 @@ export async function PUT(request: NextRequest) {
         .from('orders')
         .select('*')
         .eq('id', orderId);
-        
+
       if (!orderCheck || orderCheck.length === 0) {
         return NextResponse.json(
           { success: false, message: 'Order not found' },
           { status: 404 }
         );
       }
-      
+
       // Order ada tapi tidak ada perubahan, anggap sukses
       return NextResponse.json({
         success: true,
@@ -354,10 +354,10 @@ export async function PUT(request: NextRequest) {
         }
       });
     }
-    
+
     // Ambil data pertama dari array hasil
     const orderData = Array.isArray(data) ? data : data;
-    
+
     // Transform data untuk response
     const transformedOrder = {
       id: orderData.id,

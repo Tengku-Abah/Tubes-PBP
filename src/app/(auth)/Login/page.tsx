@@ -181,7 +181,7 @@ export default function LoginPage() {
 
           // Set role-specific cookies for middleware
           const cookieOptions = 'max-age=2592000' // 30 days
-          
+
           if (userData.role === 'admin') {
             document.cookie = `admin-auth-token=${JSON.stringify(userData)}; path=/; ${cookieOptions}`
             document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
@@ -313,7 +313,7 @@ export default function LoginPage() {
 
           // Set role-specific cookies to prevent session conflicts
           const cookieOptions = rememberMe ? 'max-age=2592000' : 'max-age=86400' // 30 days or 24 hours
-          
+
           if (userData.role === 'admin') {
             // Set admin-specific cookie
             document.cookie = `admin-auth-token=${JSON.stringify(userData)}; path=/; ${cookieOptions}`

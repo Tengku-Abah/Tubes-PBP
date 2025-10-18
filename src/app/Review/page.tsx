@@ -19,7 +19,7 @@ export default function ReviewPage() {
   // Example URL: /Review?orderId=123&orderItemId=456&productId=789
   const orderId = searchParams.get("orderId");
   const orderItemId = searchParams.get("orderItemId");
-  
+
   // TODO: Get actual product data from API based on productId
   // For now using placeholder data
   const product = {
@@ -61,7 +61,7 @@ export default function ReviewPage() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         showSuccess(
           "Ulasan berhasil dikirim! Terima kasih atas feedback Anda.",
@@ -123,7 +123,7 @@ export default function ReviewPage() {
             <Package className="w-5 h-5 text-blue-600" />
             Produk yang Diulas
           </h2>
-          
+
           <div className="flex items-start gap-4">
             <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
               <img
@@ -158,7 +158,7 @@ export default function ReviewPage() {
           <p className="text-sm text-gray-600 mb-4">
             Berikan rating untuk produk ini (1-5 bintang)
           </p>
-          
+
           <div className="flex items-center gap-2">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
@@ -171,16 +171,15 @@ export default function ReviewPage() {
                 aria-label={`${star} bintang`}
               >
                 <Star
-                  className={`w-10 h-10 transition-colors ${
-                    star <= (hoveredRating || rating)
+                  className={`w-10 h-10 transition-colors ${star <= (hoveredRating || rating)
                       ? "text-yellow-400 fill-yellow-400"
                       : "text-gray-300 fill-gray-300"
-                  }`}
+                    }`}
                 />
               </button>
             ))}
           </div>
-          
+
           {rating > 0 && (
             <p className="mt-3 text-sm font-medium text-gray-700">
               Rating Anda: {rating} dari 5 bintang
@@ -201,7 +200,7 @@ export default function ReviewPage() {
           <p className="text-sm text-gray-600 mb-4">
             Ceritakan pengalaman Anda dengan produk ini (minimal 10 kata)
           </p>
-          
+
           <textarea
             value={review}
             onChange={(e) => setReview(e.target.value)}
@@ -209,13 +208,12 @@ export default function ReviewPage() {
             className="w-full min-h-[200px] px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all resize-none"
             maxLength={500}
           />
-          
+
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-3">
               <span
-                className={`text-sm font-medium ${
-                  wordCount >= 10 ? "text-green-600" : "text-orange-600"
-                }`}
+                className={`text-sm font-medium ${wordCount >= 10 ? "text-green-600" : "text-orange-600"
+                  }`}
               >
                 {wordCount} kata
               </span>
@@ -235,9 +233,8 @@ export default function ReviewPage() {
             <div className="mt-3">
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-300 ${
-                    wordCount >= 10 ? "bg-green-500" : "bg-orange-500"
-                  }`}
+                  className={`h-full transition-all duration-300 ${wordCount >= 10 ? "bg-green-500" : "bg-orange-500"
+                    }`}
                   style={{ width: `${Math.min((wordCount / 10) * 100, 100)}%` }}
                 />
               </div>
