@@ -118,7 +118,7 @@ export default function ReviewPage() {
           "Ulasan berhasil dikirim! Terima kasih atas feedback Anda.",
           "Berhasil!",
           () => {
-            router.back();
+            router.push("/");
           }
         );
       } else {
@@ -263,11 +263,7 @@ export default function ReviewPage() {
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-3">
               <span
-<<<<<<< HEAD
-                className={`text-sm font-medium ${wordCount >= 10 ? "text-green-600" : "text-orange-600"
-=======
                 className={`text-sm font-medium ${wordCount >= 5 ? "text-green-600" : "text-orange-600"
->>>>>>> 4871d41 (local: Review page fixes + auth headers + category sync)
                   }`}
               >
                 {wordCount} kata
@@ -288,15 +284,9 @@ export default function ReviewPage() {
             <div className="mt-3">
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
-<<<<<<< HEAD
-                  className={`h-full transition-all duration-300 ${wordCount >= 10 ? "bg-green-500" : "bg-orange-500"
-                    }`}
-                  style={{ width: `${Math.min((wordCount / 10) * 100, 100)}%` }}
-=======
                   className={`h-full transition-all duration-300 ${wordCount >= 5 ? "bg-green-500" : "bg-orange-500"
                     }`}
                   style={{ width: `${Math.min((wordCount / 5) * 100, 100)}%` }}
->>>>>>> 4871d41 (local: Review page fixes + auth headers + category sync)
                 />
               </div>
             </div>
