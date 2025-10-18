@@ -1,13 +1,12 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Package, Calendar, MapPin, CreditCard, Truck, CheckCircle, Clock, ArrowLeft, ShoppingBag } from 'lucide-react';
-import { getCurrentUser, requireAuth } from '../../lib/auth';
+import { Package, Calendar, MapPin, CreditCard, Truck, ArrowLeft, ShoppingBag, X, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { getCurrentUser } from '../../lib/auth';
 import { useRouter } from 'next/navigation';
 import PopupAlert from '../../components/PopupAlert';
 import { usePopupAlert } from '../../hooks/usePopupAlert';
 
-// Define types
 interface OrderItem {
   id: number;
   product_id: number;
@@ -37,32 +36,34 @@ interface User {
   phone?: string;
 }
 
+type StatusFilter = 'all' | 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'cancelled';
+
 export default function OrderView() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [actionsOpen, setActionsOpen] = useState(false);
-  const [reviewOpen, setReviewOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [showDetailPopup, setShowDetailPopup] = useState(false);
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+  const [cancellingOrderId, setCancellingOrderId] = useState<number | null>(null);
   const router = useRouter();
-  const { alertState, showError, showSuccess, hideAlert } = usePopupAlert();
+  const { alertState, showError, showSuccess, showConfirm, hideAlert } = usePopupAlert();
 
-  // Check authentication on component mount
   useEffect(() => {
     try {
       const currentUser = getCurrentUser();
       if (!currentUser) {
-        router.push('/login');
+        router.push('/Login');
         return;
       }
       setUser(currentUser);
     } catch (error) {
       console.error('Auth error:', error);
-      router.push('/login');
+      router.push('/Login');
     }
   }, [router]);
 
-  // Load orders from database
   useEffect(() => {
     if (user) {
       loadOrders();
@@ -111,42 +112,27 @@ export default function OrderView() {
     }
   };
 
-  // Helper functions - Sesuai dengan format Admin
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      case 'shipped':
-        return 'bg-purple-100 text-purple-800';
-      case 'processing':
-        return 'bg-primary-100 text-primary-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'shipped': return 'bg-purple-100 text-purple-800';
+      case 'processing': return 'bg-blue-100 text-blue-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'completed':
-        return 'Completed';
-      case 'delivered':
-        return 'Delivered';
-      case 'shipped':
-        return 'Shipped';
-      case 'processing':
-        return 'Processing';
-      case 'pending':
-        return 'Pending';
-      case 'cancelled':
-        return 'Cancelled';
-      default:
-        return status;
+      case 'completed': return 'Selesai';
+      case 'delivered': return 'Terkirim';
+      case 'shipped': return 'Dikirim';
+      case 'processing': return 'Diproses';
+      case 'pending': return 'Menunggu';
+      case 'cancelled': return 'Dibatalkan';
+      default: return status;
     }
   };
 
@@ -162,7 +148,9 @@ export default function OrderView() {
     return new Date(dateString).toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -170,63 +158,100 @@ export default function OrderView() {
     return order.order_items?.reduce((total, item) => total + item.quantity, 0) || 0;
   };
 
-  const handleTrackOrder = () => {
-    showSuccess('Fitur lacak pesanan akan segera tersedia');
-    setActionsOpen(false);
+  const filteredOrders = statusFilter === 'all' 
+    ? orders 
+    : orders.filter(order => order.status.toLowerCase() === statusFilter);
+
+  const getStatusCount = (status: StatusFilter) => {
+    if (status === 'all') return orders.length;
+    return orders.filter(order => order.status.toLowerCase() === status).length;
   };
 
-  const handlePrintInvoice = () => {
-    showSuccess('Fitur cetak invoice akan segera tersedia');
-    setActionsOpen(false);
+  const handleViewDetail = (order: Order) => {
+    setSelectedOrder(order);
+    setShowDetailPopup(true);
   };
 
-  const handleGoToReview = () => {
-    if (!selectedOrder) return;
-    const status = (selectedOrder.status || '').toLowerCase();
-    if (status !== 'completed') {
-      showError('Review hanya tersedia setelah pesanan selesai (Completed)');
-      return;
-    }
-    if (!selectedOrder.order_items || selectedOrder.order_items.length === 0) {
-      showError('Tidak ada produk untuk direview pada pesanan ini');
-      return;
-    }
-    setReviewOpen(true);
+  const handleCloseDetailPopup = () => {
+    setShowDetailPopup(false);
   };
 
-  const handleSelectProductForReview = (item: OrderItem) => {
-    if (!selectedOrder) return;
-    setReviewOpen(false);
-
-    const params = new URLSearchParams({
-      orderId: String(selectedOrder.id),
-      orderItemId: String(item.id),
-      productId: String(item.product_id),
-      productName: item.product_name,
-      quantity: String(item.quantity),
-      productPrice: String(item.price)
-    });
-
-    router.push(`/Review?${params.toString()}`);
+  const handleToggleExpand = (orderId: number) => {
+    setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
   };
+
+  const handleCancelOrder = async (order: Order) => {
+    showConfirm(
+      'Apakah Anda yakin ingin membatalkan pesanan ' + order.order_number + '? Tindakan ini tidak dapat dibatalkan.',
+      'Batalkan Pesanan',
+      async () => {
+        setCancellingOrderId(order.id);
+        try {
+          // Use dedicated cancel API endpoint
+          const response = await fetch('/api/orders/cancel', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'user-id': user?.id || '',
+            },
+            body: JSON.stringify({
+              orderId: order.id
+            })
+          });
+
+          const result = await response.json();
+
+          if (!response.ok || !result.success) {
+            showError(result.message || 'Gagal membatalkan pesanan');
+            console.error('Error cancelling order:', result);
+          } else {
+            showSuccess('Pesanan berhasil dibatalkan');
+            loadOrders(); // Reload orders to reflect the change
+          }
+        } catch (error) {
+          console.error('Error cancelling order:', error);
+          showError('Terjadi kesalahan saat membatalkan pesanan');
+        } finally {
+          setCancellingOrderId(null);
+        }
+      },
+      () => {},
+      'Ya, Batalkan',
+      'Tidak'
+    );
+  };
+
+  const handleGoToReview = (item: OrderItem, orderId: number) => {
+    router.push('/Review?orderId=' + orderId + '&orderItemId=' + item.id + '&productId=' + item.product_id);
+  };
+
+  const statusTabs = [
+    { value: 'all' as StatusFilter, label: 'Semua' },
+    { value: 'pending' as StatusFilter, label: 'Menunggu' },
+    { value: 'processing' as StatusFilter, label: 'Diproses' },
+    { value: 'shipped' as StatusFilter, label: 'Dikirim' },
+    { value: 'delivered' as StatusFilter, label: 'Terkirim' },
+    { value: 'completed' as StatusFilter, label: 'Selesai' },
+    { value: 'cancelled' as StatusFilter, label: 'Dibatalkan' }
+  ];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-primary-600 font-semibold">Memuat data pesanan...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-blue-600 font-semibold">Memuat data pesanan...</p>
         </div>
       </div>
     );
   }
 
   if (!user) {
-    return null; 
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-white p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       <PopupAlert 
         isOpen={alertState.isOpen}
         type={alertState.type}
@@ -237,22 +262,16 @@ export default function OrderView() {
       />
       
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl shadow-xl p-8 mb-6 text-white">
           <div className="flex items-center gap-3 mb-2">
-            <button
-              onClick={() => router.back()}
-              className="p-2 hover:bg-primary-700 rounded-lg transition-colors"
-            >
+            <button onClick={() => router.back()} className="p-2 hover:bg-blue-700 rounded-lg transition-colors">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <Package className="w-10 h-10" />
             <h1 className="text-4xl font-bold">Daftar Pesanan</h1>
           </div>
-          <p className="text-gray-100 text-lg">Kelola dan pantau semua pesanan Anda</p>
-          {user && (
-            <p className="text-gray-200 text-sm mt-2">Selamat datang, {user.name}</p>
-          )}
+          <p className="text-blue-100 text-lg">Kelola dan pantau semua pesanan Anda</p>
+          {user && <p className="text-blue-200 text-sm mt-2">Selamat datang, {user.name}</p>}
         </div>
 
         {orders.length === 0 ? (
@@ -260,196 +279,272 @@ export default function OrderView() {
             <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-600 mb-2">Belum Ada Pesanan</h3>
             <p className="text-gray-500 mb-6">Anda belum memiliki pesanan apapun</p>
-            <button
-              onClick={() => router.push('/')}
-              className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all"
-            >
+            <button onClick={() => router.push('/')} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all">
               Mulai Berbelanja
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Order List */}
-            <div className="lg:col-span-1 space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Semua Pesanan ({orders.length})</h2>
-              {orders.map((order) => (
-                <div
-                  key={order.id}
-                  onClick={() => setSelectedOrder(order)}
-                  className={`bg-white rounded-xl shadow-md p-5 cursor-pointer transition-all hover:shadow-lg hover:scale-105 border-2 ${
-                    selectedOrder?.id === order.id ? 'border-primary-500' : 'border-transparent'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="font-bold text-gray-900 text-lg">{order.order_number}</p>
-                      <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                        <Calendar className="w-4 h-4" />
-                        {formatDate(order.created_at)}
-                      </p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                      {getStatusText(order.status)}
+          <>
+            <div className="bg-white rounded-2xl shadow-lg p-3 mb-6 overflow-x-auto border border-gray-100">
+              <div className="flex gap-2 min-w-max">
+                {statusTabs.map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setStatusFilter(tab.value)}
+                    className={'px-5 py-3 rounded-xl font-semibold transition-all whitespace-nowrap transform hover:scale-105 ' + (
+                      statusFilter === tab.value
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg scale-105'
+                        : 'text-gray-700 bg-gray-50 hover:bg-gray-100 shadow-sm'
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      {tab.label}
+                      <span className={'px-2 py-0.5 rounded-full text-xs font-bold ' + (
+                        statusFilter === tab.value 
+                          ? 'bg-white/20 text-white' 
+                          : 'bg-blue-100 text-blue-700'
+                      )}>
+                        {getStatusCount(tab.value)}
+                      </span>
                     </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                    <p className="text-gray-600 text-sm">{getTotalItems(order)} item</p>
-                    <p className="font-bold text-primary-700">{formatCurrency(order.total_amount)}</p>
-                  </div>
-                </div>
-              ))}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Order Detail */}
-            {selectedOrder && (
-              <div className="lg:col-span-2">
-                <div className="bg-white rounded-2xl shadow-xl p-8">
-                  <div className="flex justify-between items-start mb-6 pb-6 border-b-2 border-gray-100">
-                    <div>
-                      <h2 className="text-3xl font-bold text-gray-900 mb-2">Detail Pesanan</h2>
-                      <p className="text-primary-600 text-lg font-semibold">{selectedOrder.order_number}</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedOrder.status)}`}>
-                      {getStatusText(selectedOrder.status)}
-                    </span>
-                  </div>
-
-                  {/* Customer Info */}
-                  <div className="mb-6 bg-primary-50 rounded-xl p-6">
-                    <h3 className="font-bold text-gray-900 mb-4 text-xl flex items-center gap-2">
-                      <Package className="w-5 h-5" />
-                      Informasi Pelanggan
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="bg-primary-200 rounded-full p-2">
-                          <Package className="w-5 h-5 text-primary-700" />
+            {filteredOrders.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-md p-12 text-center">
+                <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-600 mb-2">Tidak Ada Pesanan</h3>
+                <p className="text-gray-500">Tidak ada pesanan dengan status ini</p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {filteredOrders.map((order) => (
+                  <div key={order.id} className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6 border border-gray-100 hover:border-blue-200">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-5 pb-5 border-b-2 border-gray-100">
+                      <div className="flex-1 mb-3 sm:mb-0">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="p-2 bg-blue-50 rounded-lg">
+                            <Package className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <p className="font-bold text-gray-900 text-xl">{order.order_number}</p>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Nama Pelanggan</p>
-                          <p className="font-semibold text-gray-900">{user?.name}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="bg-primary-200 rounded-full p-2">
-                          <MapPin className="w-5 h-5 text-primary-700" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Alamat Pengiriman</p>
-                          <p className="font-semibold text-gray-900">{selectedOrder.shipping_address}</p>
+                        <div className="space-y-2 ml-1">
+                          <p className="text-sm text-gray-600 flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <span className="font-medium">{formatDate(order.created_at)}</span>
+                          </p>
+                          <p className="text-sm text-gray-600 flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-gray-400" />
+                            <span className="font-medium line-clamp-1">{order.shipping_address}</span>
+                          </p>
                         </div>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <div className="bg-primary-200 rounded-full p-2">
-                          <Calendar className="w-5 h-5 text-primary-700" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Tanggal Pesanan</p>
-                          <p className="font-semibold text-gray-900">{formatDate(selectedOrder.created_at)}</p>
-                        </div>
+                      <div className="flex flex-row sm:flex-col items-start sm:items-end gap-3">
+                        <span className={'px-4 py-2 rounded-xl text-sm font-bold shadow-sm ' + getStatusColor(order.status)}>
+                          {getStatusText(order.status)}
+                        </span>
+                        <p className="font-bold text-blue-700 text-2xl">{formatCurrency(order.total_amount)}</p>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Order Items */}
-                  {selectedOrder.order_items && selectedOrder.order_items.length > 0 && (
-                    <div className="mb-6 bg-gray-50 rounded-xl p-6">
-                      <h3 className="font-bold text-gray-900 mb-4 text-xl flex items-center gap-2">
-                        <ShoppingBag className="w-5 h-5" />
-                        Produk yang Dipesan
-                      </h3>
-                      <div className="space-y-3 max-h-60 overflow-y-auto">
-                        {selectedOrder.order_items.map((item, index) => (
-                          <div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-lg">
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-900">{item.product_name}</p>
-                              <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                    {order.order_items && order.order_items.length > 0 && (
+                      <div className="mb-4">
+                        <button
+                          onClick={() => handleToggleExpand(order.id)}
+                          className="w-full flex items-center justify-between text-left px-5 py-3.5 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 rounded-xl transition-all border border-gray-200 shadow-sm hover:shadow-md"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-white rounded-lg shadow-sm">
+                              <ShoppingBag className="w-5 h-5 text-blue-600" />
                             </div>
-                            <div className="text-right">
-                              <p className="font-semibold text-primary-700">{formatCurrency(item.price)}</p>
-                              <p className="text-sm text-gray-600">per item</p>
+                            <div>
+                              <span className="font-semibold text-gray-900 block">
+                                Daftar Produk
+                              </span>
+                              <span className="text-sm text-gray-600">
+                                {getTotalItems(order)} item • {order.order_items.length} produk
+                              </span>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        <p className="text-sm text-gray-600">
-                          Total: {getTotalItems(selectedOrder)} item • {selectedOrder.order_items.length} produk unik
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                          <div className={`p-2 rounded-lg transition-all ${expandedOrderId === order.id ? 'bg-blue-100' : 'bg-white'}`}>
+                            {expandedOrderId === order.id ? (
+                              <ChevronUp className="w-5 h-5 text-blue-600" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-gray-600" />
+                            )}
+                          </div>
+                        </button>
 
-                  {/* Payment & Shipping */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl p-5">
-                      <div className="flex items-center gap-2 mb-3">
-                        <CreditCard className="w-5 h-5 text-primary-700" />
-                        <h3 className="font-bold text-gray-900">Pembayaran</h3>
-                      </div>
-                      <p className="text-gray-700">{selectedOrder.payment_method}</p>
-                      {selectedOrder.payment_status && (
-                        <p className="text-sm text-gray-600 mt-1">Status: {selectedOrder.payment_status}</p>
-                      )}
-                    </div>
-                    <div className="bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl p-5">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Truck className="w-5 h-5 text-primary-700" />
-                        <h3 className="font-bold text-gray-900">Status Pengiriman</h3>
-                      </div>
-                      <p className="text-gray-700">{getStatusText(selectedOrder.status)}</p>
-                    </div>
-                  </div>
-
-                  {/* Order Summary */}
-                  <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 text-white">
-                    <h3 className="font-bold mb-4 text-xl">Ringkasan Pesanan</h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center pb-2 border-b border-blue-400">
-                        <span>Jumlah Item</span>
-                        <span className="font-bold">{getTotalItems(selectedOrder)} item</span>
-                      </div>
-                      <div className="flex justify-between items-center pb-2 border-b border-blue-400">
-                        <span>Subtotal</span>
-                        <span className="font-bold">{formatCurrency(selectedOrder.total_amount)}</span>
-                      </div>
-                      <div className="flex justify-between items-center pb-2 border-b border-blue-400">
-                        <span>Ongkos Kirim</span>
-                        <span className="font-bold">Termasuk</span>
-                      </div>
-                      <div className="flex justify-between items-center pt-2 text-xl">
-                        <span className="font-bold">Total</span>
-                        <span className="font-bold">{formatCurrency(selectedOrder.total_amount)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Button */}
-                  <div className="relative mt-6">
-                    <button
-                      onClick={handleGoToReview}
-                      className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg"
-                    >
-                      Review
-                    </button>
-                    {reviewOpen && selectedOrder?.order_items && (
-                      <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                        {selectedOrder.order_items.map((item) => (
-                          <button
-                            key={item.id}
-                            onClick={() => handleSelectProductForReview(item)}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex justify-between items-center"
-                          >
-                            <span>{item.product_name}</span>
-                            <span className="text-sm text-gray-500">Qty {item.quantity}</span>
-                          </button>
-                        ))}
+                        {expandedOrderId === order.id && (
+                          <div className="mt-3 space-y-3">
+                            {order.order_items.map((item) => (
+                              <div key={item.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all">
+                                <div className="flex-1">
+                                  <p className="font-bold text-gray-900 text-base">{item.product_name}</p>
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    {formatCurrency(item.price)} × {item.quantity} = <span className="font-semibold text-blue-600">{formatCurrency(item.price * item.quantity)}</span>
+                                  </p>
+                                </div>
+                                {(order.status.toLowerCase() === 'completed' || order.status.toLowerCase() === 'delivered') && (
+                                  <button
+                                    onClick={() => handleGoToReview(item, order.id)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg transform hover:scale-[1.02] ml-3"
+                                  >
+                                    <Star className="w-4 h-4 fill-current" />
+                                    Review
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
+
+                    <div className="flex justify-end gap-3">
+                      <button
+                        onClick={() => handleViewDetail(order)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:scale-[1.02]"
+                      >
+                        <Package className="w-4 h-4" />
+                        Detail
+                      </button>
+                      {order.status.toLowerCase() === 'pending' && (
+                        <button
+                          onClick={() => handleCancelOrder(order)}
+                          disabled={cancellingOrderId === order.id}
+                          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:scale-[1.02] disabled:transform-none disabled:cursor-not-allowed"
+                        >
+                          <X className="w-4 h-4" />
+                          {cancellingOrderId === order.id ? 'Membatalkan...' : 'Batalkan'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {showDetailPopup && selectedOrder && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
+              <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-t-2xl flex justify-between items-center shadow-lg">
+                <div>
+                  <h2 className="text-2xl font-bold mb-1">Detail Pesanan</h2>
+                  <p className="text-blue-100">{selectedOrder.order_number}</p>
+                </div>
+                <button 
+                  onClick={handleCloseDetailPopup} 
+                  className="p-2.5 hover:bg-blue-700 rounded-xl transition-all hover:rotate-90 duration-300 bg-white/10"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-6">
+                <div className="mb-6 flex justify-center">
+                  <span className={'px-4 py-2 rounded-full text-sm font-medium ' + getStatusColor(selectedOrder.status)}>
+                    Status: {getStatusText(selectedOrder.status)}
+                  </span>
+                </div>
+
+                <div className="mb-6 bg-blue-50 rounded-xl p-5">
+                  <h3 className="font-bold text-gray-900 mb-4 text-lg flex items-center gap-2">
+                    <Package className="w-5 h-5 text-blue-600" />
+                    Informasi Pelanggan
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-blue-200 rounded-full p-2">
+                        <Package className="w-4 h-4 text-blue-700" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Nama Pelanggan</p>
+                        <p className="font-semibold text-gray-900">{user?.name}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="bg-blue-200 rounded-full p-2">
+                        <MapPin className="w-4 h-4 text-blue-700" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Alamat Pengiriman</p>
+                        <p className="font-semibold text-gray-900">{selectedOrder.shipping_address}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="bg-blue-200 rounded-full p-2">
+                        <Calendar className="w-4 h-4 text-blue-700" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Tanggal Pesanan</p>
+                        <p className="font-semibold text-gray-900">{formatDate(selectedOrder.created_at)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedOrder.order_items && selectedOrder.order_items.length > 0 && (
+                  <div className="mb-6 bg-gray-50 rounded-xl p-5">
+                    <h3 className="font-bold text-gray-900 mb-4 text-lg flex items-center gap-2">
+                      <ShoppingBag className="w-5 h-5 text-gray-700" />
+                      Produk yang Dipesan
+                    </h3>
+                    <div className="space-y-3">
+                      {selectedOrder.order_items.map((item) => (
+                        <div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">{item.product_name}</p>
+                            <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-blue-700">{formatCurrency(item.price)}</p>
+                            <p className="text-xs text-gray-600">per item</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CreditCard className="w-5 h-5 text-blue-700" />
+                      <h3 className="font-bold text-gray-900">Pembayaran</h3>
+                    </div>
+                    <p className="text-gray-700">{selectedOrder.payment_method}</p>
+                    {selectedOrder.payment_status && (
+                      <p className="text-sm text-gray-600 mt-1">Status: {selectedOrder.payment_status}</p>
+                    )}
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Truck className="w-5 h-5 text-blue-700" />
+                      <h3 className="font-bold text-gray-900">Status Pengiriman</h3>
+                    </div>
+                    <p className="text-gray-700">{getStatusText(selectedOrder.status)}</p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 rounded-xl p-5">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-gray-700">
+                      <span>Subtotal</span>
+                      <span className="font-semibold">{formatCurrency(selectedOrder.total_amount)}</span>
+                    </div>
+                    <div className="flex justify-between border-t-2 border-blue-200 pt-3">
+                      <span className="font-bold text-gray-900">Total</span>
+                      <span className="font-bold text-blue-700 text-lg">{formatCurrency(selectedOrder.total_amount)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>

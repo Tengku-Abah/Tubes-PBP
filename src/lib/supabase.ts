@@ -785,8 +785,11 @@ export const dbHelpers = {
     notes?: string;
   }, items?: { productId: number; productName: string; quantity: number; price: number }[]) {
     try {
+      // Use supabaseAdmin to bypass RLS for order creation
+      const client = supabaseAdmin || supabase;
+      
       // Create the order first
-      const { data: order, error: orderError } = await supabaseAdmin
+      const { data: order, error: orderError } = await client
         .from('orders')
         .insert(orderData)
         .select()
@@ -807,14 +810,14 @@ export const dbHelpers = {
           price: item.price
         }));
 
-        const { error: itemsError } = await supabaseAdmin
+        const { error: itemsError } = await client
           .from('order_items')
           .insert(orderItems);
 
         if (itemsError) {
           console.error('Order items creation error:', itemsError);
           // Rollback: delete the created order
-          await supabase.from('orders').delete().eq('id', order.id);
+          await client.from('orders').delete().eq('id', order.id);
           return { data: null, error: itemsError.message };
         }
       }
