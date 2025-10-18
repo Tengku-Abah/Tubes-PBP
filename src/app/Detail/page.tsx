@@ -319,15 +319,15 @@ function ProductDetailPageContent() {
     // Cek apakah user sudah login
     if (!isLoggedIn) {
       showConfirm(
-        'Anda harus login terlebih dahulu untuk menambahkan produk ke keranjang. Apakah Anda ingin login sekarang?',
-        'Login Diperlukan',
+        'Anda harus masuk terlebih dahulu untuk menambahkan produk ke keranjang. Apakah Anda ingin masuk sekarang?',
+        'Masuk Diperlukan',
         () => {
           router.push('/Login')
         },
         () => {
           // User memilih tidak login
         },
-        'Login',
+        'Masuk',
         'Nanti'
       )
       return
@@ -408,8 +408,8 @@ function ProductDetailPageContent() {
   const handleSubmitReview = async () => {
     if (!isLoggedIn) {
       showConfirm(
-        'Anda harus login terlebih dahulu untuk menulis ulasan. Ingin login sekarang?',
-        'Login Diperlukan',
+        'Anda harus masuk terlebih dahulu untuk menulis ulasan. Ingin masuk sekarang?',
+        'Masuk Diperlukan',
         () => router.push('/Login'),
         () => {},
         'Login',
@@ -451,7 +451,7 @@ function ProductDetailPageContent() {
             'Login Diperlukan',
             () => router.push('/Login'),
             () => {},
-            'Login',
+            'Masuk',
             'Nanti'
           )
         } else {
@@ -621,8 +621,8 @@ function ProductDetailPageContent() {
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <p className="text-gray-900 font-medium text-sm">Login Required</p>
-                      <p className="text-gray-700 text-xs mt-0.5">Silakan login untuk menambahkan produk ke keranjang</p>
+                      <p className="text-gray-900 font-medium text-sm">Harus Masuk</p>
+                      <p className="text-gray-700 text-xs mt-0.5">Silakan masuk untuk menambahkan produk ke keranjang</p>
                     </div>
                   </div>
                 </div>
@@ -657,18 +657,18 @@ function ProductDetailPageContent() {
                 {addingToCart ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                    <span>Adding...</span>
+                    <span>Menambahkan...</span>
                   </>
                 ) : product.stock > 0 ? (
                   isLoggedIn ? (
                     <>
                       <ShoppingCart className="w-5 h-5" />
-                      <span>Add to Cart</span>
+                      <span>Masukkan Keranjang</span>
                     </>
                   ) : (
                     <>
                       <Lock className="w-5 h-5" />
-                      <span>Login to Add to Cart</span>
+                      <span>Masuk untuk Masukkan ke Keranjang</span>
                     </>
                   )
                 ) : (
@@ -685,7 +685,7 @@ function ProductDetailPageContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                       </svg>
                     </div>
-                    <span className="text-gray-700 text-sm font-medium">Official Warranty</span>
+                    <span className="text-gray-700 text-sm font-medium">Garansi Resmi</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
@@ -693,7 +693,7 @@ function ProductDetailPageContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                       </svg>
                     </div>
-                    <span className="text-gray-700 text-sm font-medium">Fast Shipping</span>
+                    <span className="text-gray-700 text-sm font-medium">Pengiriman Cepat</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
@@ -701,7 +701,7 @@ function ProductDetailPageContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                       </svg>
                     </div>
-                    <span className="text-gray-700 text-sm font-medium">100% Original</span>
+                    <span className="text-gray-700 text-sm font-medium">100% Asli</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
@@ -709,7 +709,7 @@ function ProductDetailPageContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
                       </svg>
                     </div>
-                    <span className="text-gray-700 text-sm font-medium">24/7 Support</span>
+                    <span className="text-gray-700 text-sm font-medium">Layanan Selalu Tersedia</span>
                   </div>
                 </div>
               </div>
@@ -722,9 +722,9 @@ function ProductDetailPageContent() {
       <div className="max-w-[1400px] mx-auto px-6 lg:px-8 pb-12">
         <div className="bg-white rounded-2xl shadow-sm p-6 lg:p-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Penilaian Pelanggan</h2>
             <div className="text-sm text-gray-500">
-              {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'review' : 'reviews'}
+              {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'penilaian' : 'penilaian'}
             </div>
           </div>
 
@@ -734,11 +734,11 @@ function ProductDetailPageContent() {
             <div className="lg:col-span-1">
               <div className="text-center lg:text-left">
                 <div className="text-5xl font-bold text-blue-700 mb-2">
-                  {reviewStats.averageRating.toFixed(1)}
+                  {product.rating.toFixed(1)}
                 </div>
                 <div className="flex items-center justify-center lg:justify-start mb-2">
                   {[...Array(5)].map((_, i) => {
-                    const fillPercentage = Math.min(Math.max(reviewStats.averageRating - i, 0), 1) * 100;
+                    const fillPercentage = Math.min(Math.max(product.rating - i, 0), 1) * 100;
                     return (
                       <div key={i} className="relative w-6 h-6">
                         {/* Background star (gray) */}
@@ -761,7 +761,7 @@ function ProductDetailPageContent() {
                   })}
                 </div>
                 <p className="text-gray-500 text-sm">
-                  Based on {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'review' : 'reviews'}
+                  Berdasarkan {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'penilaian' : 'penilaian'}
                 </p>
               </div>
           </div>
@@ -807,11 +807,11 @@ function ProductDetailPageContent() {
                 onClick={() => {
                   if (!isLoggedIn) {
                     return showConfirm(
-                      'Anda harus login terlebih dahulu untuk menulis ulasan. Ingin login sekarang?',
-                      'Login Diperlukan',
+                      'Anda harus masuk terlebih dahulu untuk menulis ulasan. Ingin masuk sekarang?',
+                      'Masuk Diperlukan',
                       () => router.push('/Login'),
                       () => {},
-                      'Login',
+                      'Masuk',
                       'Nanti'
                     )
                   }
@@ -834,18 +834,18 @@ function ProductDetailPageContent() {
                     <button
                       onClick={() =>
                         showConfirm(
-                          'Anda harus login terlebih dahulu untuk menulis ulasan. Ingin login sekarang?',
-                          'Login Diperlukan',
+                          'Anda harus masuk terlebih dahulu untuk menulis ulasan. Ingin masuk sekarang?',
+                          'Masuk Diperlukan',
                           () => router.push('/Login'),
                           () => {},
-                          'Login',
+                          'Masuk',
                           'Nanti'
                         )
                       }
                       className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 inline-flex items-center gap-2"
                     >
                       <Lock className="w-4 h-4" />
-                      <span>Login untuk mereview</span>
+                      <span>Masuk untuk memberikan ulasan</span>
                     </button>
                   )}
                   <button
@@ -860,7 +860,7 @@ function ProductDetailPageContent() {
               <div className="space-y-4">
                 {/* Rating input */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Penilaian</label>
                   <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
@@ -915,7 +915,7 @@ function ProductDetailPageContent() {
                         <span>Mengirim...</span>
                       </>
                     ) : (
-                      <span>Kirim Review</span>
+                      <span>Kirim Ulasan</span>
                     )}
                   </button>
                 </div>
@@ -936,8 +936,8 @@ function ProductDetailPageContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                 </svg>
               </div>
-              <p className="text-gray-500 font-medium">No reviews yet</p>
-              <p className="text-gray-400 text-sm mt-1">Be the first to review this product</p>
+              <p className="text-gray-500 font-medium">Belum ada ulasan untuk produk ini</p>
+              <p className="text-gray-400 text-sm mt-1">Berikan ulasan pertama untuk produk ini</p>
             </div>
           ) : (
             <>
@@ -947,10 +947,10 @@ function ProductDetailPageContent() {
                 className="flex items-center justify-between mb-6 cursor-pointer group"
               >
                 <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                  Recent Reviews
+                  Ulasan Terbaru
                 </h3>
                 <button className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors">
-                  <span>{showAllReviews ? 'Show Less' : `View All ${reviews.length} Reviews`}</span>
+                  <span>{showAllReviews ? 'Tampilkan lebih sedikit' : `Tampilkan ${reviews.length} Ulasan`}</span>
                   <svg 
                     className={`w-5 h-5 transition-transform duration-200 ${showAllReviews ? 'rotate-180' : ''}`}
                     fill="none" 

@@ -56,9 +56,9 @@ export default function ProductFilter({
               </svg>
             </div>
             <div>
-              <h3 className="text-base font-bold text-gray-900">Filters</h3>
+              <h3 className="text-base font-bold text-gray-900">Filter</h3>
               {activeFilterCount > 0 && (
-                <p className="text-xs text-gray-600">{activeFilterCount} active</p>
+                <p className="text-xs text-gray-600">{activeFilterCount} aktif</p>
               )}
             </div>
           </div>
@@ -74,7 +74,7 @@ export default function ProductFilter({
                 <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                   d="M4 4v5h5M20 20v-5h-5M20 9A8 8 0 006 6M4 15a8 8 0 0014 3" />
               </svg>
-              Clear All
+              Hapus filter
             </button>
           )}
         </div>
@@ -83,7 +83,7 @@ export default function ProductFilter({
         <div className="divide-y divide-gray-100">
           {/* Category Section */}
           <CollapsibleSection
-            title="Categories"
+            title="Kategori"
             icon={
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -95,15 +95,15 @@ export default function ProductFilter({
           >
             <div className="space-y-2">
               <RadioRow
-                name="category"
+                name="Kategori"
                 checked={selectedCategory === ''}
                 onChange={() => setSelectedCategory('')}
-                label="All Categories"
+                label="Semua Kategori"
               />
               {categories && categories.length > 0 ? categories.map((c) => (
                 <RadioRow
                   key={c}
-                  name="category"
+                  name="Kategori"
                   checked={selectedCategory === c}
                   onChange={() => setSelectedCategory(c)}
                   label={capitalize(c)}
@@ -116,7 +116,7 @@ export default function ProductFilter({
 
           {/* Price Section */}
           <CollapsibleSection
-            title="Price"
+            title="Harga"
             icon={
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -129,29 +129,29 @@ export default function ProductFilter({
           >
             <div className="space-y-2">
               <RadioRow
-                name="price"
+                name="Harga"
                 checked={priceSort === ''}
                 onChange={() => setPriceSort('')}
                 label="Default"
               />
               <RadioRow
-                name="price"
+                name="Harga"
                 checked={priceSort === 'low-to-high'}
                 onChange={() => setPriceSort('low-to-high')}
-                label="Low to High"
+                label="Rendah ke Tinggi"
               />
               <RadioRow
-                name="price"
+                name="Harga"
                 checked={priceSort === 'high-to-low'}
                 onChange={() => setPriceSort('high-to-low')}
-                label="High to Low"
+                label="Tinggi ke Rendah"
               />
             </div>
           </CollapsibleSection>
 
           {/* Rating Section */}
           <CollapsibleSection
-            title="Rating"
+            title="Penilaian"
             icon={
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <path fill="currentColor"
@@ -163,16 +163,16 @@ export default function ProductFilter({
           >
             <div className="space-y-2">
               <RadioRow
-                name="rating"
+                name="Penilaian"
                 checked={ratingSort === ''}
                 onChange={() => setRatingSort('')}
                 label="Default"
               />
               <RadioRowWithIcon
-                name="rating"
+                name="Penilaian"
                 checked={ratingSort === 'high-to-low'}
                 onChange={() => setRatingSort('high-to-low')}
-                label="Highest First"
+                label="Tertinggi"
                 icon={
                   <div className="flex items-center gap-0.5">
                     {[...Array(5)].map((_, i) => (
@@ -184,10 +184,10 @@ export default function ProductFilter({
                 }
               />
               <RadioRow
-                name="rating"
+                name="Penilaian"
                 checked={ratingSort === 'low-to-high'}
                 onChange={() => setRatingSort('low-to-high')}
-                label="Lowest First"
+                label="Terendah"
               />
             </div>
           </CollapsibleSection>

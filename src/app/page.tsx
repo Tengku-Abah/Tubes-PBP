@@ -380,7 +380,7 @@ export default function HomePage() {
             <Link href="/" className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <Zap className="w-8 h-8 text-yellow-400" />
-                <span className="font-bold text-lg text-white">ElektroShop</span>
+                <span className="font-bold text-lg text-white">OctaMart</span>
               </div>
             </Link>
 
@@ -436,7 +436,7 @@ export default function HomePage() {
                     {cartCount > 9 ? '9+' : cartCount}
                   </span>
                 )}
-                <span className="hidden md:inline text-sm font-medium">Cart</span>
+                <span className="hidden md:inline text-sm font-medium">Keranjang</span>
               </Link>
 
               {/* User Profile / Login */}
@@ -525,7 +525,7 @@ export default function HomePage() {
                   </svg>
                 </div>
                 <p className="text-gray-900 text-lg font-semibold mb-1">Produk tidak ditemukan</p>
-                <p className="text-gray-500 text-sm">Coba ubah filter atau kata kunci pencarian Anda</p>
+                <p className="text-gray-500 text-sm">Ubah filter atau kata kunci pencarian Anda</p>
               </div>
             )}
 
