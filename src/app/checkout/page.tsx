@@ -125,7 +125,7 @@ export default function CheckoutPage() {
             <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-                    <p className="text-slate-600">Loading...</p>
+                    <p className="text-slate-600">Memuat...</p>
                 </div>
             </div>
         )
@@ -143,7 +143,7 @@ export default function CheckoutPage() {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
-                        <span className="font-medium">Back to Home</span>
+                        <span className="font-medium">Kembali ke Beranda</span>
                     </Link>
 
                     {/* Login Required */}
@@ -153,9 +153,9 @@ export default function CheckoutPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                             </svg>
                         </div>
-                        <h2 className="text-2xl font-bold text-slate-800 mb-4">Login Required</h2>
+                        <h2 className="text-2xl font-bold text-slate-800 mb-4">Login Diperlukan</h2>
                         <p className="text-slate-600 mb-8 max-w-md mx-auto">
-                            You need to be logged in to view your cart. Please login to continue shopping.
+                            Anda harus login terlebih dahulu untuk melihat keranjang. Silakan login untuk melanjutkan belanja.
                         </p>
                         <div className="flex gap-4 justify-center">
                             <Link
@@ -168,7 +168,7 @@ export default function CheckoutPage() {
                                 href="/Register"
                                 className="px-6 py-3 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
                             >
-                                Register
+                                Daftar
                             </Link>
                         </div>
                     </div>
@@ -233,10 +233,10 @@ export default function CheckoutPage() {
                 customerPhone: phoneNumber,
                 items: finalItems,
                 shippingAddress: {
-                    street: address,
-                    city,
-                    postalCode,
-                    province
+                    street: address || '',
+                    city: city || '',
+                    postalCode: postalCode || '',
+                    province: province || ''
                 },
                 paymentMethod: paymentMethod === 'bank' ? 'bank_transfer' : (paymentMethod === 'credit-card' ? 'credit_card' : 'cash_on_delivery'),
                 notes: notes || undefined,
@@ -344,47 +344,119 @@ export default function CheckoutPage() {
     }
 
     return (
-        <div className="min-h-screen bg-white py-12">
-            <div className="container mx-auto px-4">
-                <h1 className="text-3xl font-bold text-slate-800 mb-6">Checkout</h1>
+        <div className="min-h-screen bg-gray-50">
+            <PopupAlert
+                isOpen={alertState.isOpen}
+                onClose={hideAlert}
+                title={alertState.title}
+                message={alertState.message}
+                type={alertState.type}
+                showConfirmButton={alertState.showConfirmButton}
+                confirmText={alertState.confirmText}
+                onConfirm={alertState.onConfirm}
+                showCancelButton={alertState.showCancelButton}
+                cancelText={alertState.cancelText}
+                onCancel={alertState.onCancel}
+                autoClose={alertState.autoClose}
+                autoCloseDelay={alertState.autoCloseDelay}
+            />
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Header - Same as Cart Page */}
+            <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 border-b border-blue-700 shadow-lg">
+                <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-16 md:h-20">
+                        {/* Back Button & Title */}
+                        <div className="flex items-center gap-3">
+                            <Link 
+                                href="/cart"
+                                className="flex items-center gap-2 text-white hover:text-blue-100 transition-colors group"
+                            >
+                                <svg className="w-6 h-6 md:w-5 md:h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                </svg>
+                                <span className="font-semibold text-sm md:text-base">Kembali</span>
+                            </Link>
+                            <div className="hidden sm:block w-px h-6 bg-blue-600"></div>
+                            <h1 className="hidden sm:block text-base md:text-lg font-bold text-white">Checkout</h1>
+                        </div>
+                        
+                        {/* Right Actions - User Profile */}
+                        {/* <div className="flex items-center gap-2 md:gap-4">
+                            {user && (
+                                <div className="flex items-center gap-2 text-white">
+                                    <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
+                                        <span className="text-sm font-bold">{user.name?.charAt(0).toUpperCase()}</span>
+                                    </div>
+                                    <span className="hidden md:inline text-sm font-medium">{user.name}</span>
+                                </div>
+                            )}
+                        </div> */}
+                    </div>
+                </div>
+            </header>
+
+            <div className="container mx-auto px-4 py-6 md:py-8">
+                {/* Checkout Info Banner */}
+                {/* <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-blue-600 text-white rounded-full p-2">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-slate-800">
+                                    Proses Checkout
+                                </p>
+                                <p className="text-xs text-slate-600">
+                                    {(cartItems && cartItems.length > 0) ? cartItems.length : (localSummary?.items?.length ?? 0)} item siap diproses
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs bg-white px-3 py-2 rounded-lg border border-slate-200">
+                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            <span className="font-semibold text-slate-700">Pembayaran aman</span>
+                        </div>
+                    </div>
+                </div> */}
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Stepper */}
                     <div className="lg:col-span-3 mb-4">
                         <div className="max-w-4xl mx-auto">
-                            <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm">
-                                <div className="flex items-center gap-4 w-full">
-                                    <div className="flex items-center gap-3 w-full">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-700'}`}>1</div>
-                                                    <div>
-                                                        <div className="text-xs text-slate-500">Step 1</div>
-                                                        <div className="font-medium">Shipping</div>
-                                                    </div>
-                                                </div>
+                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                                <div className="flex items-center justify-between">
+                                    {/* Step 1 */}
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${currentStep >= 1 ? 'bg-primary-600 text-white shadow-md' : 'bg-gray-200 text-gray-500'}`}>1</div>
+                                        <div className="hidden md:block">
+                                            <div className="text-xs text-slate-500">Step 1</div>
+                                            <div className="font-semibold text-slate-800">Pengiriman</div>
+                                        </div>
+                                    </div>
 
-                                                <div className="flex-1 border-t border-slate-200 mx-3" />
+                                    <div className={`flex-1 border-t-2 mx-4 transition-colors ${currentStep >= 2 ? 'border-primary-600' : 'border-slate-200'}`} />
 
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-700'}`}>2</div>
-                                                    <div>
-                                                        <div className="text-xs text-slate-500">Step 2</div>
-                                                        <div className="font-medium">Payment</div>
-                                                    </div>
-                                                </div>
+                                    {/* Step 2 */}
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${currentStep >= 2 ? 'bg-primary-600 text-white shadow-md' : 'bg-gray-200 text-gray-500'}`}>2</div>
+                                        <div className="hidden md:block">
+                                            <div className="text-xs text-slate-500">Step 2</div>
+                                            <div className="font-semibold text-slate-800">Pembayaran</div>
+                                        </div>
+                                    </div>
 
-                                                <div className="flex-1 border-t border-slate-200 mx-3" />
+                                    <div className={`flex-1 border-t-2 mx-4 transition-colors ${currentStep >= 3 ? 'border-primary-600' : 'border-slate-200'}`} />
 
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 3 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-700'}`}>3</div>
-                                                    <div>
-                                                        <div className="text-xs text-slate-500">Step 3</div>
-                                                        <div className="font-medium">Review</div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                    {/* Step 3 */}
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${currentStep >= 3 ? 'bg-primary-600 text-white shadow-md' : 'bg-gray-200 text-gray-500'}`}>3</div>
+                                        <div className="hidden md:block">
+                                            <div className="text-xs text-slate-500">Step 3</div>
+                                            <div className="font-semibold text-slate-800">Review</div>
                                         </div>
                                     </div>
                                 </div>
@@ -392,124 +464,237 @@ export default function CheckoutPage() {
                         </div>
                     </div>
                     {/* Left: Form (2/3 width) */}
-                    <form onSubmit={handlePlaceClick} className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6">
-                        {/* Step 1: Shipping Form */}
-                        {currentStep === 1 && (
-                            <>
-                                <h2 className="text-xl font-semibold mb-4">Contact & Shipping</h2>
+                    <form onSubmit={handlePlaceClick} className="lg:col-span-2">
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            {/* Form Header */}
+                            <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
+                                <h2 className="text-lg font-bold text-slate-800">
+                                    {currentStep === 1 ? 'Informasi Pengiriman' : currentStep === 2 ? 'Metode Pembayaran' : 'Review Pesanan'}
+                                </h2>
+                            </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600">Full name</label>
-                                        <input value={contactName} onChange={e => setContactName(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600">Email</label>
-                                        <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600">Phone</label>
-                                        <input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600">Province</label>
-                                        <input value={province} onChange={e => setProvince(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                                    </div>
-                                </div>
-
-                                <div className="mt-4">
-                                    <label className="block text-sm font-medium text-slate-600">Address</label>
-                                    <input value={address} onChange={e => setAddress(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600">City</label>
-                                        <input value={city} onChange={e => setCity(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600">Postal Code</label>
-                                        <input value={postalCode} onChange={e => setPostalCode(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600">Shipping Method</label>
-                                        <select value={shippingMethod} onChange={e => setShippingMethod(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
-                                            <option value="standard">Standard (3-5 days)</option>
-                                            <option value="express">Express (1-2 days)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
-                        {/* Step 2: Payment Form */}
-                        {currentStep === 2 && (
-                            <>
-                                <h2 className="text-xl font-semibold mb-4">Payment</h2>
-                                <p className="text-sm text-slate-600 mb-4">We currently support payment on delivery and bank transfer (placeholder). Implement real payment gateway later.</p>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600">Payment Method</label>
-                                        <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as 'cod' | 'bank' | 'credit-card')} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
-                                            <option value="cod">Cash on Delivery</option>
-                                            <option value="bank">Bank Transfer</option>
-                                            <option value="credit-card">Credit Card</option>
-                                        </select>
-                                        <div className="mt-3 text-sm text-slate-600 bg-slate-50 border rounded-lg p-3">
-                                            {paymentMethod === 'cod' ? (
-                                                <ul className="list-disc pl-5 space-y-1">
-                                                    <li>Bayar langsung ke kurir saat pesanan diterima (COD).</li>
-                                                    <li>Kurir hanya menerima uang tunai, bukan transfer atau QRIS.</li>
-                                                    <li>Pastikan alamat dan nomor telepon aktif untuk memudahkan pengantaran.</li>
-                                                    <li>Siapkan uang pas untuk mempercepat proses pengantaran.</li>
-                                                    <li>Pesanan tidak dapat dibuka sebelum pembayaran dilakukan.</li>                                                </ul>
-                                            ) : paymentMethod === 'bank' ? (
-                                                <ul className="list-disc pl-5 space-y-1">
-                                                    <li>Transfer ke rekening resmi yang akan dikirim setelah order dibuat.</li>
-                                                    <li>Sertakan nomor order pada berita transfer untuk mempercepat verifikasi.</li>
-                                                    <li>Upload bukti transfer melalui halaman konfirmasi pembayaran.</li>
-                                                    <li>Pesanan akan diproses setelah pembayaran terverifikasi oleh sistem.</li>
-                                                    <li>Proses verifikasi biasanya memakan waktu 5–10 menit setelah transfer.</li>                                                </ul>
-                                            ) : (
-                                                <ul className="list-disc pl-5 space-y-1">
-                                                    <li>Pembayaran diproses secara aman melalui payment gateway terpercaya.</li>
-                                                    <li>Data kartu tidak disimpan di server kami untuk keamanan Anda.</li>
-                                                    <li>Pastikan saldo atau limit kartu mencukupi sebelum melakukan pembayaran.</li>
-                                                    <li>Pesanan akan langsung diproses setelah transaksi berhasil.</li>
-                                                    <li>Gunakan jaringan internet yang aman saat memasukkan data kartu.</li>                                                </ul>
-                                            )}
+                            {/* Form Content */}
+                            <div className="p-6">
+                                {/* Step 1: Shipping Form */}
+                                {currentStep === 1 && (
+                                    <>
+                                        {/* Informasi Identitas */}
+                                        <div className="mb-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-600">Nama Lengkap</label>
+                                                    <input value={contactName} onChange={e => setContactName(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-600">Nomor Telepon</label>
+                                                    <input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                                                </div>
+                                                <div className="md:col-span-2">
+                                                    <label className="block text-sm font-medium text-slate-600">Email</label>
+                                                    <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600">Notes (optional)</label>
-                                        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Add any special instructions..."></textarea>
-                                    </div>
-                                </div>
+
+                                        {/* Divider */}
+                                        <div className="border-t-2 border-slate-200 my-6"></div>
+
+                                        {/* Alamat Pengiriman */}
+                                        <div>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-600">Alamat Lengkap</label>
+                                                    <textarea value={address} onChange={e => setAddress(e.target.value)} rows={2} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Jalan, RT/RW, Kelurahan, Kecamatan"></textarea>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-600">Provinsi</label>
+                                                        <input value={province} onChange={e => setProvince(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-600">Kota</label>
+                                                        <input value={city} onChange={e => setCity(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-600">Kode Pos</label>
+                                                        <input value={postalCode} onChange={e => setPostalCode(e.target.value)} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-600">Metode Pengiriman</label>
+                                                        <div className="relative mt-1">
+                                                            <select 
+                                                                value={shippingMethod} 
+                                                                onChange={e => setShippingMethod(e.target.value)} 
+                                                                className="block w-full px-4 py-2.5 pr-10 border border-slate-300 rounded-lg bg-white text-slate-700 appearance-none cursor-pointer transition-all duration-200 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm"
+                                                            >
+                                                                <option value="standard">Standard (3-5 hari)</option>
+                                                                <option value="express">Express (1-2 hari)</option>
+                                                            </select>
+                                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                             </>
                         )}
 
-                        {/* Step 3: Review Panel */}
-                        {currentStep === 3 && (
-                            <>
-                                <h2 className="text-xl font-semibold mb-4">Review Order</h2>
-                                <div className="grid grid-cols-1 gap-4">
+                                {/* Step 2: Payment Form */}
+                                {currentStep === 2 && (
+                                    <>
+                                        {/* Info Banner */}
+                                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                                            <div className="flex items-start gap-3">
+                                                <div className="flex-shrink-0 mt-0.5">
+                                                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-medium text-blue-900">Pilih Metode Pembayaran</p>
+                                                    <p className="text-xs text-blue-700 mt-1">Kami mendukung COD, transfer bank, dan kartu kredit untuk kemudahan transaksi Anda.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Metode Pembayaran */}
+                                        <div className="space-y-6">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">Metode Pembayaran</label>
+                                                <div className="relative">
+                                                    <select 
+                                                        value={paymentMethod} 
+                                                        onChange={e => setPaymentMethod(e.target.value as 'cod' | 'bank' | 'credit-card')} 
+                                                        className="block w-full px-4 py-3 pr-10 border-2 border-slate-300 rounded-xl bg-white text-slate-700 appearance-none cursor-pointer transition-all duration-200 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm font-medium"
+                                                    >
+                                                        <option value="cod">Bayar di Tempat (COD)</option>
+                                                        <option value="bank">Transfer Bank</option>
+                                                        <option value="credit-card">Kartu Kredit</option>
+                                                    </select>
+                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Informasi Metode Pembayaran */}
+                                            <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-xl p-5">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <h4 className="text-sm font-semibold text-slate-800">
+                                                        {paymentMethod === 'cod' ? 'Informasi COD' : paymentMethod === 'bank' ? 'Informasi Transfer Bank' : 'Informasi Kartu Kredit'}
+                                                    </h4>
+                                                </div>
+                                                <div className="text-sm text-slate-600 space-y-2">
+                                                    {paymentMethod === 'cod' ? (
+                                                        <ul className="space-y-2">
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Bayar langsung ke kurir saat pesanan diterima (COD).</span>
+                                                            </li>
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Kurir hanya menerima uang tunai, bukan transfer atau QRIS.</span>
+                                                            </li>
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Pastikan alamat dan nomor telepon aktif untuk memudahkan pengantaran.</span>
+                                                            </li>
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Siapkan uang pas untuk mempercepat proses pengantaran.</span>
+                                                            </li>
+                                                        </ul>
+                                                    ) : paymentMethod === 'bank' ? (
+                                                        <ul className="space-y-2">
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Transfer ke rekening resmi yang akan dikirim setelah order dibuat.</span>
+                                                            </li>
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Sertakan nomor order pada berita transfer untuk mempercepat verifikasi.</span>
+                                                            </li>
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Upload bukti transfer melalui halaman konfirmasi pembayaran.</span>
+                                                            </li>
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Proses verifikasi biasanya memakan waktu 5–10 menit setelah transfer.</span>
+                                                            </li>
+                                                        </ul>
+                                                    ) : (
+                                                        <ul className="space-y-2">
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Pembayaran diproses secara aman melalui payment gateway terpercaya.</span>
+                                                            </li>
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Data kartu tidak disimpan di server kami untuk keamanan Anda.</span>
+                                                            </li>
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Pastikan saldo atau limit kartu mencukupi sebelum melakukan pembayaran.</span>
+                                                            </li>
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-primary-600 mt-0.5">•</span>
+                                                                <span>Gunakan jaringan internet yang aman saat memasukkan data kartu.</span>
+                                                            </li>
+                                                        </ul>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Catatan */}
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">Catatan untuk Penjual (opsional)</label>
+                                                <textarea 
+                                                    value={notes} 
+                                                    onChange={e => setNotes(e.target.value)} 
+                                                    rows={4} 
+                                                    className="block w-full px-4 py-3 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-primary-400 shadow-sm resize-none" 
+                                                    placeholder="Contoh: Tolong kirim dalam kemasan gift, sertakan kartu ucapan, dll..."
+                                                ></textarea>
+                                                <p className="text-xs text-slate-500 mt-2">Tambahkan catatan khusus jika ada permintaan spesial untuk pesanan Anda.</p>
+                                            </div>
+                                        </div>
+                            </>
+                        )}
+
+                                {/* Step 3: Review Panel */}
+                                {currentStep === 3 && (
+                                    <>
+                                        <div className="grid grid-cols-1 gap-4">
                                     <div className="border rounded-xl p-4">
-                                        <h3 className="font-medium text-slate-800 mb-2">Contact</h3>
+                                        <h3 className="font-medium text-slate-800 mb-2">Kontak</h3>
                                         <p className="text-sm text-slate-700">{contactName} • {contactEmail} • {phoneNumber}</p>
                                     </div>
                                     <div className="border rounded-xl p-4">
-                                        <h3 className="font-medium text-slate-800 mb-2">Shipping Address</h3>
+                                        <h3 className="font-medium text-slate-800 mb-2">Detail Pengiriman</h3>
                                         <p className="text-sm text-slate-700">{address}, {city}, {province} {postalCode}</p>
-                                        <p className="text-sm text-slate-600 mt-1">Method: {shippingMethod === 'express' ? 'Express (1-2 days)' : 'Standard (3-5 days)'}</p>
+                                        <p className="text-sm text-slate-600 mt-1">Metode: {shippingMethod === 'express' ? 'Express (1-2 hari)' : 'Standard (3-5 hari)'}</p>
                                     </div>
                                     <div className="border rounded-xl p-4">
-                                        <h3 className="font-medium text-slate-800 mb-2">Payment</h3>
-                                        <p className="text-sm text-slate-700">{paymentMethod === 'bank' ? 'Bank Transfer' : (paymentMethod === 'credit-card' ? 'Credit Card' : 'Cash on Delivery')}</p>
-                                        {notes && <p className="text-sm text-slate-600 mt-1">Notes: {notes}</p>}
+                                        <h3 className="font-medium text-slate-800 mb-2">Pembayaran</h3>
+                                        <p className="text-sm text-slate-700">{paymentMethod === 'bank' ? 'Transfer Bank' : (paymentMethod === 'credit-card' ? 'Kartu Kredit' : 'Bayar di Tempat (COD)')}</p>
+                                        {notes && <p className="text-sm text-slate-600 mt-1">Catatan: {notes}</p>}
                                     </div>
                                     <div className="border rounded-xl p-4">
-                                        <h3 className="font-medium text-slate-800 mb-3">Items</h3>
+                                        <h3 className="font-medium text-slate-800 mb-3">Produk</h3>
                                         <div className="space-y-2">
                                             {(
                                                 (cartItems && cartItems.length > 0)
@@ -534,102 +719,147 @@ export default function CheckoutPage() {
                                         </div>
                                         <div className="border-t mt-3 pt-3 space-y-1 text-sm">
                                             <div className="flex justify-between text-slate-600">
-                                                <span>Subtotal</span>
+                                                <span>Subtotal Pesanan</span>
                                                 <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.subtotal ?? subtotal)}</span>
                                             </div>
                                             <div className="flex justify-between text-slate-600">
-                                                <span>Shipping</span>
-                                                <span>{(localSummary?.shipping ?? shipping) === 0 ? 'Free' : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.shipping ?? shipping)}</span>
+                                                <span>SubtotalPengiriman</span>
+                                                <span>
+                                                    {(localSummary?.shipping ?? shipping) === 0 ? (
+                                                        shippingMethod === 'express' ? (
+                                                            <div className="text-right">
+                                                                <div className="text-green-600 font-bold">Gratis</div>
+                                                                <div className="text-xs text-slate-400 line-through">+Rp 3.000</div>
+                                                            </div>
+                                                        ) : (
+                                                            'Gratis'
+                                                        )
+                                                    ) : (
+                                                        <div className="text-right">
+                                                            <div>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.shipping ?? shipping) + (shippingMethod === 'express' ? 3000 : 0))}</div>
+                                                            {shippingMethod === 'express' && (
+                                                                <div className="text-xs text-slate-400">+Rp 3.000 (Express)</div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </span>
                                             </div>
                                             <div className="flex justify-between text-slate-600">
-                                                <span>Tax (11%)</span>
+                                                <span>Pajak (11%)</span>
                                                 <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.subtotal ?? subtotal) * 0.11)}</span>
                                             </div>
                                             <div className="flex justify-between text-slate-800 font-semibold text-base pt-1">
-                                                <span>Total</span>
-                                                <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.total ?? total)}</span>
+                                                <span>Total Pembayaran</span>
+                                                <span>
+                                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
+                                                        (localSummary?.total ?? total) + 
+                                                        (shippingMethod === 'express' && (localSummary?.shipping ?? shipping) > 0 ? 3000 : 0)
+                                                    )}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 mt-2">
                                         <input id="agree" type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="w-4 h-4 text-blue-600 rounded" />
-                                        <label htmlFor="agree" className="text-sm text-slate-700">I confirm the information above is correct.</label>
+                                        <label htmlFor="agree" className="text-sm text-slate-700">Saya mengkonfirmasi bahwa informasi di atas sudah benar.</label>
                                     </div>
                                 </div>
                             </>
                         )}
 
-                        {/* Navigation Buttons */}
-                        <div className="mt-6 flex items-center justify-between gap-3">
-                            <Link href="/cart" className="text-primary-600 hover:underline font-medium">Back to cart</Link>
-                            <div className="flex gap-3">
-                                {/* Step 1: Shipping - Show "Go to Payment" */}
-                                {currentStep === 1 && (
-                                    <button
-                                        type="button"
-                                        disabled={!canProceedToPayment}
-                                        onClick={() => setCurrentStep(2)}
-                                        className="px-6 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                                    >
-                                        Go to Payment
-                                    </button>
-                                )}
+                                {/* Navigation Buttons */}
+                                <div className="mt-6 flex items-center justify-between gap-3">
+                                    <Link href="/cart" className="text-primary-600 hover:underline font-medium">Kembali ke keranjang</Link>
+                                    <div className="flex gap-3">
+                                        {/* Step 1: Shipping - Show "Go to Payment" */}
+                                        {currentStep === 1 && (
+                                            <button
+                                                type="button"
+                                                disabled={!canProceedToPayment}
+                                                onClick={() => setCurrentStep(2)}
+                                                className="px-6 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                                            >
+                                                Lanjut ke Pembayaran
+                                            </button>
+                                        )}
 
-                                {/* Step 2: Payment - Show "Back to Shipping" and "Go to Review" */}
-                                {currentStep === 2 && (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={() => setCurrentStep(1)}
-                                            className="px-6 py-3 rounded-lg border-2 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
-                                        >
-                                            Back to Shipping
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setCurrentStep(3)}
-                                            className="px-6 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 font-medium"
-                                        >
-                                            Go to Review
-                                        </button>
-                                    </>
-                                )}
+                                        {/* Step 2: Payment - Show "Back to Shipping" and "Go to Review" */}
+                                        {currentStep === 2 && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCurrentStep(1)}
+                                                    className="px-6 py-3 rounded-lg border-2 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
+                                                >
+                                                    Kembali ke Pengiriman
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCurrentStep(3)}
+                                                    className="px-6 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 font-medium"
+                                                >
+                                                    Lanjut ke Review
+                                                </button>
+                                            </>
+                                        )}
 
-                                {/* Step 3: Review - Show "Place Order" */}
-                                {currentStep === 3 && (
-                                    <button
-                                        type="submit"
-                                        disabled={loading || !agreed}
-                                        className="px-6 py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg"
-                                    >
-                                        {loading ? 'Placing order...' : 'Place Order'}
-                                    </button>
-                                )}
+                                        {/* Step 3: Review - Show "Back to Shipping" and "Place Order" */}
+                                        {currentStep === 3 && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCurrentStep(2)}
+                                                    className="px-6 py-3 rounded-lg border-2 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
+                                                >
+                                                    Kembali ke Pembayaran
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    disabled={loading || !agreed}
+                                                    className="px-6 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg"
+                                                >
+                                                    {loading ? 'Memproses pesanan...' : 'Buat Pesanan'}
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </form>
 
                     {/* Right: Order Summary (1/3 width) */}
-                    <aside className="bg-white rounded-2xl shadow-lg p-6">
-                        <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
+                    <aside className="lg:col-span-1">
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-24">
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4">
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                    Ringkasan Pesanan
+                                </h3>
+                            </div>
 
-                        <div className="space-y-3">
+                            {/* Items List */}
+                            <div className="p-6">
+                                <div className="space-y-3 max-h-60 overflow-y-auto">
                             {(
                                 (cartItems && cartItems.length > 0)
                                     ? cartItems.map((c: any) => ({
                                         key: c.id,
-                                        name: c.product?.name ?? 'Item',
+                                        name: c.product?.name ?? 'Produk',
                                         qty: c.quantity ?? 1,
                                         price: typeof c.product?.price === 'number' ? c.product.price : 0
                                     }))
                                     : (localSummary?.items ?? []).map((it: any, idx: number) => ({
                                         key: idx,
-                                        name: it.product?.name ?? it.productName ?? 'Item',
+                                        name: it.product?.name ?? it.productName ?? 'Produk',
                                         qty: it.quantity ?? 1,
                                         price: it.product?.price ?? it.price ?? 0
                                     }))
                             ).map((row: any) => (
-                                <div key={row.key} className="flex items-center justify-between">
+                                <div key={row.key} className="flex items-start justify-between">
                                     <div>
                                         <div className="text-sm font-medium text-slate-800">{row.name}</div>
                                         <div className="text-xs text-slate-500">Qty: {row.qty}</div>
@@ -637,51 +867,68 @@ export default function CheckoutPage() {
                                     <div className="text-sm font-semibold text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.price * row.qty)}</div>
                                 </div>
                             ))}
+                                </div>
+
+                                {/* Summary */}
+                                <div className="border-t border-slate-200 mt-4 pt-4 space-y-3">
+                                    <div className="flex justify-between text-sm text-slate-600">
+                                        <span>Subtotal</span>
+                                        <span className="font-medium">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.subtotal ?? subtotal)}</span>
+                                    </div>
+
+                                    <div className="flex justify-between text-sm text-slate-600">
+                                        <span>Pengiriman</span>
+                                        <span className="font-medium">
+                                            {(localSummary?.shipping ?? shipping) === 0 ? (
+                                                shippingMethod === 'express' ? (
+                                                    <div className="text-right">
+                                                        <div className="text-green-600 font-bold">Gratis</div>
+                                                        <div className="text-xs text-slate-400 line-through">+Rp 3.000</div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-green-600 font-bold">Gratis</span>
+                                                )
+                                            ) : (
+                                                <div className="text-right">
+                                                    <div>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.shipping ?? shipping) + (shippingMethod === 'express' ? 3000 : 0))}</div>
+                                                    {shippingMethod === 'express' && (
+                                                        <div className="text-xs text-slate-400">+Rp 3.000 (Express)</div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex justify-between text-sm text-slate-600 pb-3">
+                                        <span>Pajak (11%)</span>
+                                        <span className="font-medium">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.subtotal ?? subtotal) * 0.11)}</span>
+                                    </div>
+
+                                    {/* Total */}
+                                    <div className="border-t-2 border-slate-200 pt-4">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-base font-bold text-slate-800">Total Pembayaran</span>
+                                            <span className="text-2xl font-bold text-primary-700">
+                                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
+                                                    (localSummary?.total ?? total) + 
+                                                    (shippingMethod === 'express' && (localSummary?.shipping ?? shipping) > 0 ? 3000 : 0)
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                    <svg className="w-4 h-4 text-slate-400 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Dengan melakukan pemesanan, Anda menyetujui Syarat & Ketentuan serta Kebijakan Privasi kami.
+                                </div>
+                            </div>
                         </div>
-
-                        <div className="border-t border-slate-200 mt-4 pt-4 space-y-3">
-                            <div className="flex justify-between text-sm text-slate-600">
-                                <span>Subtotal</span>
-                                <span className="font-medium">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.subtotal ?? subtotal)}</span>
-                            </div>
-
-                            <div className="flex justify-between text-sm text-slate-600">
-                                <span>Shipping</span>
-                                <span className="font-medium">{(localSummary?.shipping ?? shipping) === 0 ? 'Free' : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.shipping ?? shipping)}</span>
-                            </div>
-
-                            <div className="flex justify-between text-sm text-slate-600">
-                                <span>Tax (11%)</span>
-                                <span className="font-medium">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.subtotal ?? subtotal) * 0.11)}</span>
-                            </div>
-
-                            <div className="flex justify-between text-lg font-semibold mt-2">
-                                <span>Total</span>
-                                <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.total ?? total)}</span>
-                            </div>
-                        </div>
-
-                        <div className="mt-4 text-xs text-slate-500">By placing your order you agree to our Terms of Service and Privacy Policy.</div>
                     </aside>
                 </div>
             </div>
-
-            {/* Popup Alert */}
-            <PopupAlert
-                isOpen={alertState.isOpen}
-                onClose={hideAlert}
-                title={alertState.title}
-                message={alertState.message}
-                type={alertState.type}
-                showConfirmButton={alertState.showConfirmButton}
-                confirmText={alertState.confirmText}
-                onConfirm={alertState.onConfirm}
-                showCancelButton={alertState.showCancelButton}
-                cancelText={alertState.cancelText}
-                onCancel={alertState.onCancel}
-                autoClose={alertState.autoClose}
-                autoCloseDelay={alertState.autoCloseDelay}
-            />
         </div>
     )
 }
