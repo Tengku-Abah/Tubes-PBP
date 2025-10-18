@@ -1,29 +1,24 @@
 // Logout utility function
 export const logout = () => {
-    const isBrowser = typeof window !== 'undefined';
-    const isAdminRoute = isBrowser ? window.location.pathname.startsWith('/Admin') : false;
-
-    // Prevent auto-redirect loops and signal explicit logout for this tab
+    // Set logout flag to prevent auto-redirect
     sessionStorage.setItem('logout', 'true');
 
-    // Clear only this tab's session state
+    // Clear sessionStorage
     sessionStorage.removeItem('user');
     sessionStorage.removeItem('loginTime');
 
-    // Do NOT clear cross-tab localStorage here to avoid nuking other role
-    // (User "remember me" should be managed by user-facing logout flows)
+    // Clear localStorage
+    localStorage.removeItem('user');
+    localStorage.removeItem('rememberMe');
+    localStorage.removeItem('loginTime');
 
-    // Role-aware cookie clearing
-    if (isAdminRoute) {
-        document.cookie = 'admin-auth-token=; path=/Admin; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    } else {
-        document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    }
+    // Clear all auth cookies (general and role-specific)
+    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'admin-auth-token=; path=/Admin; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 
-    // Do not clear generic root auth-token to avoid cross-role collisions
-
-    // Redirect appropriately
-    if (isBrowser) {
+    // Redirect to login page
+    if (typeof window !== 'undefined') {
         window.location.href = '/Login';
     }
 };
