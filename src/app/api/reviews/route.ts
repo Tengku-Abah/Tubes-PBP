@@ -180,12 +180,20 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { productId, rating, comment, userAvatar } = body;
+        const { productId, orderId, orderItemId, rating, comment, userAvatar } = body;
 
         // Validasi input
         if (!productId || !rating || !comment) {
             return NextResponse.json(
                 { success: false, message: 'Product ID, rating, and comment are required' },
+                { status: 400 }
+            );
+        }
+
+        // Validasi orderId dan orderItemId jika ada
+        if (orderId && !orderItemId) {
+            return NextResponse.json(
+                { success: false, message: 'Order Item ID is required when Order ID is provided' },
                 { status: 400 }
             );
         }
@@ -204,19 +212,72 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if user already reviewed this product
-        const { data: existingReview } = await supabase
-            .from('reviews')
-            .select('id')
-            .eq('product_id', parseInt(productId))
-            .eq('user_id', user.id)
-            .single();
+        // Check if user already reviewed this specific order item
+        // User can review same product multiple times if it's from different orders
+        if (orderId && orderItemId) {
+            const { data: existingReview } = await supabase
+                .from('reviews')
+                .select('id')
+                .eq('order_id', parseInt(orderId))
+                .eq('order_item_id', parseInt(orderItemId))
+                .eq('user_id', user.id)
+                .single();
 
-        if (existingReview) {
-            return NextResponse.json(
-                { success: false, message: 'You have already reviewed this product' },
-                { status: 409 }
-            );
+            if (existingReview) {
+                return NextResponse.json(
+                    { success: false, message: 'You have already reviewed this product from this order' },
+                    { status: 409 }
+                );
+            }
+
+            // Verify order belongs to user
+            const { data: order } = await supabase
+                .from('orders')
+                .select('id, user_id')
+                .eq('id', parseInt(orderId))
+                .eq('user_id', user.id)
+                .single();
+
+            if (!order) {
+                return NextResponse.json(
+                    { success: false, message: 'Order not found or access denied' },
+                    { status: 404 }
+                );
+            }
+
+            // Verify order item exists and belongs to the order
+            const { data: orderItem } = await supabase
+                .from('order_items')
+                .select('id, product_id, order_id')
+                .eq('id', parseInt(orderItemId))
+                .eq('order_id', parseInt(orderId))
+                .eq('product_id', parseInt(productId))
+                .single();
+
+            if (!orderItem) {
+                return NextResponse.json(
+                    { success: false, message: 'Order item not found or does not match the product' },
+                    { status: 404 }
+                );
+            }
+        } else {
+            // Fallback: Check if user already reviewed this product (old behavior)
+            // This is for reviews not linked to specific orders
+            const { data: existingReview } = await supabase
+                .from('reviews')
+                .select('id')
+                .eq('product_id', parseInt(productId))
+                .eq('user_id', user.id)
+                .is('order_id', null)
+                .is('order_item_id', null)
+                .single();
+
+            if (existingReview) {
+                return NextResponse.json(
+                    { success: false, message: 'You have already reviewed this product' },
+                    { status: 409 }
+                );
+            }
         }
 
         // Verify product exists
@@ -244,7 +305,7 @@ export async function POST(request: NextRequest) {
             avatarToPersist = userRow?.user_avatar || null;
         }
 
-        const reviewData = {
+        const reviewData: any = {
             product_id: parseInt(productId),
             user_id: user.id,
             user_name: user.name,
@@ -253,6 +314,14 @@ export async function POST(request: NextRequest) {
             comment: comment.trim(),
             verified: false
         };
+
+        // Add order context if provided
+        if (orderId) {
+            reviewData.order_id = parseInt(orderId);
+        }
+        if (orderItemId) {
+            reviewData.order_item_id = parseInt(orderItemId);
+        }
 
         const { data: newReview, error } = await dbHelpers.addReview(reviewData);
 
