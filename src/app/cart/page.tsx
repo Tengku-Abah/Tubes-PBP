@@ -311,29 +311,31 @@ export default function CartPage() {
 
         <div className="container mx-auto px-4 py-8">
           {/* Login Required */}
-          <div className="text-center py-16">
-            <div className="mx-auto h-24 w-24 bg-orange-100 rounded-full flex items-center justify-center mb-6">
-              <svg className="h-12 w-12 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">Login Required</h2>
-            <p className="text-slate-600 mb-8 max-w-md mx-auto">
-              You need to be logged in to view your cart. Please login to continue shopping.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Link
-                href="/Login"
-                className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                Login
-              </Link>
-              <Link
-                href="/Register"
-                className="px-6 py-3 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
-              >
-                Register
-              </Link>
+          <div className="max-w-md mx-auto text-center py-12">
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+              <div className="mx-auto h-20 w-20 bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center mb-6">
+                <svg className="h-10 w-10 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-3">Login Diperlukan</h2>
+              <p className="text-slate-600 mb-8 leading-relaxed">
+                Anda harus login terlebih dahulu untuk melihat keranjang belanja. Silakan login untuk melanjutkan.
+              </p>
+              <div className="flex flex-col gap-3">
+                <Link
+                  href="/Login"
+                  className="px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all font-semibold shadow-md hover:shadow-lg active:scale-[0.98]"
+                >
+                  Masuk Sekarang
+                </Link>
+                <Link
+                  href="/Register"
+                  className="px-6 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-all font-semibold active:scale-[0.98]"
+                >
+                  Daftar Akun Baru
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -381,23 +383,27 @@ export default function CartPage() {
 
         <div className="container mx-auto px-4 py-8">
           {/* Empty Cart */}
-          <div className="text-center py-16">
-            <div className="mx-auto h-24 w-24 bg-slate-200 rounded-full flex items-center justify-center mb-6">
-              <svg className="h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-              </svg>
+          <div className="max-w-md mx-auto text-center py-12">
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+              <div className="mx-auto h-24 w-24 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mb-6">
+                <svg className="h-12 w-12 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <h1 className="text-2xl font-bold text-slate-800 mb-3">Keranjang Kosong</h1>
+              <p className="text-slate-600 mb-8 leading-relaxed">
+                Belum ada produk di keranjang Anda. Yuk mulai berbelanja dan temukan produk favorit!
+              </p>
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all font-semibold shadow-md hover:shadow-lg active:scale-[0.98]"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Mulai Berbelanja
+              </Link>
             </div>
-            <h1 className="text-2xl font-bold text-slate-800 mb-4">Your cart is empty</h1>
-            <p className="text-slate-600 mb-8">Looks like you haven&apos;t added any items to your cart yet.</p>
-            <Link
-              href="/"
-              className="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Mulai Berbelanja
-            </Link>
           </div>
         </div>
       </div>
@@ -422,14 +428,15 @@ export default function CartPage() {
             <div className="flex items-center gap-3">
               <Link 
                 href="/"
-                className="flex items-center text-white hover:text-blue-100 transition-colors group"
+                className="flex items-center gap-2 text-white hover:text-blue-100 transition-colors group"
               >
                 <svg className="w-6 h-6 md:w-5 md:h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
+                <span className="font-semibold text-sm md:text-base">Kembali</span>
               </Link>
-              <div className="w-px h-6 bg-blue-600"></div>
-              <h1 className="text-base md:text-lg font-bold text-white">Keranjang</h1>
+              <div className="hidden sm:block w-px h-6 bg-blue-600"></div>
+              <h1 className="hidden sm:block text-base md:text-lg font-bold text-white">Keranjang Belanja</h1>
             </div>
             
             {/* Right Actions - User Profile */}
@@ -440,140 +447,200 @@ export default function CartPage() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Cart Info */}
-        <div className="mb-6">
-          <p className="text-slate-600 text-sm md:text-base">
-            {cartItems.length} produk di keranjang • {selectedItems.size} terpilih
-          </p>
+      <div className="container mx-auto px-4 py-6 md:py-8">
+        {/* Cart Info Banner */}
+        <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-600 text-white rounded-full p-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">
+                  {cartItems.length} Produk di Keranjang
+                </p>
+                <p className="text-xs text-slate-600">
+                  {selectedItems.size} item terpilih untuk checkout
+                </p>
+              </div>
+            </div>
+            {cartItems.length > 0 && (
+              <div className="flex items-center gap-2 text-xs bg-white px-3 py-2 rounded-lg border border-slate-200">
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-semibold text-slate-700">Belanja aman & terpercaya</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Cart Items */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-slate-800">Produk di Keranjang</h2>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="select-all"
-                    checked={selectedItems.size === cartItems.length && cartItems.length > 0}
-                    onChange={toggleAllSelection}
-                    className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                  />
-                  <label htmlFor="select-all" className="text-sm font-medium text-slate-700 cursor-pointer">
-                    Pilih semua
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* Header with Select All */}
+              <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white">Produk di Keranjang</h2>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        id="select-all"
+                        checked={selectedItems.size === cartItems.length && cartItems.length > 0}
+                        onChange={toggleAllSelection}
+                        className="peer sr-only"
+                      />
+                      <div className="w-5 h-5 border-2 border-slate-100 rounded-md peer-checked:border-white peer-checked:bg-slate-100 transition-all duration-200 flex items-center justify-center group-hover:border-white relative">
+                        {/* Checkmark Icon - More Visible */}
+                        <svg 
+                          className="w-4 h-4 text-white scale-0 peer-checked:scale-100 transition-transform duration-200" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                          strokeWidth={4}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-50 group-hover:text-white transition-color">
+                      Pilih Semua
+                    </span>
                   </label>
                 </div>
               </div>
 
-              <div className="space-y-6">
+              {/* Cart Items List */}
+              <div className="divide-y divide-slate-200">
                 {cartItems.map((item) => (
                   <div 
                     key={item.id} 
-                    className={`flex items-center gap-4 p-4 border rounded-lg transition-all ${
+                    className={`p-4 transition-all duration-200 ${
                       selectedItems.has(item.id) 
-                        ? 'border-primary-300 bg-primary-50/30' 
-                        : 'border-slate-200 bg-slate-50/50 opacity-60'
+                        ? 'bg-blue-50/40 hover:bg-blue-50/60' 
+                        : 'bg-white hover:bg-slate-50/60 opacity-70'
                     }`}
                   >
-                    {/* Checkbox */}
-                    <div className="flex-shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.has(item.id)}
-                        onChange={() => toggleItemSelection(item.id)}
-                        className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500 cursor-pointer"
-                      />
-                    </div>
-
-                    {/* Product Image */}
-                    <div className="flex-shrink-0">
-                      <img
-                        src={item.product.image}
-                        alt={item.product.name}
-                        className="w-20 h-20 object-cover rounded-lg"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500'
-                        }}
-                      />
-                    </div>
-
-                    {/* Product Info */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-medium text-slate-800 truncate">
-                        {item.product.name}
-                      </h3>
-                      <p className="text-sm text-slate-600 truncate">
-                        {item.product.description}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="inline-block bg-primary-100 text-primary-800 text-xs font-medium px-2 py-1 rounded">
-                          {item.product.category}
-                        </span>
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <svg
-                              key={i}
-                              className={`w-4 h-4 ${i < Math.floor(item.product.rating)
-                                ? 'text-yellow-400'
-                                : 'text-gray-300'
-                                }`}
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
+                    <div className="flex items-center gap-3 md:gap-4">
+                      {/* Custom Checkbox with Visible Checkmark */}
+                      <div className="flex-shrink-0">
+                        <label className="relative cursor-pointer group block">
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.has(item.id)}
+                            onChange={() => toggleItemSelection(item.id)}
+                            className="peer sr-only"
+                          />
+                          <div className="w-5 h-5 border-2 border-slate-400 rounded-md peer-checked:border-primary-600 peer-checked:bg-primary-600 transition-all duration-200 flex items-center justify-center group-hover:border-primary-500 group-hover:shadow-sm relative">
+                            {/* Checkmark Icon - More Visible */}
+                            <svg 
+                              className="w-4 h-4 text-white scale-0 peer-checked:scale-100 transition-transform duration-200" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                              strokeWidth={4}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                             >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              <polyline points="20 6 9 17 4 12" />
                             </svg>
-                          ))}
-                          <span className="ml-1 text-sm text-slate-600">
-                            {(item.product.rating || 0).toFixed(1)}
-                          </span>
+                          </div>
+                        </label>
+                      </div>
+
+                      {/* Product Image - Compact */}
+                      <div className="flex-shrink-0">
+                        <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+                          <img
+                            src={item.product.image}
+                            alt={item.product.name}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Product Info & Controls - Compact */}
+                      <div className="flex-1 min-w-0">
+                        {/* Top Row: Product Details, Quantity Controls, Delete Button */}
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          {/* Left: Product Details */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm md:text-base font-bold text-slate-900 mb-1 line-clamp-2 hover:text-primary-600 transition-colors cursor-pointer">
+                              {item.product.name}
+                            </h3>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
+                                {item.product.category}
+                              </span>
+                            </div>
+                            {/* Harga Per Item - Subtle */}
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-xs text-slate-500 font-medium">harga satuan: {formatPrice(item.product.price)}</span>
+                            </div>
+                          </div>
+
+                          {/* Right: Quantity Controls & Delete Button */}
+                          <div className="flex justify-between items-center gap-5">
+                            {/* Quantity Controls */}
+                            <div className="flex-shrink-0">
+                              <div className="flex items-center gap-1.5 bg-white rounded-lg p-1 border border-slate-300 shadow-sm">
+                                <button
+                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                  className="w-7 h-7 rounded-md bg-slate-50 hover:bg-primary-600 hover:text-white text-slate-700 flex items-center justify-center transition-all duration-200 active:scale-95 font-bold"
+                                  aria-label="Kurangi jumlah"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+                                  </svg>
+                                </button>
+                                <span className="w-8 text-center font-bold text-slate-800 text-sm">{item.quantity}</span>
+                                <button
+                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                  className="w-7 h-7 rounded-md bg-slate-50 hover:bg-primary-600 hover:text-white text-slate-700 flex items-center justify-center transition-all duration-200 active:scale-95 font-bold"
+                                  aria-label="Tambah jumlah"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Delete Button */}
+                            <button
+                              onClick={() => removeItem(item.id)}
+                              className="w-8 h-8 flex-shrink-0 rounded-lg bg-red-50 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition-all duration-200 border border-red-200 hover:border-red-500 active:scale-95"
+                              aria-label="Hapus produk"
+                              title="Hapus dari keranjang"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Bottom Row: Total Price Only */}
+                        <div className="pt-3 border-t border-slate-200">
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Total Harga</span>
+                            <span className="text-base md:text-lg font-bold text-primary-700">
+                              {formatPrice(item.product.price * item.quantity)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-
-                    {/* Quantity Controls */}
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="w-10 h-10 rounded-full bg-primary-100 hover:bg-primary-200 text-primary-600 hover:text-primary-700 flex items-center justify-center transition-colors border border-primary-200"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-                        </svg>
-                      </button>
-                      <span className="w-12 text-center font-semibold text-slate-800 text-lg">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="w-10 h-10 rounded-full bg-primary-100 hover:bg-primary-200 text-primary-600 hover:text-primary-700 flex items-center justify-center transition-colors border border-primary-200"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* Price */}
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-slate-800">
-                        {formatPrice(item.product.price * item.quantity)}
-                      </p>
-                      <p className="text-sm text-slate-600">
-                        {formatPrice(item.product.price)} /produk
-                      </p>
-                    </div>
-
-                    {/* Remove Button */}
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="text-red-500 hover:text-red-700 transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
                   </div>
                 ))}
               </div>
@@ -582,47 +649,116 @@ export default function CartPage() {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-8">
-              <h2 className="text-xl font-semibold text-slate-800 mb-6">Ringkasan Pesanan</h2>
-
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Subtotal</span>
-                  <span className="font-medium">{formatPrice(subtotal)}</span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Pengiriman</span>
-                  <span className="font-medium">{subtotal > 1000000 ? 'Gratis' : formatPrice(shipping)}</span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Pajak (11%)</span>
-                  <span className="font-medium">{formatPrice(tax)}</span>
-                </div>
-
-                <div className="border-t border-slate-200 pt-4">
-                  <div className="flex justify-between">
-                    <span className="text-lg font-semibold text-slate-800">Total</span>
-                    <span className="text-lg font-semibold text-slate-800">{formatPrice(total)}</span>
-                  </div>
-                </div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-24">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Ringkasan Pesanan
+                </h2>
               </div>
 
-              <button
-                onClick={handleCheckout}
-                disabled={loading || selectedItems.size === 0}
-                className="w-full mt-6 bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Processing...' : `Checkout (${selectedItems.size} item${selectedItems.size !== 1 ? '' : ''})`}
-              </button>
+              {/* Summary Details */}
+              <div className="p-6 space-y-4">
+                {/* Item Count */}
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-600">Item Terpilih</span>
+                    <span className="text-lg font-bold text-primary-700">{selectedItems.size} produk</span>
+                  </div>
+                </div>
 
-              <Link
-                href="/"
-                className="block w-full mt-3 text-center text-primary-600 hover:text-primary-700 font-medium transition-colors"
-              >
-                Lanjutkan Belanja
-              </Link>
+                {/* Price Breakdown */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600">Subtotal</span>
+                    <span className="font-semibold text-slate-800">{formatPrice(subtotal)}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600">Pengiriman</span>
+                    <span className="font-semibold text-slate-800">
+                      {subtotal > 1000000 ? (
+                        <span className="text-green-600 font-bold flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Gratis
+                        </span>
+                      ) : (
+                        formatPrice(shipping)
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center pb-3">
+                    <span className="text-sm text-slate-600">Pajak (11%)</span>
+                    <span className="font-semibold text-slate-800">{formatPrice(tax)}</span>
+                  </div>
+
+                  {/* Total */}
+                  <div className="border-t-2 border-slate-200 pt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-base font-bold text-slate-800">Total Pembayaran</span>
+                      <span className="text-2xl font-bold text-primary-700">{formatPrice(total)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Free Shipping Info */}
+                {subtotal < 1000000 && subtotal > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-4">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-semibold text-amber-800">Gratis Ongkir!</p>
+                        <p className="text-xs text-amber-700 mt-0.5">
+                          Belanja {formatPrice(1000000 - subtotal)} lagi untuk gratis ongkir
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="px-6 pb-6 space-y-3">
+                <button
+                  onClick={handleCheckout}
+                  disabled={loading || selectedItems.size === 0}
+                  className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white py-3.5 px-4 rounded-lg font-bold hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Memproses...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      <span>Lanjut ke Pembayaran</span>
+                    </>
+                  )}
+                </button>
+
+                <Link
+                  href="/"
+                  className="block w-full text-center py-3 px-4 border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 font-semibold rounded-lg transition-all duration-200 active:scale-[0.98]"
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Lanjutkan Belanja
+                  </span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
