@@ -7,6 +7,7 @@ import { ShoppingCart, Heart, Lock } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import PopupAlert from '../../components/PopupAlert'
 import { usePopupAlert } from '../../hooks/usePopupAlert'
+import UserProfileDropdown from '@/components/UserProfileDropdown'
 
 interface Product {
   id: number
@@ -494,6 +495,7 @@ function ProductDetailPageContent() {
       <div className="sticky top-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 border-b border-blue-700 shadow-lg">
         <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
+            {/* Back Button - Left */}
             <Link 
               href="/"
               className="flex items-center gap-2 text-white hover:text-white transition-colors group"
@@ -504,18 +506,37 @@ function ProductDetailPageContent() {
               <span className="font-medium text-sm">Kembali</span>
             </Link>
             
-            <Link
-              href="/cart"
-              className="relative flex items-center gap-2 px-3 md:px-4 py-2 text-white hover:bg-blue-700 rounded-lg transition-colors text-sm font-medium"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              <span>Keranjang</span>
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-yellow-400 text-blue-900 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {cartCount}
-                </span>
+            {/* Right Actions - Cart & Profile */}
+            <div className="flex items-center gap-2 md:gap-4">
+              {/* Cart Button */}
+              <Link
+                href="/cart"
+                className="relative flex items-center gap-2 px-3 md:px-4 py-2 text-blue-100 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                <ShoppingCart className="w-6 h-6" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-yellow-400 text-blue-900 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartCount > 9 ? '9+' : cartCount}
+                  </span>
+                )}
+                <span className="hidden md:inline text-sm font-medium">Keranjang</span>
+              </Link>
+
+              {/* User Profile / Login */}
+              {isLoggedIn && user ? (
+                <UserProfileDropdown user={user} />
+              ) : (
+                <Link
+                  href="/Login"
+                  className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-blue-900 text-sm font-bold rounded-lg hover:bg-yellow-300 transition-colors shadow-md"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                  </svg>
+                  <span className="hidden sm:inline">Masuk</span>
+                </Link>
               )}
-            </Link>
+            </div>
           </div>
         </div>
       </div>
