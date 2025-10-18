@@ -433,11 +433,44 @@ export const dbHelpers = {
 
   async addReview(review: ReviewInsert) {
     try {
-      return await supabase
-        .from('reviews')
-        .insert(review)
-        .select()
-        .single();
+      const client = supabaseAdmin;
+      const tryInsert = async (payload: any) => {
+        return await client.from('reviews').insert(payload).select().single();
+      };
+
+      let payload: any = { ...review };
+      let { data, error } = await tryInsert(payload);
+
+      // Fallback untuk skema lama: comment->content, hapus user_name, hapus order_* jika kolom tidak tersedia
+      if (error) {
+        const mkMsg = (err: any) => `${err?.message || ''} ${err?.details || ''}`.toLowerCase();
+        let msg = mkMsg(error);
+
+        // 1) Gunakan kolom legacy 'content' jika 'comment' tidak ada
+        if (msg.includes('comment') && !msg.includes('constraint')) {
+          const { comment, ...rest } = payload;
+          payload = { ...rest, content: comment };
+          ({ data, error } = await tryInsert(payload));
+          msg = error ? mkMsg(error) : '';
+        }
+
+        // 2) Hapus user_name jika kolom tidak ada
+        if (error && msg.includes('user_name')) {
+          const { user_name, ...rest } = payload;
+          payload = { ...rest };
+          ({ data, error } = await tryInsert(payload));
+          msg = error ? mkMsg(error) : '';
+        }
+
+        // 3) Hapus order_id/order_item_id jika kolom tidak ada
+        if (error && (msg.includes('order_id') || msg.includes('order_item_id'))) {
+          const { order_id, order_item_id, ...rest } = payload;
+          payload = { ...rest };
+          ({ data, error } = await tryInsert(payload));
+        }
+      }
+
+      return { data, error };
     } catch (error) {
       return { data: null, error };
     }
@@ -675,7 +708,7 @@ export const dbHelpers = {
 
         let q;
         if (filters?.customerEmail) {
-          q = supabase
+          q = supabaseAdmin
             .from('orders')
             .select(`
               *,
@@ -692,7 +725,7 @@ export const dbHelpers = {
             `)
             .eq('users.email', filters.customerEmail);
         } else {
-          q = supabase
+          q = supabaseAdmin
             .from('orders')
             .select(`
               *,
@@ -753,7 +786,7 @@ export const dbHelpers = {
   }, items?: { productId: number; productName: string; quantity: number; price: number }[]) {
     try {
       // Create the order first
-      const { data: order, error: orderError } = await supabase
+      const { data: order, error: orderError } = await supabaseAdmin
         .from('orders')
         .insert(orderData)
         .select()
@@ -774,7 +807,7 @@ export const dbHelpers = {
           price: item.price
         }));
 
-        const { error: itemsError } = await supabase
+        const { error: itemsError } = await supabaseAdmin
           .from('order_items')
           .insert(orderItems);
 

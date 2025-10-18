@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbHelpers, ApiResponse, supabase } from '../../../lib/supabase';
+export const dynamic = 'force-dynamic';
 
 // Normalisasi URL/path avatar menjadi public URL yang valid dari bucket 'product-images'
 const resolveAvatarUrlForApi = (raw: string | null, name: string): string => {
@@ -119,12 +120,14 @@ export async function GET(request: NextRequest) {
 
       return {
         id: order.id,
+        order_number: order.order_number,
         customerName: name,
         customerEmail: user?.email || '',
         customerPhone: '', // Phone tidak tersedia di tabel users
         userId: user?.id || undefined,
         userAvatar: avatarUrl,
         items: order.order_items || [], // Use the order_items dari join
+        order_items: order.order_items || [],
         totalAmount: order.total_amount,
         status: order.status,
         shippingAddress: {

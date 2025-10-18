@@ -8,14 +8,14 @@ export const getApiUser = (request: NextRequest) => {
         const userRole = request.headers.get('user-role');
         const userEmail = request.headers.get('user-email');
 
-        if (!userId || !userRole || !userEmail) {
+        if (!userId || !userRole) {
             return null;
         }
 
         return {
-            id: parseInt(userId),
+            id: userId, // keep as string for Supabase UUID compatibility
             role: userRole,
-            email: userEmail
+            email: userEmail || undefined,
         };
     } catch (error) {
         console.error('Error parsing API user data:', error);
@@ -42,17 +42,28 @@ export const requireApiAdmin = (request: NextRequest) => {
 // Alternative: Get user from cookie (for server-side)
 export const getCookieUser = (request: NextRequest) => {
     try {
-        const authToken = request.cookies.get('auth-token')?.value;
-        if (!authToken) return null;
+        // Support three cookie variants to avoid mismatch across pages
+        const generalToken = request.cookies.get('auth-token')?.value;
+        const userToken = request.cookies.get('user-auth-token')?.value;
+        const adminToken = request.cookies.get('admin-auth-token')?.value;
 
-        const user = JSON.parse(authToken);
+        const rawToken = generalToken || userToken || adminToken;
+        if (!rawToken) return null;
 
-        // Validate user data structure
-        if (!user.id || !user.email || !user.role) {
+        const parsed: any = JSON.parse(rawToken);
+
+        // Normalize shape: accept supabase user object or our app user
+        const id = typeof parsed.id === 'string' ? parsed.id : parsed.id;
+        const role = parsed.role || (adminToken ? 'admin' : (userToken ? 'user' : undefined));
+        const email = parsed.email || parsed.user?.email || undefined;
+        const name = parsed.name || parsed.user?.user_metadata?.name || parsed.user?.user_metadata?.full_name || parsed.user?.email?.split('@')[0] || undefined;
+
+        // Minimal validation: id + role required (email optional)
+        if (!id || !role) {
             return null;
         }
 
-        return user;
+        return { id, role, email, name } as { id: string | number; role: string; email?: string; name?: string };
     } catch (error) {
         console.error('Error parsing cookie user data:', error);
         return null;

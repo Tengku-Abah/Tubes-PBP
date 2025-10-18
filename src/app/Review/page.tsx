@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Star, Package } from "lucide-react";
 import PopupAlert from "../../components/PopupAlert";
 import { usePopupAlert } from "../../hooks/usePopupAlert";
+import { getAuthHeaders } from "../../lib/auth";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -20,18 +21,68 @@ export default function ReviewPage() {
   const orderId = searchParams.get("orderId");
   const orderItemId = searchParams.get("orderItemId");
 
-  // TODO: Get actual product data from API based on productId
-  // For now using placeholder data
-  const product = {
-    id: searchParams.get("productId") || "1",
-    name: "Wireless Headphones XYZ Premium Edition",
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
-    price: 299000,
-    variant: "Black, Medium"
-  };
+  // Derive product params so changes in query immediately reflect in UI
+  const productIdParam = searchParams.get("productId") || "";
+  const productNameParam = searchParams.get("productName") || "Produk";
+  const productPriceParam = Number(searchParams.get("productPrice") || 0);
+  const productImageParam = searchParams.get("productImage");
+  const categoryParam = searchParams.get("category") ?? searchParams.get("variant") ?? "—";
 
-  const wordCount = review.trim().split(/\s+/).filter(word => word.length > 0).length;
-  const isValidReview = wordCount >= 10 && rating > 0;
+  // Product state sourced from URL params and kept in sync on navigation
+  const defaultImage = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400";
+  const [product, setProduct] = useState({
+    id: productIdParam,
+    name: productNameParam,
+    image: productImageParam || defaultImage,
+    price: productPriceParam,
+    category: "",
+  });
+
+  // Synchronize product state whenever specific URL params change
+  useEffect(() => {
+    setProduct(prev => ({
+      ...prev,
+      id: productIdParam,
+      name: productNameParam,
+      image: productImageParam || prev.image || defaultImage,
+      price: productPriceParam,
+      category: prev.category,
+    }));
+  }, [productIdParam, productNameParam, productPriceParam, productImageParam, categoryParam]);
+
+  // Fetch product details (image/name/price) when productId changes if image not provided
+  useEffect(() => {
+    if (!productIdParam) return;
+    let cancelled = false;
+
+    const fetchProduct = async () => {
+      try {
+        const res = await fetch(`/api/product?id=${productIdParam}`, { cache: 'no-store' });
+        const json = await res.json();
+        if (!cancelled && json?.success && json.data) {
+          const img = json.data.image;
+          const name = json.data.name;
+          const price = json.data.price;
+          const category = json.data.category;
+          setProduct(prev => ({
+            ...prev,
+            image: img || prev.image,
+            name: typeof name === 'string' ? name : prev.name,
+            price: typeof price === 'number' ? price : prev.price,
+            category: typeof category === 'string' && category.trim().length > 0 ? category : prev.category,
+          }));
+        }
+      } catch (_) {
+        // ignore
+      }
+    };
+
+    fetchProduct();
+    return () => { cancelled = true; };
+  }, [productIdParam]);
+
+  const wordCount = review.trim().split(/\s+/).filter((word) => word.length > 0).length;
+  const isValidReview = wordCount >= 5 && rating > 0;
 
   const handleSubmit = async () => {
     if (!isValidReview) {
@@ -39,8 +90,8 @@ export default function ReviewPage() {
         showWarning("Silakan berikan rating untuk produk ini");
         return;
       }
-      if (wordCount < 10) {
-        showWarning("Ulasan minimal 10 kata. Saat ini: " + wordCount + " kata");
+      if (wordCount < 5) {
+        showWarning("Ulasan minimal 5 kata. Saat ini: " + wordCount + " kata");
         return;
       }
       return;
@@ -50,14 +101,14 @@ export default function ReviewPage() {
     try {
       const response = await fetch('/api/reviews', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({
-          productId: product.id,
-          orderId: orderId,
-          orderItemId: orderItemId,
+          productId: Number(product.id),
+          orderId: orderId ? Number(orderId) : undefined,
+          orderItemId: orderItemId ? Number(orderItemId) : undefined,
           rating,
-          comment: review
-        })
+          comment: review.trim(),
+        }),
       });
 
       const data = await response.json();
@@ -144,7 +195,7 @@ export default function ReviewPage() {
                 {formatPrice(product.price)}
               </p>
               <p className="text-sm text-gray-600">
-                Varian: <span className="font-medium text-gray-800">{product.variant}</span>
+                Kategori: <span className="font-medium text-gray-800">{product.category || '—'}</span>
               </p>
             </div>
           </div>
@@ -198,7 +249,7 @@ export default function ReviewPage() {
             Ulasan Anda
           </h2>
           <p className="text-sm text-gray-600 mb-4">
-            Ceritakan pengalaman Anda dengan produk ini (minimal 10 kata)
+            Ceritakan pengalaman Anda dengan produk ini (minimal 5 kata)
           </p>
 
           <textarea
@@ -212,14 +263,18 @@ export default function ReviewPage() {
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-3">
               <span
+<<<<<<< HEAD
                 className={`text-sm font-medium ${wordCount >= 10 ? "text-green-600" : "text-orange-600"
+=======
+                className={`text-sm font-medium ${wordCount >= 5 ? "text-green-600" : "text-orange-600"
+>>>>>>> 4871d41 (local: Review page fixes + auth headers + category sync)
                   }`}
               >
                 {wordCount} kata
               </span>
-              {wordCount < 10 && (
+              {wordCount < 5 && (
                 <span className="text-xs text-gray-500">
-                  (minimal 10 kata)
+                  (minimal 5 kata)
                 </span>
               )}
             </div>
@@ -233,59 +288,34 @@ export default function ReviewPage() {
             <div className="mt-3">
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
+<<<<<<< HEAD
                   className={`h-full transition-all duration-300 ${wordCount >= 10 ? "bg-green-500" : "bg-orange-500"
                     }`}
                   style={{ width: `${Math.min((wordCount / 10) * 100, 100)}%` }}
+=======
+                  className={`h-full transition-all duration-300 ${wordCount >= 5 ? "bg-green-500" : "bg-orange-500"
+                    }`}
+                  style={{ width: `${Math.min((wordCount / 5) * 100, 100)}%` }}
+>>>>>>> 4871d41 (local: Review page fixes + auth headers + category sync)
                 />
               </div>
             </div>
           )}
-        </div>
 
-        {/* Section 4: Action Buttons */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={() => router.back()}
-              disabled={submitting}
-              className="flex-1 py-3 px-6 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Kembali
-            </button>
+          {/* Submit button */}
+          <div className="mt-6">
             <button
               onClick={handleSubmit}
-              disabled={!isValidReview || submitting}
-              className="flex-1 py-3 px-6 rounded-xl font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400 shadow-lg hover:shadow-xl"
+              disabled={submitting}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  Mengirim...
-                </span>
-              ) : (
-                "Kirim Ulasan"
-              )}
+              {submitting ? "Mengirim..." : "Kirim Ulasan"}
             </button>
           </div>
-
-          {/* Validation hints */}
-          {!isValidReview && (review.length > 0 || rating > 0) && (
-            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-              <p className="text-sm text-orange-800 font-medium mb-1">
-                ⚠️ Lengkapi ulasan Anda:
-              </p>
-              <ul className="text-xs text-orange-700 space-y-1 ml-4 list-disc">
-                {rating === 0 && <li>Berikan rating (bintang)</li>}
-                {wordCount < 10 && (
-                  <li>Tulis ulasan minimal 10 kata (saat ini: {wordCount} kata)</li>
-                )}
-              </ul>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Popup Alert */}
+      {/* PopupAlert for verification feedback */}
       <PopupAlert
         isOpen={alertState.isOpen}
         type={alertState.type}
@@ -293,13 +323,6 @@ export default function ReviewPage() {
         message={alertState.message}
         onClose={hideAlert}
         onConfirm={alertState.onConfirm}
-        showConfirmButton={alertState.showConfirmButton}
-        confirmText={alertState.confirmText}
-        showCancelButton={alertState.showCancelButton}
-        cancelText={alertState.cancelText}
-        onCancel={alertState.onCancel}
-        autoClose={alertState.autoClose}
-        autoCloseDelay={alertState.autoCloseDelay}
       />
     </div>
   );

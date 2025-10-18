@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Package, Calendar, MapPin, CreditCard, Truck, CheckCircle, Clock, ArrowLeft, ShoppingBag } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
 import { getCurrentUser, requireAuth } from '../../lib/auth';
 import { useRouter } from 'next/navigation';
 import PopupAlert from '../../components/PopupAlert';
@@ -75,31 +74,34 @@ export default function OrderView() {
     
     setLoading(true);
     try {
-      // Get orders with order items
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items (
-            id,
-            product_id,
-            product_name,
-            quantity,
-            price
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const url = `/api/orders?customerEmail=${encodeURIComponent(user.email)}&limit=50&page=1`;
+      const res = await fetch(url, { cache: 'no-store' });
+      const json = await res.json();
 
-      if (ordersError) {
-        console.error('Error loading orders:', ordersError);
+      if (!json?.success) {
+        console.error('Error loading orders via API:', json?.message);
         showError('Gagal memuat data pesanan');
         return;
       }
 
-      setOrders(ordersData || []);
-      if (ordersData && ordersData.length > 0) {
-        setSelectedOrder(ordersData[0]);
+      const ordersData = (json.data || []) as any[];
+      const mapped: Order[] = ordersData.map((o: any) => ({
+        id: o.id,
+        order_number: o.order_number || o.orderNumber || `ORD-${o.id}`,
+        user_id: o.userId || user.id,
+        total_amount: Number(o.totalAmount ?? 0),
+        status: o.status,
+        shipping_address: (o.shippingAddress && (o.shippingAddress.street || o.shippingAddress)) || '',
+        payment_method: o.paymentMethod || 'cash_on_delivery',
+        payment_status: o.paymentStatus || 'pending',
+        created_at: o.orderDate || new Date().toISOString(),
+        updated_at: o.orderDate || new Date().toISOString(),
+        order_items: o.order_items || o.items || []
+      }));
+
+      setOrders(mapped);
+      if (mapped.length > 0) {
+        setSelectedOrder(mapped[0]);
       }
     } catch (error) {
       console.error('Error loading orders:', error);
@@ -193,8 +195,19 @@ export default function OrderView() {
   };
 
   const handleSelectProductForReview = (item: OrderItem) => {
+    if (!selectedOrder) return;
     setReviewOpen(false);
-    router.push(`/Detail?id=${item.product_id}`);
+
+    const params = new URLSearchParams({
+      orderId: String(selectedOrder.id),
+      orderItemId: String(item.id),
+      productId: String(item.product_id),
+      productName: item.product_name,
+      quantity: String(item.quantity),
+      productPrice: String(item.price)
+    });
+
+    router.push(`/Review?${params.toString()}`);
   };
 
   if (loading) {
@@ -209,7 +222,7 @@ export default function OrderView() {
   }
 
   if (!user) {
-    return null; // Will redirect to login
+    return null; 
   }
 
   return (
@@ -412,7 +425,7 @@ export default function OrderView() {
                   </div>
 
                   {/* Action Button */}
-                  <div className="relative mt-6" tabIndex={0} onBlur={() => setReviewOpen(false)}>
+                  <div className="relative mt-6">
                     <button
                       onClick={handleGoToReview}
                       className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg"

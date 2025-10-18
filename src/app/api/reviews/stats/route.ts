@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbHelpers, ApiResponse, supabase } from '../../../../lib/supabase';
 
+export const dynamic = 'force-dynamic';
+
 // Normalisasi URL/path avatar menjadi public URL yang valid
 const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
 const resolveAvatarUrlForApi = (raw: string | null | undefined, name: string): string => {

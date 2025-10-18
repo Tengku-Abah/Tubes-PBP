@@ -43,13 +43,15 @@ export const requireAdmin = () => {
 };
 
 // Secure API headers helper
-export const getAuthHeaders = () => {
+export const getAuthHeaders = (): Record<string, string> => {
     const user = getCurrentUser();
-    if (!user) return {};
 
-    return {
-        'user-id': user.id.toString(),
-        'user-role': user.role,
-        'user-email': user.email
-    };
+    const headers: Record<string, string> = {};
+    if (!user) return headers;
+
+    headers['user-id'] = String(user.id);
+    headers['user-role'] = String(user.role);
+    if (user.email) headers['user-email'] = String(user.email);
+
+    return headers;
 };

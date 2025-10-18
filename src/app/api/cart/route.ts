@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbHelpers, ApiResponse } from '../../../lib/supabase';
+import { dbHelpers, } from '../../../lib/supabase';
 
 // Cart item interface for API response
 interface CartItemResponse {
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add item to cart using helper function
-    const { data, error } = await dbHelpers.addToCart(userId, productId, quantity);
+    const {  error } = await dbHelpers.addToCart(userId, productId, quantity);
 
     if (error) {
       console.error('Add to cart error:', error);

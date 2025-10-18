@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbHelpers, ApiResponse, supabase } from '../../../lib/supabase';
-import { getCookieUser } from '../../../lib/api-auth';
+import { dbHelpers, ApiResponse, supabase, supabaseAdmin } from '../../../lib/supabase';
+import { getCookieUser, getApiUser } from '../../../lib/api-auth';
+
+export const dynamic = 'force-dynamic';
 
 // Normalisasi URL/path avatar menjadi public URL yang valid
 const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
@@ -170,13 +172,16 @@ export async function GET(request: NextRequest) {
 // POST endpoint untuk menambah ulasan baru
 export async function POST(request: NextRequest) {
     try {
-        // Get authenticated user
-        const user = getCookieUser(request);
+        // Get authenticated user (cookie first, then header fallback)
+        let user = getCookieUser(request) as any;
         if (!user) {
-            return NextResponse.json(
-                { success: false, message: 'Authentication required' },
-                { status: 401 }
-            );
+          user = getApiUser(request);
+        }
+        if (!user) {
+          return NextResponse.json(
+            { success: false, message: 'Authentication required' },
+            { status: 401 }
+          );
         }
 
         const body = await request.json();
@@ -205,7 +210,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (comment.trim().length < 10) {
+        if (String(comment).trim().length < 10) {
             return NextResponse.json(
                 { success: false, message: 'Comment must be at least 10 characters long' },
                 { status: 400 }
@@ -231,7 +236,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Verify order belongs to user
-            const { data: order } = await supabase
+            const { data: order } = await supabaseAdmin
                 .from('orders')
                 .select('id, user_id')
                 .eq('id', parseInt(orderId))
@@ -246,7 +251,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Verify order item exists and belongs to the order
-            const { data: orderItem } = await supabase
+            const { data: orderItem } = await supabaseAdmin
                 .from('order_items')
                 .select('id, product_id, order_id')
                 .eq('id', parseInt(orderItemId))
@@ -296,6 +301,7 @@ export async function POST(request: NextRequest) {
 
         // Tentukan avatar yang akan disimpan: prioritas body.userAvatar -> users.user_avatar -> ui-avatars
         let avatarToPersist: string | null | undefined = userAvatar;
+        let nameFromDb: string | undefined;
         if (!avatarToPersist) {
             const { data: userRow } = await supabase
                 .from('users')
@@ -303,16 +309,21 @@ export async function POST(request: NextRequest) {
                 .eq('id', user.id)
                 .single();
             avatarToPersist = userRow?.user_avatar || null;
+            nameFromDb = userRow?.name || undefined;
         }
+
+        const nameToPersist = (user?.name as string | undefined) || nameFromDb || 'User';
 
         const reviewData: any = {
             product_id: parseInt(productId),
             user_id: user.id,
-            user_name: user.name,
-            user_avatar: avatarToPersist || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`,
+            user_name: nameToPersist,
+            user_avatar:
+              avatarToPersist ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(nameToPersist)}&background=random`,
             rating: parseInt(rating),
-            comment: comment.trim(),
-            verified: false
+            comment: String(comment).trim(),
+            verified: false,
         };
 
         // Add order context if provided

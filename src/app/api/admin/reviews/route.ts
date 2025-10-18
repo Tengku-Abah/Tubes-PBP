@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbHelpers, ApiResponse, supabase } from '../../../../lib/supabase';
 import { requireApiAdmin, getCookieUser } from '../../../../lib/api-auth';
 
+export const dynamic = 'force-dynamic';
+
 // Interface untuk Admin Review Management
 interface AdminReviewResponse {
     id: number;
