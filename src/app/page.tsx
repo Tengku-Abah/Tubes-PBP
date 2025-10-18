@@ -6,7 +6,6 @@ import ProductCard from '../components/cardproduk'
 import ProductFilter from '../components/ProductFilter'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { useToast } from '../components/Toast'
-import { logout } from '../lib/logout'
 import Link from 'next/link'
 import { LayoutDashboard, Package, ShoppingCart, Users, TrendingUp, Settings, Menu, X, Zap, LogOut, Tags } from 'lucide-react';
 import UserProfileDropdown from '../components/UserProfileDropdown'

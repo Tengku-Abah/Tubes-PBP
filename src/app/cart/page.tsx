@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { calculateSubtotal, calculateShipping, calculateTotal } from '../../lib/cartUtils'
 import { getCurrentUser } from '../../lib/auth'
+import PopupAlert from '../../components/PopupAlert'
+import { usePopupAlert } from '../../hooks/usePopupAlert'
 
 // Cart item interface
 interface CartItem {
@@ -31,6 +33,7 @@ export default function CartPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
+  const { alertState, showError, showWarning, showSuccess, hideAlert } = usePopupAlert()
 
   // Check login status
   useEffect(() => {
@@ -187,7 +190,7 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (selectedItems.size === 0) {
-      alert('Please select at least one item to checkout')
+      showError('Please select at least one item to checkout', 'Checkout')
       return
     }
 

@@ -151,8 +151,11 @@ export default function CheckoutPage() {
             const allowed = sessionStorage.getItem('checkout_allowed') === '1'
             const currentUser = getCurrentUser()
             if (!allowed || !currentUser) {
-                alert('Checkout not allowed. Please return to cart and try again.')
-                router.push('/cart')
+                showError(
+                    'Checkout tidak diizinkan. Kembali ke cart dan coba lagi.',
+                    'Checkout Tidak Diizinkan',
+                    () => router.push('/cart')
+                )
                 return
             }
 
@@ -176,8 +179,11 @@ export default function CheckoutPage() {
             const finalItems = itemsFromCart.length > 0 ? itemsFromCart : itemsFromSummary
 
             if (finalItems.length === 0) {
-                alert('Cart kosong. Kembali ke cart untuk menambahkan item.')
-                router.push('/cart')
+                showError(
+                    'Cart kosong. Kembali ke cart untuk menambahkan item.',
+                    'Keranjang Kosong',
+                    () => router.push('/cart')
+                )
                 return
             }
 
