@@ -214,6 +214,26 @@ const AdminPanel = () => {
     }
   };
 
+  // Fungsi untuk menampilkan status dalam Bahasa Indonesia
+const getStatusText = (status: string): string => {
+  switch (status) {
+    case "pending":
+      return "Menunggu";
+    case "processing":
+      return "Diproses";
+    case "shipped":
+      return "Dikirim";
+    case "delivered":
+      return "Diterima";
+    case "completed":
+      return "Selesai";
+    case "cancelled":
+      return "Dibatalkan";
+    default:
+      return status;
+  }
+};
+
   const handleNextStatus = (order: Order) => {
     const next = getForwardStatus(order.status);
     if (!next) {
@@ -1091,12 +1111,12 @@ const AdminPanel = () => {
         {/* === Tabs Filter Section === */}
         <div className="flex items-center gap-6 border-b border-gray-200 pb-2">
           {[
-            { key: 'all', label: 'All Orders', color: 'bg-orange-500' },
-            { key: 'pending', label: 'Pending', color: 'bg-yellow-400' },
-            { key: 'processing', label: 'Processing', color: 'bg-blue-400' },
-            { key: 'shipped', label: 'Shipped', color: 'bg-purple-400' },
-            { key: 'completed', label: 'Completed', color: 'bg-green-600' },
-            { key: 'cancelled', label: 'Cancelled', color: 'bg-red-400' },
+            { key: 'all', label: 'Semua', color: 'bg-orange-500' },
+            { key: 'pending', label: 'Menunggu', color: 'bg-yellow-400' },
+            { key: 'processing', label: 'Diproses', color: 'bg-blue-400' },
+            { key: 'shipped', label: 'Dikirim', color: 'bg-purple-400' },
+            { key: 'completed', label: 'Selesai', color: 'bg-green-600' },
+            { key: 'cancelled', label: 'Dibatalkan', color: 'bg-red-400' },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -1202,7 +1222,7 @@ const AdminPanel = () => {
                             : "bg-yellow-100 text-yellow-800"
                         }`}
                       >
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        {getStatusText(order.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.date}</td>
@@ -1240,13 +1260,14 @@ const AdminPanel = () => {
                         title={(() => {
                           const next = getForwardStatus(order.status);
                           if (order.status === "completed") return "Selesai";
-                          return next ? `Lanjut ke status: ${next.charAt(0).toUpperCase() + next.slice(1)}` : 'Status final';
+                          return next ? `Lanjut ke status: ${getStatusText(next)}` : 'Status final';
                         })()}
                       >
                         {(() => {
                           const next = getForwardStatus(order.status);
-                          if (order.status === "completed") return "Done";
-                          return next ? next.charAt(0).toUpperCase() + next.slice(1) : 'Cancelled';
+                          if (order.status === "completed") return "Selesai";
+                          if (order.status === "cancelled") return "Dibatalkan";
+                          return next ? getStatusText(next) : "Selesai";
                         })()}
                       </button>
                     </td>
