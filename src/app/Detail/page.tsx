@@ -431,19 +431,19 @@ function ProductDetailPageContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header - match home theme */}
-      <div className="sticky top-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 border-b border-blue-700 shadow-lg">
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 border-b border-blue-700 shadow-lg">
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 md:h-20">
             {/* Back Button - Left */}
             <Link 
               href="/"
-              className="flex items-center gap-2 text-white hover:text-white transition-colors group"
+              className="flex items-center gap-2 text-white hover:text-blue-100 transition-colors group"
             >
-              <svg className="w-5 h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 md:w-5 md:h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              <span className="font-medium text-sm">Kembali</span>
+              <span className="font-medium text-sm md:text-base">Kembali</span>
             </Link>
             
             {/* Right Actions - Cart & Profile */}
@@ -479,7 +479,7 @@ function ProductDetailPageContent() {
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Product Detail - Clean Modern Layout */}
       <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-8">

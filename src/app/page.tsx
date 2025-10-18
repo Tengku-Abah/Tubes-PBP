@@ -398,11 +398,9 @@ export default function HomePage() {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Brand Logo */}
-            <Link href="/" className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Zap className="w-8 h-8 text-yellow-400" />
-                <span className="font-bold text-lg text-white">OctaMart</span>
-              </div>
+            <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+              <Zap className="w-7 h-7 md:w-8 md:h-8 text-yellow-400" />
+              <span className="font-bold text-base md:text-lg text-white">OctaMart</span>
             </Link>
 
             {/* Search Bar - Desktop */}

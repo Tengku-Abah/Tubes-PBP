@@ -7,6 +7,7 @@ import { calculateSubtotal, calculateShipping, calculateTotal } from '../../lib/
 import { getCurrentUser } from '../../lib/auth'
 import PopupAlert from '../../components/PopupAlert'
 import { usePopupAlert } from '../../hooks/usePopupAlert'
+import UserProfileDropdown from '@/components/UserProfileDropdown'
 
 // Cart item interface
 interface CartItem {
@@ -264,19 +265,51 @@ export default function CartPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="container mx-auto px-4 py-8">
-          {/* Back to Home Button */}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors mb-8"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            <span className="font-medium">Back to Home</span>
-          </Link>
+      <div className="min-h-screen bg-gray-50">
+        <PopupAlert
+          isOpen={alertState.isOpen}
+          type={alertState.type}
+          title={alertState.title}
+          message={alertState.message}
+          onClose={hideAlert}
+        />
+        
+        {/* Header */}
+        <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 border-b border-blue-700 shadow-lg">
+          <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 md:h-20">
+              {/* Back Button & Title */}
+              <div className="flex items-center gap-3">
+                <Link 
+                  href="/"
+                  className="flex items-center gap-2 text-white hover:text-blue-100 transition-colors group"
+                >
+                  <svg className="w-6 h-6 md:w-5 md:h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span className="font-medium text-sm md:text-base">Kembali</span>
+                </Link>
+                <div className="hidden sm:block w-px h-6 bg-blue-600"></div>
+                <h1 className="hidden sm:block text-base md:text-lg font-bold text-white">Keranjang</h1>
+              </div>
+              
+              {/* Right Actions - Login Button */}
+              <div className="flex items-center gap-2 md:gap-4">
+                <Link
+                  href="/Login"
+                  className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-blue-900 text-sm font-bold rounded-lg hover:bg-yellow-300 transition-colors shadow-md"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                  </svg>
+                  <span className="hidden sm:inline">Masuk</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </header>
 
+        <div className="container mx-auto px-4 py-8">
           {/* Login Required */}
           <div className="text-center py-16">
             <div className="mx-auto h-24 w-24 bg-orange-100 rounded-full flex items-center justify-center mb-6">
@@ -310,19 +343,43 @@ export default function CartPage() {
 
   if (!cartItems || cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="container mx-auto px-4 py-8">
-          {/* Back to Home Button */}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors mb-8"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            <span className="font-medium">Back to Home</span>
-          </Link>
+      <div className="min-h-screen bg-gray-50">
+        <PopupAlert
+          isOpen={alertState.isOpen}
+          type={alertState.type}
+          title={alertState.title}
+          message={alertState.message}
+          onClose={hideAlert}
+        />
+        
+        {/* Header */}
+        <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 border-b border-blue-700 shadow-lg">
+          <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 md:h-20">
+              {/* Back Button & Title */}
+              <div className="flex items-center gap-3">
+                <Link 
+                  href="/"
+                  className="flex items-center gap-2 text-white hover:text-blue-100 transition-colors group"
+                >
+                  <svg className="w-6 h-6 md:w-5 md:h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span className="font-medium text-sm md:text-base">Kembali</span>
+                </Link>
+                <div className="hidden sm:block w-px h-6 bg-blue-600"></div>
+                <h1 className="hidden sm:block text-base md:text-lg font-bold text-white">Shopping Cart</h1>
+              </div>
+              
+              {/* Right Actions - User Profile */}
+              <div className="flex items-center gap-2 md:gap-4">
+                {user && <UserProfileDropdown user={user} />}
+              </div>
+            </div>
+          </div>
+        </header>
 
+        <div className="container mx-auto px-4 py-8">
           {/* Empty Cart */}
           <div className="text-center py-16">
             <div className="mx-auto h-24 w-24 bg-slate-200 rounded-full flex items-center justify-center mb-6">
@@ -339,7 +396,7 @@ export default function CartPage() {
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              Start Shopping
+              Mulai Berbelanja
             </Link>
           </div>
         </div>
@@ -348,24 +405,46 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Back to Home Button */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors mb-8"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          <span className="font-medium">Back to Home</span>
-        </Link>
+    <div className="min-h-screen bg-gray-50">
+      <PopupAlert
+        isOpen={alertState.isOpen}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+        onClose={hideAlert}
+      />
+      
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 border-b border-blue-700 shadow-lg">
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            {/* Back Button & Title */}
+            <div className="flex items-center gap-3">
+              <Link 
+                href="/"
+                className="flex items-center text-white hover:text-blue-100 transition-colors group"
+              >
+                <svg className="w-6 h-6 md:w-5 md:h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Link>
+              <div className="w-px h-6 bg-blue-600"></div>
+              <h1 className="text-base md:text-lg font-bold text-white">Keranjang</h1>
+            </div>
+            
+            {/* Right Actions - User Profile */}
+            <div className="flex items-center gap-2 md:gap-4">
+              {user && <UserProfileDropdown user={user} />}
+            </div>
+          </div>
+        </div>
+      </header>
 
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">Shopping Cart</h1>
-          <p className="text-slate-600">
-            {cartItems.length} item(s) in your cart • {selectedItems.size} selected
+      <div className="container mx-auto px-4 py-8">
+        {/* Cart Info */}
+        <div className="mb-6">
+          <p className="text-slate-600 text-sm md:text-base">
+            {cartItems.length} produk di keranjang • {selectedItems.size} terpilih
           </p>
         </div>
 
@@ -374,7 +453,7 @@ export default function CartPage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-xl p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-slate-800">Cart Items</h2>
+                <h2 className="text-xl font-semibold text-slate-800">Produk di Keranjang</h2>
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -384,7 +463,7 @@ export default function CartPage() {
                     className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
                   />
                   <label htmlFor="select-all" className="text-sm font-medium text-slate-700 cursor-pointer">
-                    Select All
+                    Pilih semua
                   </label>
                 </div>
               </div>
@@ -482,7 +561,7 @@ export default function CartPage() {
                         {formatPrice(item.product.price * item.quantity)}
                       </p>
                       <p className="text-sm text-slate-600">
-                        {formatPrice(item.product.price)} each
+                        {formatPrice(item.product.price)} /produk
                       </p>
                     </div>
 
@@ -504,7 +583,7 @@ export default function CartPage() {
           {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-8">
-              <h2 className="text-xl font-semibold text-slate-800 mb-6">Order Summary</h2>
+              <h2 className="text-xl font-semibold text-slate-800 mb-6">Ringkasan Pesanan</h2>
 
               <div className="space-y-4">
                 <div className="flex justify-between">
@@ -513,12 +592,12 @@ export default function CartPage() {
                 </div>
 
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Shipping</span>
-                  <span className="font-medium">{subtotal > 1000000 ? 'Free' : formatPrice(shipping)}</span>
+                  <span className="text-slate-600">Pengiriman</span>
+                  <span className="font-medium">{subtotal > 1000000 ? 'Gratis' : formatPrice(shipping)}</span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Tax (11%)</span>
+                  <span className="text-slate-600">Pajak (11%)</span>
                   <span className="font-medium">{formatPrice(tax)}</span>
                 </div>
 
@@ -535,14 +614,14 @@ export default function CartPage() {
                 disabled={loading || selectedItems.size === 0}
                 className="w-full mt-6 bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Processing...' : `Proceed to Checkout (${selectedItems.size} item${selectedItems.size !== 1 ? 's' : ''})`}
+                {loading ? 'Processing...' : `Checkout (${selectedItems.size} item${selectedItems.size !== 1 ? '' : ''})`}
               </button>
 
               <Link
                 href="/"
                 className="block w-full mt-3 text-center text-primary-600 hover:text-primary-700 font-medium transition-colors"
               >
-                Continue Shopping
+                Lanjutkan Belanja
               </Link>
             </div>
           </div>
