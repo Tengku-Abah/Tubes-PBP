@@ -1,0 +1,61 @@
+{
+    "id": "ecommerce-api-env",
+    "name": "E-Commerce API Environment",
+    "values": [
+        {
+            "key": "baseUrl",
+            "value": "https://www.octamart.site",
+            "enabled": true,
+            "type": "default"
+        },
+        {
+            "key": "authToken",
+            "value": "",
+            "enabled": true,
+            "type": "secret"
+        },
+        {
+            "key": "userId",
+            "value": "",
+            "enabled": true,
+            "type": "default"
+        },
+        {
+            "key": "adminToken",
+            "value": "",
+            "enabled": true,
+            "type": "secret"
+        },
+        {
+            "key": "adminEmail",
+            "value": "admin@gmail.com",
+            "enabled": true,
+            "type": "default"
+        },
+        {
+            "key": "adminPassword",
+            "value": "Admin08",
+            "enabled": true,
+            "type": "secret"
+        },
+        {
+            "key": "userEmail",
+            "value": "afifj27@gmail.com",
+            "enabled": true,
+            "type": "default"
+        },
+        {
+            "key": "userPassword",
+            "value": "Tengkuafif1234",
+            "enabled": true,
+            "type": "secret"
+        },
+        {
+            "key": "adminUserId",
+            "value": "",
+            "enabled": true,
+            "type": "default"
+        }
+    ],
+    "_postman_variable_scope": "environment"
+}
