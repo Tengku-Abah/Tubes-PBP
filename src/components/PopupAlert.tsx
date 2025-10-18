@@ -52,11 +52,16 @@ const PopupAlert: React.FC<PopupAlertProps> = ({
   useEffect(() => {
     if (autoClose && isOpen) {
       const timer = setTimeout(() => {
-        handleClose();
+        // When auto-closing a success/info alert, honor onConfirm for follow-up actions
+        if (onConfirm) {
+          handleConfirm();
+        } else {
+          handleClose();
+        }
       }, autoCloseDelay);
       return () => clearTimeout(timer);
     }
-  }, [autoClose, isOpen, autoCloseDelay]);
+  }, [autoClose, isOpen, autoCloseDelay, onConfirm]);
 
   const handleClose = () => {
     setIsVisible(false);
