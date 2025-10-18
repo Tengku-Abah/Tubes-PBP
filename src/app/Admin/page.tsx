@@ -152,12 +152,12 @@ const AdminPanel = () => {
         semester: selectedSemester.toString()
       });
 
-    const response = await fetch(`/api/financial?${params}`);
-    const result = await response.json();
+      const response = await fetch(`/api/financial?${params}`);
+      const result = await response.json();
 
-    if (result.success) {
-      setFinancialData(result.data);
-    } else {
+      if (result.success) {
+        setFinancialData(result.data);
+      } else {
         console.error('Error loading financial data:', result.message);
         showError('Gagal memuat data laporan keuangan');
       }
@@ -173,7 +173,7 @@ const AdminPanel = () => {
   useEffect(() => {
     loadFinancialData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedPeriod, selectedYear, selectedMonth, selectedQuarter, selectedSemester]);
+  }, [selectedPeriod, selectedYear, selectedMonth, selectedQuarter, selectedSemester]);
 
   // Use API data or fallback to local calculation
   const productSales = financialData?.productPerformance || [];
@@ -215,24 +215,24 @@ const AdminPanel = () => {
   };
 
   // Fungsi untuk menampilkan status dalam Bahasa Indonesia
-const getStatusText = (status: string): string => {
-  switch (status) {
-    case "pending":
-      return "Menunggu";
-    case "processing":
-      return "Diproses";
-    case "shipped":
-      return "Dikirim";
-    case "delivered":
-      return "Diterima";
-    case "completed":
-      return "Selesai";
-    case "cancelled":
-      return "Dibatalkan";
-    default:
-      return status;
-  }
-};
+  const getStatusText = (status: string): string => {
+    switch (status) {
+      case "pending":
+        return "Menunggu";
+      case "processing":
+        return "Diproses";
+      case "shipped":
+        return "Dikirim";
+      case "delivered":
+        return "Diterima";
+      case "completed":
+        return "Selesai";
+      case "cancelled":
+        return "Dibatalkan";
+      default:
+        return status;
+    }
+  };
 
   const handleNextStatus = (order: Order) => {
     const next = getForwardStatus(order.status);
@@ -1135,8 +1135,8 @@ const getStatusText = (status: string): string => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avatar</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avatar</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produk</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -1176,13 +1176,13 @@ const getStatusText = (status: string): string => {
                         );
                       })()}
                     </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              <span className="font-medium text-gray-900">{order.customerName}</span>
-            </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <span className="font-medium text-gray-900">{order.customerName}</span>
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
                       {order.products && order.products.length > 0 ? (
                         <div className="truncate" title={order.products.map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')}>
-                          {order.products.length <= 2 
+                          {order.products.length <= 2
                             ? order.products.map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')
                             : `${order.products.slice(0, 2).map((p: any) => `${p.product_name || p.productName || p.name || 'Unknown Product'} (${p.quantity})`).join(', ')}... +${order.products.length - 2} lainnya`
                           }
@@ -1194,19 +1194,18 @@ const getStatusText = (status: string): string => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(order.total)}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          order.status === "completed"
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${order.status === "completed"
                             ? "bg-green-100 text-green-800"
                             : order.status === "processing"
-                            ? "bg-blue-100 text-blue-800"
-                            : order.status === "shipped"
-                            ? "bg-purple-100 text-purple-800"
-                            : order.status === "delivered"
-                            ? "bg-green-100 text-green-800"
-                            : order.status === "cancelled"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
+                              ? "bg-blue-100 text-blue-800"
+                              : order.status === "shipped"
+                                ? "bg-purple-100 text-purple-800"
+                                : order.status === "delivered"
+                                  ? "bg-green-100 text-green-800"
+                                  : order.status === "cancelled"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                          }`}
                       >
                         {getStatusText(order.status)}
                       </span>
@@ -2063,7 +2062,7 @@ const getStatusText = (status: string): string => {
             {selectedStat === 'Total Produk Terjual' && (
               <>
                 {/* Top Products */}
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">5 Produk Terlaris</h3>
@@ -2074,7 +2073,7 @@ const getStatusText = (status: string): string => {
                     </div>
                   </div>
                   <div className="space-y-4">
-                      {productSales
+                    {productSales
                       .sort((a: any, b: any) => b.totalSold - a.totalSold)
                       .slice(0, 5)
                       .map((product: any, index: number) => {
@@ -2089,18 +2088,18 @@ const getStatusText = (status: string): string => {
                                 {index + 1}
                               </span>
                               <img
-                              className="w-16 h-16 rounded-xl object-cover shadow-lg"
-                              src={product.image}
-                              alt={product.name}
+                                className="w-16 h-16 rounded-xl object-cover shadow-lg"
+                                src={product.image}
+                                alt={product.name}
                               />
-                                <span className="text-sm font-medium text-gray-900 truncate flex-1">{product.name}</span>
-                                <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className="text-sm font-medium text-gray-900 truncate flex-1">{product.name}</span>
+                              <div className="flex items-center gap-2 flex-shrink-0">
                                 <span className="text-sm font-semibold text-gray-900">{product.totalSold.toLocaleString('id-ID')}</span>
                                 <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">unit terjual</span>
                               </div>
                             </div>
                           </div>
-                          );
+                        );
                       })}
                   </div>
                 </div>

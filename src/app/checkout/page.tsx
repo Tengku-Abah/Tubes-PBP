@@ -7,6 +7,7 @@ import useCart from '../../hooks/useCart'
 import { getCurrentUser, getAuthHeaders } from '../../lib/auth'
 import PopupAlert from '../../components/PopupAlert'
 import { usePopupAlert } from '../../hooks/usePopupAlert'
+import { supabase } from '@/lib/supabaseClient'
 
 
 export default function CheckoutPage() {
@@ -78,6 +79,38 @@ export default function CheckoutPage() {
             setContactName((prev: string) => prev || user.name || '')
             setContactEmail((prev: string) => prev || user.email || '')
             setPhoneNumber((prev: string) => prev || user.phone || '')
+
+            // Fetch address data from Supabase including Provinsi, Kota, Kode_pose
+            const fetchUserAddressData = async () => {
+                try {
+                    const { data: dbUser } = await supabase
+                        .from('users')
+                        .select('address, "Provinsi", "Kota", "Kode_pose"')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (dbUser) {
+                        // Only set if not null/undefined
+                        if (dbUser.address) {
+                            setAddress((prev: string) => prev || dbUser.address || '')
+                        }
+                        if (dbUser.Provinsi) {
+                            setProvince((prev: string) => prev || dbUser.Provinsi || '')
+                        }
+                        if (dbUser.Kota) {
+                            setCity((prev: string) => prev || dbUser.Kota || '')
+                        }
+                        if (dbUser.Kode_pose) {
+                            setPostalCode((prev: string) => prev || dbUser.Kode_pose || '')
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching user address data:', error);
+                    // Jika error atau null, biarkan kosong (tidak set apapun)
+                }
+            };
+
+            fetchUserAddressData();
         }
     }, [user])
 

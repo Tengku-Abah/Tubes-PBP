@@ -315,7 +315,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, email, phone, address, role, is_active, user_avatar } = body;
+    const { id, name, email, phone, address, role, is_active, user_avatar, Provinsi, Kota, Kode_pose } = body;
 
     // Validasi input
     if (!id) {
@@ -333,7 +333,10 @@ export async function PUT(request: NextRequest) {
       ...(address && { address }),
       ...(role && { role }),
       ...(is_active !== undefined && { is_active }),
-      ...(user_avatar !== undefined && { user_avatar })
+      ...(user_avatar !== undefined && { user_avatar }),
+      ...(Provinsi !== undefined && { Provinsi }),
+      ...(Kota !== undefined && { Kota }),
+      ...(Kode_pose !== undefined && { Kode_pose })
     };
 
     const { data: updatedUser, error } = await dbHelpers.updateUser(id, updateData);

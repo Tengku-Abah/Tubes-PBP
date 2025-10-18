@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
     }, 0) || 0;
 
     const totalOrders = orders?.length || 0;
-    const completedOrders = orders?.filter(order => 
+    const completedOrders = orders?.filter(order =>
       order.status === 'completed' || order.status === 'delivered'
     ).length || 0;
 
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     if (orderItemsError || !orderItems || orderItems.length === 0) {
       console.log('Order items not available, using fallback calculation');
       // Fallback: Calculate based on completed orders only
-      const completedOrdersCount = orders?.filter(order => 
+      const completedOrdersCount = orders?.filter(order =>
         order.status === 'completed' || order.status === 'delivered'
       ).length || 0;
 
@@ -139,15 +139,15 @@ export async function GET(request: NextRequest) {
       productPerformance = products?.map(product => {
         // Distribute sales more realistically across products
         const basePopularity = Math.random(); // Random popularity factor
-        const categoryMultiplier = product.category === 'Sepatu' ? 1.2 : 
-                                 product.category === 'Sandal' ? 0.8 : 1.0;
-        
+        const categoryMultiplier = product.category === 'Sepatu' ? 1.2 :
+          product.category === 'Sandal' ? 0.8 : 1.0;
+
         // Calculate estimated sales based on completed orders and product popularity
         const estimatedSalesRatio = (basePopularity * categoryMultiplier) / products.length;
         const totalSold = Math.floor(completedOrdersCount * estimatedSalesRatio * 2); // Average 2 items per relevant order
         const totalRevenue = totalSold * product.price;
         const ordersCount = Math.min(totalSold, completedOrdersCount);
-        
+
         return {
           id: product.id,
           name: product.name,
@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
     } else {
       // Calculate actual product performance from order_items
       const productSalesMap = new Map();
-      
+
       orderItems.forEach(item => {
         const productId = item.product_id;
         if (!productSalesMap.has(productId)) {
@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
             ordersCount: new Set()
           });
         }
-        
+
         const current = productSalesMap.get(productId);
         current.totalSold += item.quantity;
         current.totalRevenue += item.quantity * item.price;
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
       // Create product performance array with actual data
       productPerformance = products?.map(product => {
         const salesData = productSalesMap.get(product.id);
-        
+
         return {
           id: product.id,
           name: product.name,

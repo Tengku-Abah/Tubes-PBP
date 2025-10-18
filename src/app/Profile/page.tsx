@@ -11,6 +11,9 @@ interface UserProfile {
   email: string;
   phone: string;
   address: string;
+  Provinsi?: string;
+  Kota?: string;
+  Kode_pose?: string;
 }
 
 export default function ProfileSettings() {
@@ -23,7 +26,10 @@ export default function ProfileSettings() {
     name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    Provinsi: '',
+    Kota: '',
+    Kode_pose: ''
   });
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
@@ -34,7 +40,10 @@ export default function ProfileSettings() {
     name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    Provinsi: '',
+    Kota: '',
+    Kode_pose: ''
   });
 
   // Load user data on component mount
@@ -48,59 +57,56 @@ export default function ProfileSettings() {
         }
 
         setUser(currentUser);
+
+        // Fetch full user data from database including Provinsi, Kota, Kode_pose
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('name, email, phone, address, "Provinsi", "Kota", "Kode_pose", user_avatar')
+          .eq('id', currentUser.id)
+          .single();
+
         const userProfile = {
-          name: currentUser.name || '',
-          email: currentUser.email || '',
-          phone: currentUser.phone || '',
-          address: currentUser.address || ''
+          name: dbUser?.name || currentUser.name || '',
+          email: dbUser?.email || currentUser.email || '',
+          phone: dbUser?.phone || currentUser.phone || '',
+          address: dbUser?.address || currentUser.address || '',
+          Provinsi: dbUser?.Provinsi || '',
+          Kota: dbUser?.Kota || '',
+          Kode_pose: dbUser?.Kode_pose || ''
         };
-        
+
         setProfile(userProfile);
         setTempProfile({
           name: userProfile.name,
           email: userProfile.email,
           phone: userProfile.phone,
-          address: userProfile.address
+          address: userProfile.address,
+          Provinsi: userProfile.Provinsi,
+          Kota: userProfile.Kota,
+          Kode_pose: userProfile.Kode_pose
         });
-        const storedAvatarUrl = sessionStorage.getItem('user_avatar_url');
-        const storedAvatarPath = sessionStorage.getItem('user_avatar_path');
-        if (storedAvatarUrl) setAvatarUrl(storedAvatarUrl);
-        if (storedAvatarPath) setAvatarPath(storedAvatarPath);
-
-        // Jika URL avatar belum ada di sessionStorage, coba ambil dari database
-        if (!storedAvatarUrl && currentUser?.id) {
-          try {
-            const { data: dbUser } = await supabase
-              .from('users')
-              .select('user_avatar, name')
-              .eq('id', currentUser.id)
-              .single();
-
-            const rawAvatar = (dbUser as any)?.user_avatar as string | null;
-            if (rawAvatar) {
-              // Jika sudah berupa URL penuh, langsung gunakan
-              if (/^https?:\/\//.test(rawAvatar)) {
-                setAvatarUrl(rawAvatar);
-                sessionStorage.setItem('user_avatar_url', rawAvatar);
-              } else {
-                // Asumsikan path berada di bucket 'product-images'
-                let path = rawAvatar;
-                if (path.startsWith('product-images/')) {
-                  path = path.replace('product-images/', '');
-                }
-                const { data: urlData } = supabase.storage
-                  .from('product-images')
-                  .getPublicUrl(path);
-                if (urlData?.publicUrl) {
-                  setAvatarUrl(urlData.publicUrl);
-                  setAvatarPath(path);
-                  sessionStorage.setItem('user_avatar_url', urlData.publicUrl);
-                  sessionStorage.setItem('user_avatar_path', path);
-                }
-              }
+        // Handle avatar URL from database
+        const rawAvatar = (dbUser as any)?.user_avatar as string | null;
+        if (rawAvatar) {
+          // Jika sudah berupa URL penuh, langsung gunakan
+          if (/^https?:\/\//.test(rawAvatar)) {
+            setAvatarUrl(rawAvatar);
+            sessionStorage.setItem('user_avatar_url', rawAvatar);
+          } else {
+            // Asumsikan path berada di bucket 'product-images'
+            let path = rawAvatar;
+            if (path.startsWith('product-images/')) {
+              path = path.replace('product-images/', '');
             }
-          } catch (e) {
-            console.error('Resolve avatar from DB error:', e);
+            const { data: urlData } = supabase.storage
+              .from('product-images')
+              .getPublicUrl(path);
+            if (urlData?.publicUrl) {
+              setAvatarUrl(urlData.publicUrl);
+              setAvatarPath(path);
+              sessionStorage.setItem('user_avatar_url', urlData.publicUrl);
+              sessionStorage.setItem('user_avatar_path', path);
+            }
           }
         }
         setLoading(false);
@@ -115,11 +121,14 @@ export default function ProfileSettings() {
 
   const handleEdit = () => {
     setIsEditing(true);
-    setTempProfile({ 
+    setTempProfile({
       name: profile.name,
       email: profile.email,
       phone: profile.phone,
-      address: profile.address
+      address: profile.address,
+      Provinsi: profile.Provinsi,
+      Kota: profile.Kota,
+      Kode_pose: profile.Kode_pose
     });
   };
 
@@ -138,7 +147,10 @@ export default function ProfileSettings() {
           name: tempProfile.name,
           email: tempProfile.email,
           phone: tempProfile.phone,
-          address: tempProfile.address
+          address: tempProfile.address,
+          Provinsi: tempProfile.Provinsi,
+          Kota: tempProfile.Kota,
+          Kode_pose: tempProfile.Kode_pose
         }),
       });
 
@@ -150,22 +162,28 @@ export default function ProfileSettings() {
           name: tempProfile.name,
           email: tempProfile.email,
           phone: tempProfile.phone,
-          address: tempProfile.address
+          address: tempProfile.address,
+          Provinsi: tempProfile.Provinsi,
+          Kota: tempProfile.Kota,
+          Kode_pose: tempProfile.Kode_pose
         };
         setProfile(updatedProfile);
-        
+
         // Update user data in sessionStorage
-        const updatedUser = { 
-          ...user, 
+        const updatedUser = {
+          ...user,
           name: tempProfile.name,
           email: tempProfile.email,
           phone: tempProfile.phone,
           address: tempProfile.address,
+          Provinsi: tempProfile.Provinsi,
+          Kota: tempProfile.Kota,
+          Kode_pose: tempProfile.Kode_pose,
           avatar: avatarUrl || undefined
         };
         sessionStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
-        
+
         // Keep in edit mode, don't set isEditing to false
         alert('Profil berhasil diperbarui!');
       } else {
@@ -323,11 +341,14 @@ export default function ProfileSettings() {
   };
 
   const handleCancel = () => {
-    setTempProfile({ 
+    setTempProfile({
       name: profile.name,
       email: profile.email,
       phone: profile.phone,
-      address: profile.address
+      address: profile.address,
+      Provinsi: profile.Provinsi,
+      Kota: profile.Kota,
+      Kode_pose: profile.Kode_pose
     });
     setIsEditing(false);
   };
@@ -425,11 +446,10 @@ export default function ProfileSettings() {
                   value={isEditing ? tempProfile.name : profile.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   disabled={!isEditing}
-                  className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
-                    isEditing
+                  className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${isEditing
                       ? 'border-primary-400 focus:border-primary-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
-                  }`}
+                    }`}
                 />
               </div>
 
@@ -444,11 +464,10 @@ export default function ProfileSettings() {
                   value={isEditing ? tempProfile.email : profile.email}
                   onChange={(e) => handleChange('email', e.target.value)}
                   disabled={!isEditing}
-                  className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
-                    isEditing
+                  className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${isEditing
                       ? 'border-primary-400 focus:border-primary-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
-                  }`}
+                    }`}
                 />
               </div>
 
@@ -463,11 +482,10 @@ export default function ProfileSettings() {
                   value={isEditing ? tempProfile.phone : profile.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
                   disabled={!isEditing}
-                  className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
-                    isEditing
+                  className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${isEditing
                       ? 'border-primary-400 focus:border-primary-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
-                  }`}
+                    }`}
                 />
               </div>
 
@@ -475,19 +493,80 @@ export default function ProfileSettings() {
               <div className="group">
                 <label className="flex items-center text-sm font-semibold text-gray-900 mb-2">
                   <MapPin size={18} className="mr-2 text-primary-600" />
-                  Alamat
+                  Alamat Lengkap
                 </label>
                 <textarea
                   value={isEditing ? tempProfile.address : profile.address}
                   onChange={(e) => handleChange('address', e.target.value)}
                   disabled={!isEditing}
                   rows={3}
-                  className={`w-full px-4 py-3 rounded-lg border-2 transition-all resize-none ${
-                    isEditing
+                  className={`w-full px-4 py-3 rounded-lg border-2 transition-all resize-none ${isEditing
                       ? 'border-primary-400 focus:border-primary-600 focus:outline-none bg-white'
                       : 'border-gray-200 bg-gray-50 text-gray-700'
-                  }`}
+                    }`}
+                  placeholder="Jl. Contoh No. 123, Kelurahan, Kecamatan"
                 />
+              </div>
+
+              {/* Grid for Provinsi, Kota, Kode Pos */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Provinsi */}
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-900 mb-2">
+                    <MapPin size={18} className="mr-2 text-primary-600" />
+                    Provinsi
+                  </label>
+                  <input
+                    type="text"
+                    value={isEditing ? tempProfile.Provinsi : profile.Provinsi}
+                    onChange={(e) => handleChange('Provinsi', e.target.value)}
+                    disabled={!isEditing}
+                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${isEditing
+                        ? 'border-primary-400 focus:border-primary-600 focus:outline-none bg-white'
+                        : 'border-gray-200 bg-gray-50 text-gray-700'
+                      }`}
+                    placeholder="Jawa Tengah"
+                  />
+                </div>
+
+                {/* Kota */}
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-900 mb-2">
+                    <MapPin size={18} className="mr-2 text-primary-600" />
+                    Kota/Kabupaten
+                  </label>
+                  <input
+                    type="text"
+                    value={isEditing ? tempProfile.Kota : profile.Kota}
+                    onChange={(e) => handleChange('Kota', e.target.value)}
+                    disabled={!isEditing}
+                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${isEditing
+                        ? 'border-primary-400 focus:border-primary-600 focus:outline-none bg-white'
+                        : 'border-gray-200 bg-gray-50 text-gray-700'
+                      }`}
+                    placeholder="Semarang"
+                  />
+                </div>
+
+                {/* Kode Pos */}
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-900 mb-2">
+                    <MapPin size={18} className="mr-2 text-primary-600" />
+                    Kode Pos
+                  </label>
+                  <input
+                    type="text"
+                    value={isEditing ? tempProfile.Kode_pose : profile.Kode_pose}
+                    onChange={(e) => handleChange('Kode_pose', e.target.value)}
+                    disabled={!isEditing}
+                    maxLength={5}
+                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${isEditing
+                        ? 'border-primary-400 focus:border-primary-600 focus:outline-none bg-white'
+                        : 'border-gray-200 bg-gray-50 text-gray-700'
+                      }`}
+                    placeholder="50275"
+                  />
+                </div>
               </div>
             </div>
 
