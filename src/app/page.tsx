@@ -58,13 +58,15 @@ export default function HomePage() {
   useEffect(() => {
     fetchProducts()
     checkLoginStatus()
+    // Also fetch categories from database on mount
+    fetchCategoriesFromDB()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fallback categories if none are loaded after 1 second
   useEffect(() => {
     const timer = setTimeout(() => {
       if (categories.length === 0) {
-        const fallbackCategories = ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books']
+        const fallbackCategories = ['Smartphone', 'Laptop', 'Audio', 'Gaming', 'Accessories', 'Camera', 'Wearables', 'Smart Home']
         setCategories(fallbackCategories)
         sessionStorage.setItem('cachedCategories', JSON.stringify(fallbackCategories))
       }
@@ -120,6 +122,32 @@ export default function HomePage() {
     return () => window.removeEventListener('cartUpdated', handleCartUpdate)
   }, [isLoggedIn, user]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const fetchCategoriesFromDB = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('name')
+        .order('name', { ascending: true })
+
+      if (!error && data && data.length > 0) {
+        const categoryNames = data.map(cat => cat.name)
+        setCategories(categoryNames)
+        sessionStorage.setItem('cachedCategories', JSON.stringify(categoryNames))
+      } else {
+        // Ultimate fallback if categories table is empty
+        const fallbackCategories = ['Smartphone', 'Laptop', 'Audio', 'Gaming', 'Accessories', 'Camera', 'Wearables', 'Smart Home']
+        setCategories(fallbackCategories)
+        sessionStorage.setItem('cachedCategories', JSON.stringify(fallbackCategories))
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+      // Fallback on error
+      const fallbackCategories = ['Smartphone', 'Laptop', 'Audio', 'Gaming', 'Accessories', 'Camera', 'Wearables', 'Smart Home']
+      setCategories(fallbackCategories)
+      sessionStorage.setItem('cachedCategories', JSON.stringify(fallbackCategories))
+    }
+  }
+
   const fetchProducts = async (forceRefresh = false) => {
     // Check if products are cached in session storage
     const cachedProducts = sessionStorage.getItem('cachedProducts')
@@ -136,8 +164,10 @@ export default function HomePage() {
       const uniqueCategories = Array.from(new Set(categoryList.filter((cat: any) => cat && cat.trim() !== '')))
       if (uniqueCategories.length > 0) {
         setCategories(uniqueCategories as string[])
+        sessionStorage.setItem('cachedCategories', JSON.stringify(uniqueCategories))
       } else {
-        setCategories(['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books'])
+        // Fetch categories from database
+        fetchCategoriesFromDB()
       }
 
       setLoading(false)
@@ -168,25 +198,17 @@ export default function HomePage() {
       } else {
         setProducts(data || [])
 
-        // Extract unique categories
+        // Extract unique categories from products
         const categoryList = data?.map(product => product.category) || []
         const uniqueCategories = Array.from(new Set(categoryList.filter(cat => cat && cat.trim() !== '')))
 
-        // Fallback categories if none found
-        let finalCategories = uniqueCategories
-        if (uniqueCategories.length === 0) {
-          finalCategories = ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books']
+        if (uniqueCategories.length > 0) {
+          setCategories(uniqueCategories)
+          sessionStorage.setItem('cachedCategories', JSON.stringify(uniqueCategories))
+        } else {
+          // Fetch categories from categories table if products have no categories
+          fetchCategoriesFromDB()
         }
-
-        // Force update categories even if empty
-        if (uniqueCategories.length === 0 && (!data || data.length === 0)) {
-          finalCategories = ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books']
-        }
-
-        setCategories(finalCategories)
-
-        // Cache categories for faster loading
-        sessionStorage.setItem('cachedCategories', JSON.stringify(finalCategories))
 
         // Cache products if no search term
         if (!searchTerm.trim()) {
@@ -222,10 +244,10 @@ export default function HomePage() {
             // Restore session from localStorage
             sessionStorage.setItem('user', JSON.stringify(parsedUser))
             sessionStorage.setItem('loginTime', now.toString())
-            
+
             // Set role-specific cookies for middleware
             const cookieOptions = 'max-age=2592000' // 30 days
-            
+
             if (parsedUser.role === 'admin') {
               document.cookie = `admin-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
               document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
@@ -233,7 +255,7 @@ export default function HomePage() {
               document.cookie = `user-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
               document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
             }
-            
+
             // Keep general auth-token for backward compatibility
             document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
             userData = JSON.stringify(parsedUser)
@@ -371,7 +393,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {ToastComponent}
-      
+
       {/* Modern Header */}
       <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 border-b border-blue-700 shadow-lg">
         <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
