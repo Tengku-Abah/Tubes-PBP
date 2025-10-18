@@ -104,7 +104,7 @@ projek-bpb/
 - **Login**: `/Login` - Autentikasi pengguna
 - **Register**: `/Register` - Registrasi pengguna
 - **Cart**: `/cart` - Manajemen keranjang belanja
-- **Admin**: `/admin` - Dashboard admin (hanya admin)
+- **Admin**: `/Admin` - Dashboard admin (hanya admin)
 
 ## 🔧 API Endpoints
 
@@ -160,6 +160,18 @@ npm start
 2. Buat feature branch
 3. Lakukan perubahan Anda
 4. Submit pull request
+
+## 👥 Pembagian Tim
+
+Untuk menjaga kejelasan scope kerja, pembagian tim di kawasan frontend dan backend dirangkum di sini. Detail lebih lengkap dapat dilihat di `docs/README-frontend.md` dan `docs/README-backend.md`.
+
+### Frontend
+- Tim A: Autentikasi, halaman produk, keranjang, checkout.
+- Tim B: Admin dashboard, manajemen produk, review & order tracking.
+
+### Backend
+- Tim A: User service, auth endpoints, session management.
+- Tim B: Product service, cart & order APIs, admin utilities.
 
 ## 📄 Lisensi
 

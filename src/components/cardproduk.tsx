@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useToast } from './Toast'
 
 interface Product {
   id: number
@@ -30,7 +29,6 @@ export default function ProductCard({ product, className }: ProductCardProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
-  const { showToast, ToastComponent } = useToast()
 
   // Check login status
   useEffect(() => {
@@ -48,50 +46,29 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         return
       }
 
-      // Check localStorage for "Remember Me" logins (updated to match new system)
-      const rememberedUser = localStorage.getItem('user')
-      const rememberMe = localStorage.getItem('rememberMe')
-      
-      if (rememberedUser && rememberMe === 'true') {
-        try {
-          const parsedUser = JSON.parse(rememberedUser)
-          const loginTime = localStorage.getItem('loginTime')
-          const now = Date.now()
+      // Check localStorage for "Remember Me" logins
+      const rememberedLogin = localStorage.getItem('rememberedLogin')
+      if (rememberedLogin) {
+        const loginData = JSON.parse(rememberedLogin)
+        const loginTime = new Date(loginData.timestamp)
+        const now = new Date()
+        const daysDiff = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60 * 24)
 
-          // Check if login is still valid (within 30 days)
-          if (loginTime && (now - parseInt(loginTime)) < 2592000000) {
-            // Restore session
-            sessionStorage.setItem('user', JSON.stringify(parsedUser))
-            sessionStorage.setItem('loginTime', now.toString())
-            
-            // Set role-specific cookies for middleware
-            const cookieOptions = 'max-age=2592000' // 30 days
-            
-            if (parsedUser.role === 'admin') {
-              document.cookie = `admin-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
-              document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-            } else {
-              document.cookie = `user-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
-              document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-            }
-            
-            // Keep general auth-token for backward compatibility
-            document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
-            
-            setUser(parsedUser)
-            setIsLoggedIn(true)
-            return
-          } else {
-            // Login expired, clear localStorage
-            localStorage.removeItem('user')
-            localStorage.removeItem('rememberMe')
-            localStorage.removeItem('loginTime')
-          }
-        } catch (error) {
-          console.error('Error parsing remembered user data:', error)
-          localStorage.removeItem('user')
-          localStorage.removeItem('rememberMe')
-          localStorage.removeItem('loginTime')
+        if (daysDiff <= 30 && loginData.user) {
+          // Restore session
+          sessionStorage.setItem('user', JSON.stringify(loginData.user))
+          
+          // Set cookie with appropriate expiration
+          const expirationDate = new Date()
+          expirationDate.setDate(expirationDate.getDate() + 30)
+          document.cookie = `auth-token=${loginData.user.id}; expires=${expirationDate.toUTCString()}; path=/`
+          
+          setUser(loginData.user)
+          setIsLoggedIn(true)
+          return
+        } else {
+          // Clear expired login
+          localStorage.removeItem('rememberedLogin')
         }
       }
 
@@ -110,16 +87,15 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
     // Check if user is logged in
     if (!isLoggedIn) {
-      showToast('Anda harus login terlebih dahulu untuk menambahkan produk ke keranjang', 'error')
-      setTimeout(() => {
+      if (confirm('Anda harus login terlebih dahulu untuk menambahkan produk ke keranjang. Apakah Anda ingin login sekarang?')) {
         router.push('/Login')
-      }, 2000)
+      }
       return
     }
 
     // Check stock
     if (product.stock === 0) {
-      showToast('Produk ini sedang habis stok', 'error')
+      alert('Produk ini sedang habis stok')
       return
     }
 
@@ -140,15 +116,15 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       const data = await response.json()
       
       if (data.success) {
-        showToast('Produk berhasil ditambahkan ke keranjang!', 'success')
+        alert('Produk berhasil ditambahkan ke keranjang!')
         // Trigger cart count update in header if needed
         window.dispatchEvent(new Event('cartUpdated'))
       } else {
-        showToast(data.message || 'Gagal menambahkan ke keranjang', 'error')
+        alert(data.message || 'Gagal menambahkan ke keranjang')
       }
     } catch (error) {
       console.error('Error adding to cart:', error)
-      showToast('Gagal menambahkan ke keranjang', 'error')
+      alert('Gagal menambahkan ke keranjang')
     } finally {
       setAddingToCart(false)
     }
@@ -172,12 +148,10 @@ export default function ProductCard({ product, className }: ProductCardProps) {
     if (product.stock === 0) return 'text-red-600 bg-red-50 ring-red-100'
     if (product.stock <= 5) return 'text-amber-700 bg-amber-50 ring-amber-100'
     if (product.stock <= 10) return 'text-yellow-700 bg-yellow-50 ring-yellow-100'
-    return 'text-primary-700 bg-primary-50 ring-primary-100' // mengubah ke biru
+    return 'text-blue-700 bg-blue-50 ring-blue-100' // mengubah ke biru
   }, [product.stock])
 
-  // Rating sudah dihitung dari database dan tersedia di product.rating
-  // Tidak perlu fetch lagi karena sudah di-update oleh updateProductRating() saat review berubah
-  const displayRating = (product.rating) || 0
+  const ratingStars = Math.round(product.rating * 2) / 2
 
   const fallbackImage =
     'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&auto=format&fit=crop&q=60'
@@ -186,32 +160,33 @@ export default function ProductCard({ product, className }: ProductCardProps) {
   const canClick = true
 
   return (
-    <>
-      {ToastComponent}
-      <Link href={`/Detail?id=${product.id}`} className="block group">
-        <div className="relative bg-white shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden rounded-md border border-slate-100">
-          {/* Product Image Section */}
-          <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100/50">
+    <div className={`group relative ${className}`}>
+      {/* Main Card */}
+      <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-full flex flex-col">
+        
+        {/* Product Image Section */}
+        <Link href={`/Detail?id=${product.id}`}>
+          <div className="relative aspect-square overflow-hidden bg-gray-50">
             {!imageLoaded && !imageError && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-10 w-10 border-3 border-primary-600 border-t-transparent"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             )}
             
             {imageError ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                <div className="text-center text-gray-300">
-                  <svg className="mx-auto h-16 w-16 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <div className="text-center text-gray-400">
+                  <svg className="mx-auto h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <p className="text-sm font-medium">Gambar Tidak Tersedia</p>
+                  <p className="text-xs">Gambar tidak tersedia</p>
                 </div>
               </div>
             ) : (
               <img
                 src={product.image}
                 alt={product.name}
-                className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${
+                className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-105 ${
                   imageLoaded ? 'opacity-100' : 'opacity-0'
                 }`}
                 onLoad={() => setImageLoaded(true)}
@@ -220,94 +195,105 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               />
             )}
 
-            {/* Stock Badge - Minimal Design */}
-            {product.stock <= 5 && product.stock > 0 && (
-              <div className="absolute top-4 left-4">
-                <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold ${stockTone} backdrop-blur-sm`}>
-                  {stockLabel}
-                </span>
-              </div>
-            )}
+            {/* Wishlist Button */}
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setIsWishlist(!isWishlist)
+              }}
+              className="absolute top-2 left-2 p-1.5 rounded-full bg-white/90 backdrop-blur-sm shadow-md hover:bg-white hover:scale-110 transition-all duration-200"
+            >
+              <svg
+                className={`w-4 h-4 transition-colors duration-200 ${
+                  isWishlist ? 'text-red-500 fill-current' : 'text-gray-600'
+                }`}
+                fill={isWishlist ? 'currentColor' : 'none'}
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                />
+              </svg>
+            </button>
 
-            {product.stock === 0 && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                <span className="bg-white text-gray-900 px-5 py-2.5 rounded-full text-sm font-bold shadow-lg">
-                  Stock Habis
-                </span>
-              </div>
-            )}
+            {/* Kategori */}
+            <div className="absolute top-2 right-2">
+              <span className="bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium px-2 py-1 rounded-full shadow-md">
+                {product.category}
+              </span>
+            </div>
           </div>
+        </Link>
 
-          {/* Content Section */}
-          <div className="p-4">
-
-            {/* Product Title */}
-            <h3 className="text-base font-bold text-gray-900 line-clamp-1">
+        {/* Content Section */}
+        <div className="p-3 sm:p-4 flex flex-col flex-1">
+          {/* Product Info */}
+          <div className="flex-1 mb-3 sm:mb-4">
+            {/* Title */}
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-2 line-clamp-2 leading-tight">
               {product.name}
             </h3>
-            {/* Product Description - Compact */}
-            <p className="text-sm text-gray-700 line-clamp-1 mb-1">
+
+            {/* Description */}
+            <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3 line-clamp-2 leading-relaxed">
               {product.description}
             </p>
 
-            {/* Rating and Price - Aligned */}
-            <div className="flex items-center justify-between pt-2 border-t border-gray-100 mb-4">
-              <span className="text-xl font-bold text-blue-700 tracking-tight">
+            {/* Rating */}
+            <div className="flex items-center gap-1 mb-2 sm:mb-3">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">
+                {product.rating?.toFixed(1) ?? '0.0'}
+              </span>
+              <span className="text-xs text-gray-500 hidden sm:inline">
+                ({product.reviews ? product.reviews.toLocaleString() : '0'} Reviews)
+              </span>
+            </div>
+          </div>
+
+          {/* Price and Stock */}
+          <div className="mb-3 sm:mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-base sm:text-lg font-bold text-gray-900">
                 {formatPrice(product.price)}
               </span>
-              <div className="flex items-center gap-1">
-                <svg className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                <span className="text-sm font-bold text-gray-900">
-                  {displayRating.toFixed(1)}
-                </span>
-              </div>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${stockTone}`}>
+                {stockLabel}
+              </span>
             </div>
+          </div>
 
-            {/* Add to Cart Button - Clean & Modern */}
-            {isLoggedIn ? (
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            {isLoggedIn && (
               <button 
                 onClick={handleAddToCart}
                 disabled={addingToCart || product.stock === 0}
-                className={`w-full py-2.5 px-4 text-sm font-bold rounded-lg transition-all duration-200 ${
+                className={`w-full sm:flex-1 py-2.5 sm:py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 min-h-[44px] sm:min-h-0 ${
                   product.stock > 0
-                    ? 'bg-transparent text-gray-700 hover:bg-primary-700 hover:text-white active:scale-[0.98] border border-slate-150 hover:shadow-lg'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    ? 'bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md active:scale-95'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                {addingToCart ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                    <span>Menambahkan...</span>
-                  </span>
-                ) : product.stock > 0 ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                    <span>Masukkan Keranjang</span>
-                  </span>
-                ) : (
-                  'Out of Stock'
-                )}
-              </button>
-            ) : (
-              <button 
-                onClick={handleAddToCart}
-                className="w-full py-3.5 px-4 text-sm font-bold bg-gray-50 text-slate-700 rounded-lg hover:bg-primary-700 hover:text-white active:scale-[0.98] shadow-md hover:shadow-lg transition-all duration-200"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
-                  <span>Add to Cart</span>
-                </span>
+                {addingToCart ? 'Loading...' : 
+                 product.stock > 0 ? 'Add Cart' : 'Habis'}
               </button>
             )}
+            <Link href={`/Detail?id=${product.id}`} className="w-full sm:flex-1">
+              <button className="w-full py-2.5 sm:py-2 px-3 text-xs sm:text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-md transition-all duration-200 active:scale-95 min-h-[44px] sm:min-h-0">
+                Lihat Detail
+              </button>
+            </Link>
           </div>
         </div>
-      </Link>
-    </>
+      </div>
+    </div>
   )
 }

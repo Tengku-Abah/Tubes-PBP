@@ -159,12 +159,21 @@ export default function Header({ searchTerm = '', onSearchChange, onSearchSubmit
     }, [user]);
 
     const handleLogout = async () => {
-        // Mirror page.tsx logout semantics: clear sessionStorage and all cookies
+        const currentUserStr = sessionStorage.getItem('user');
+        const currentRole = (() => {
+            try { return currentUserStr ? JSON.parse(currentUserStr)?.role : null; } catch { return null; }
+        })();
+
+        // Clear only this tab's session
         sessionStorage.clear();
-        document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+        // Role-aware cookie clearing to avoid nuking other tab's session
         try {
+            if (currentRole === 'admin') {
+                document.cookie = 'admin-auth-token=; path=/Admin; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            } else {
+                document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            }
             await supabase.auth.signOut();
         } catch (e) {
             // ignore

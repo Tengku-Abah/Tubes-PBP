@@ -266,35 +266,21 @@ const getStatusText = (status: string): string => {
     // Show welcome toast for admin
     let userData = sessionStorage.getItem('user');
 
+    // Admin session isolation: do NOT read localStorage here.
+    // Only trust admin cookie scoped to /Admin.
     if (!userData) {
-      // Check localStorage for remembered login
-      const rememberedUser = localStorage.getItem('user');
-      const rememberMe = localStorage.getItem('rememberMe');
-
-      if (rememberedUser && rememberMe === 'true') {
+      const adminCookieStr = document.cookie.split('; ').find(c => c.startsWith('admin-auth-token='));
+      if (adminCookieStr) {
         try {
-          const parsedUser = JSON.parse(rememberedUser);
-          const loginTime = localStorage.getItem('loginTime');
-          const now = Date.now();
-
-          // Check if login is still valid (within 30 days)
-          if (loginTime && (now - parseInt(loginTime)) < 2592000000) {
-            // Restore session from localStorage
+          const raw = adminCookieStr.split('=')[1];
+          const parsedUser = JSON.parse(raw);
+          if (parsedUser && parsedUser.role === 'admin') {
             sessionStorage.setItem('user', JSON.stringify(parsedUser));
-            sessionStorage.setItem('loginTime', now.toString());
-            document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; max-age=2592000`;
+            sessionStorage.setItem('loginTime', Date.now().toString());
             userData = JSON.stringify(parsedUser);
-          } else {
-            // Login expired, clear localStorage
-            localStorage.removeItem('user');
-            localStorage.removeItem('rememberMe');
-            localStorage.removeItem('loginTime');
           }
         } catch (error) {
-          console.error('Error parsing remembered user data:', error);
-          localStorage.removeItem('user');
-          localStorage.removeItem('rememberMe');
-          localStorage.removeItem('loginTime');
+          console.error('Error parsing admin cookie:', error);
         }
       }
     }
