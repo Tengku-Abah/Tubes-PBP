@@ -43,6 +43,8 @@ export default function OrderView() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const router = useRouter();
   const { alertState, showError, showSuccess, hideAlert } = usePopupAlert();
 
@@ -164,6 +166,35 @@ export default function OrderView() {
 
   const getTotalItems = (order: Order) => {
     return order.order_items?.reduce((total, item) => total + item.quantity, 0) || 0;
+  };
+
+  const handleTrackOrder = () => {
+    showSuccess('Fitur lacak pesanan akan segera tersedia');
+    setActionsOpen(false);
+  };
+
+  const handlePrintInvoice = () => {
+    showSuccess('Fitur cetak invoice akan segera tersedia');
+    setActionsOpen(false);
+  };
+
+  const handleGoToReview = () => {
+    if (!selectedOrder) return;
+    const status = (selectedOrder.status || '').toLowerCase();
+    if (status !== 'completed') {
+      showError('Review hanya tersedia setelah pesanan selesai (Completed)');
+      return;
+    }
+    if (!selectedOrder.order_items || selectedOrder.order_items.length === 0) {
+      showError('Tidak ada produk untuk direview pada pesanan ini');
+      return;
+    }
+    setReviewOpen(true);
+  };
+
+  const handleSelectProductForReview = (item: OrderItem) => {
+    setReviewOpen(false);
+    router.push(`/Detail?id=${item.product_id}`);
   };
 
   if (loading) {
@@ -380,20 +411,28 @@ export default function OrderView() {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-4 mt-6">
-                    <button 
-                      onClick={() => showSuccess('Fitur lacak pesanan akan segera tersedia')}
-                      className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg"
+                  {/* Action Button */}
+                  <div className="relative mt-6" tabIndex={0} onBlur={() => setReviewOpen(false)}>
+                    <button
+                      onClick={handleGoToReview}
+                      className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg"
                     >
-                      Lacak Pesanan
+                      Review
                     </button>
-                    <button 
-                      onClick={() => showSuccess('Fitur cetak invoice akan segera tersedia')}
-                      className="flex-1 bg-white hover:bg-gray-50 text-primary-600 font-semibold py-3 px-6 rounded-xl border-2 border-primary-600 transition-all"
-                    >
-                      Cetak Invoice
-                    </button>
+                    {reviewOpen && selectedOrder?.order_items && (
+                      <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                        {selectedOrder.order_items.map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => handleSelectProductForReview(item)}
+                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex justify-between items-center"
+                          >
+                            <span>{item.product_name}</span>
+                            <span className="text-sm text-gray-500">Qty {item.quantity}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

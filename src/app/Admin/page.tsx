@@ -190,12 +190,37 @@ const AdminPanel = () => {
       case "processing":
         return ["shipped", "cancelled"];
       case "shipped":
-        return ["delivered"];
+        return ["completed"];
       case "delivered":
         return ["completed"];
       default:
         return []; // completed / cancelled tidak bisa diubah lagi
     }
+  };
+
+  // Status forward default untuk tombol Next (tanpa opsi cancel)
+  const getForwardStatus = (currentStatus: string): string | null => {
+    switch (currentStatus) {
+      case "pending":
+        return "processing";
+      case "processing":
+        return "shipped";
+      case "shipped":
+        return "completed";
+      case "delivered":
+        return "completed";
+      default:
+        return null; // completed / cancelled tidak punya next
+    }
+  };
+
+  const handleNextStatus = (order: Order) => {
+    const next = getForwardStatus(order.status);
+    if (!next) {
+      showError('Status sudah final dan tidak dapat dilanjutkan');
+      return;
+    }
+    handleUpdateOrderStatus(order.id, next);
   };
 
   // Sync activeMenu dengan URL
@@ -1041,7 +1066,7 @@ const AdminPanel = () => {
 
   // Orders Component
   const Orders = () => {
-    const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'cancelled'>('all');
+    const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled'>('all');
 
     // Hitung jumlah order per status
     const countByStatus = {
@@ -1049,7 +1074,6 @@ const AdminPanel = () => {
       pending: orders.filter(o => o.status === 'pending').length,
       processing: orders.filter(o => o.status === 'processing').length,
       shipped: orders.filter(o => o.status === 'shipped').length,
-      delivered: orders.filter(o => o.status === 'delivered').length,
       completed: orders.filter(o => o.status === 'completed').length,
       cancelled: orders.filter(o => o.status === 'cancelled').length,
     };
@@ -1071,7 +1095,6 @@ const AdminPanel = () => {
             { key: 'pending', label: 'Pending', color: 'bg-yellow-400' },
             { key: 'processing', label: 'Processing', color: 'bg-blue-400' },
             { key: 'shipped', label: 'Shipped', color: 'bg-purple-400' },
-            { key: 'delivered', label: 'Delivered', color: 'bg-green-400' },
             { key: 'completed', label: 'Completed', color: 'bg-green-600' },
             { key: 'cancelled', label: 'Cancelled', color: 'bg-red-400' },
           ].map((tab) => (
@@ -1164,11 +1187,8 @@ const AdminPanel = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(order.total)}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={order.status}
-                        onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                        disabled={updatingStatus === order.id || ["completed", "cancelled"].includes(order.status)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium border-0 ${
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
                           order.status === "completed"
                             ? "bg-green-100 text-green-800"
                             : order.status === "processing"
@@ -1180,25 +1200,54 @@ const AdminPanel = () => {
                             : order.status === "cancelled"
                             ? "bg-red-100 text-red-800"
                             : "bg-yellow-100 text-yellow-800"
-                        } ${updatingStatus === order.id ? "opacity-50 cursor-not-allowed" : ""}`}
+                        }`}
                       >
-                        <option value={order.status}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </option>
-                        {getNextStatuses(order.status).map((next) => (
-                          <option key={next} value={next}>
-                            {next.charAt(0).toUpperCase() + next.slice(1)}
-                          </option>
-                        ))}
-                      </select>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center gap-3">
                       <button
                         onClick={() => openModal('view', order)}
                         className="text-blue-600 hover:text-blue-900"
+                        title="Lihat Detail"
                       >
                         <Eye size={16} className="text-gray-600" />
+                      </button>
+                      <button
+                        onClick={() => handleNextStatus(order)}
+                        disabled={updatingStatus === order.id || ["completed", "cancelled"].includes(order.status)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors shadow-sm ${(() => {
+                          const next = getForwardStatus(order.status);
+                          if (order.status === "completed") {
+                            // Tampilkan Done berwarna biru meski non-aktif
+                            return "bg-blue-600 text-white cursor-not-allowed";
+                          }
+                          if (order.status === "cancelled" || !next) {
+                            return "bg-gray-200 text-gray-500 cursor-not-allowed";
+                          }
+                          switch (next) {
+                            case "processing":
+                              return "bg-blue-600 text-white hover:bg-blue-700";
+                            case "shipped":
+                              return "bg-purple-600 text-white hover:bg-purple-700";
+                            case "completed":
+                              return "bg-green-600 text-white hover:bg-green-700";
+                            default:
+                              return "bg-gray-200 text-gray-500";
+                          }
+                        })()}`}
+                        title={(() => {
+                          const next = getForwardStatus(order.status);
+                          if (order.status === "completed") return "Selesai";
+                          return next ? `Lanjut ke status: ${next.charAt(0).toUpperCase() + next.slice(1)}` : 'Status final';
+                        })()}
+                      >
+                        {(() => {
+                          const next = getForwardStatus(order.status);
+                          if (order.status === "completed") return "Done";
+                          return next ? next.charAt(0).toUpperCase() + next.slice(1) : 'Cancelled';
+                        })()}
                       </button>
                     </td>
                   </tr>
