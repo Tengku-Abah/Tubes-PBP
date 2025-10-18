@@ -775,25 +775,27 @@ function ProductDetailPageContent() {
             </div>
           ) : (
             <>
-              {/* Clickable section header to toggle all reviews */}
-              <div 
-                onClick={() => setShowAllReviews(!showAllReviews)}
-                className="flex items-center justify-between mb-6 cursor-pointer group"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+              {/* Section header with toggle button */}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">
                   Ulasan Terbaru
                 </h3>
-                <button className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors">
-                  <span>{showAllReviews ? 'Tampilkan lebih sedikit' : `Tampilkan ${reviews.length} Ulasan`}</span>
-                  <svg 
-                    className={`w-5 h-5 transition-transform duration-200 ${showAllReviews ? 'rotate-180' : ''}`}
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
+                {reviews.length > 3 && (
+                  <button
+                    onClick={() => setShowAllReviews(!showAllReviews)}
+                    className="py-2.5 text-blue-600 hover:text-blue-700 transition-all duration-200 font-medium text-sm active:scale-[0.98] inline-flex items-center gap-2"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
+                    <span>{showAllReviews ? 'Tampilkan Lebih Sedikit' : `Tampilkan Semua ${reviews.length} Ulasan`}</span>
+                    <svg 
+                      className={`w-4 h-4 transition-transform duration-200 ${showAllReviews ? 'rotate-180' : ''}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                )}
               </div>
 
               {/* Reviews List with Animation */}
@@ -843,26 +845,6 @@ function ProductDetailPageContent() {
                   </div>
                 ))}
               </div>
-
-              {/* Show More/Less Button - Alternative position */}
-              {reviews.length > 3 && (
-                <div className="text-center pt-6 mt-6 border-t border-gray-100">
-                  <button
-                    onClick={() => setShowAllReviews(!showAllReviews)}
-                    className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md active:scale-[0.98] inline-flex items-center gap-2"
-                  >
-                    <span>{showAllReviews ? 'Show Less' : `View All ${reviews.length} Reviews`}</span>
-                    <svg 
-                      className={`w-4 h-4 transition-transform duration-200 ${showAllReviews ? 'rotate-180' : ''}`}
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                </div>
-              )}
             </>
           )}
         </div>
