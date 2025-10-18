@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Star, Package } from "lucide-react";
 import PopupAlert from "../../components/PopupAlert";
 import { usePopupAlert } from "../../hooks/usePopupAlert";
 import { getAuthHeaders } from "../../lib/auth";
 
-export default function ReviewPage() {
+function ReviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [rating, setRating] = useState(0);
@@ -315,5 +315,13 @@ export default function ReviewPage() {
         onConfirm={alertState.onConfirm}
       />
     </div>
+  );
+}
+
+export default function ReviewPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Memuat ulasan...</div>}>
+      <ReviewContent />
+    </Suspense>
   );
 }
