@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import PopupAlert from '../../components/PopupAlert';
 import { usePopupAlert } from '../../hooks/usePopupAlert';
@@ -444,6 +444,7 @@ const AdminPanel = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Form state untuk produk
   const [productForm, setProductForm] = useState<ProductForm>({
@@ -2235,11 +2236,30 @@ const AdminPanel = () => {
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
+                    onClick={(e) => { if (e.target === e.currentTarget) fileInputRef.current?.click(); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
+                    tabIndex={0}
+                    role="button"
+                    title="Klik untuk memilih file dari perangkat"
                   >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
                     {productForm.image ? (
                       <div className="space-y-2">
-                        <img src={productForm.image} alt="Preview" className="mx-auto h-24 w-24 object-cover rounded-lg" />
+                        <img src={productForm.image} alt="Preview" className="mx-auto max-h-40 w-auto max-w-full object-contain rounded-lg" />
                         <p className="text-sm text-gray-600">Gambar berhasil diupload</p>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                          className="mt-2 cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                        >
+                          Ganti Gambar
+                        </button>
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -2249,19 +2269,13 @@ const AdminPanel = () => {
                           </svg>
                         </div>
                         <p className="text-sm text-gray-600">Drag and drop gambar atau klik untuk upload</p>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileSelect}
-                          className="hidden"
-                          id="image-upload"
-                        />
-                        <label
-                          htmlFor="image-upload"
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
                           className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
                         >
                           Pilih Gambar
-                        </label>
+                        </button>
                       </div>
                     )}
                     {uploadingImage && (
