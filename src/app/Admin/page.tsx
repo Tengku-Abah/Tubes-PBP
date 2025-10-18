@@ -2056,50 +2056,45 @@ const AdminPanel = () => {
             {selectedStat === 'Total Produk Terjual' && (
               <>
                 {/* Top Products */}
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">Produk Terlaris</h3>
-                      <p className="text-gray-600 text-sm">5 produk terbaik</p>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">5 Produk Terlaris</h3>
+                      <p className="text-gray-500 text-sm">Produk dengan penjualan tertinggi</p>
                     </div>
-                    <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl">
-                      <Package className="w-6 h-6 text-white" />
+                    <div className="p-2.5 bg-green-50 rounded-lg">
+                      <Package className="w-5 h-5 text-green-600" />
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {products.slice(0, 5).map((product) => {
-                      // const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32', '#4A90E2', '#7B68EE']; // Unused, can be removed if not needed
+                      {productSales
+                      .sort((a: any, b: any) => b.totalSold - a.totalSold)
+                      .slice(0, 5)
+                      .map((product: any, index: number) => {
+                        const sortedProducts = productSales.sort((a: any, b: any) => b.totalSold - a.totalSold).slice(0, 10);
+                        const maxUnits = Math.max(...sortedProducts.map((p: any) => p.totalSold));
+                        const percentage = maxUnits > 0 ? (product.totalSold / maxUnits) * 100 : 0;
 
-                      return (
-                        <div key={product.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
-                          <div className="flex items-center gap-4">
-                            <img
+                        return (
+                          <div key={product.id} className="space-y-2">
+                            <div className="flex items-center gap-3">
+                              <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                                {index + 1}
+                              </span>
+                              <img
                               className="w-16 h-16 rounded-xl object-cover shadow-lg"
                               src={product.image}
                               alt={product.name}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = 'https://via.placeholder.com/64x64?text=No+Image';
-                              }}
-                            />
-                            <div>
-                              <h4 className="font-semibold text-gray-900">{product.name}</h4>
-                              <p className="text-sm text-gray-500">{product.category}</p>
+                              />
+                                <span className="text-sm font-medium text-gray-900 truncate flex-1">{product.name}</span>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-sm font-semibold text-gray-900">{product.totalSold.toLocaleString('id-ID')}</span>
+                                <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">unit terjual</span>
+                              </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold text-gray-900">{formatCurrency(product.price)}</p>
-                            <p className="text-sm text-gray-500">Stok: {product.stock}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {products.length === 0 && (
-                      <div className="text-center py-8">
-                        <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">Belum ada produk</p>
-                      </div>
-                    )}
+                          );
+                      })}
                   </div>
                 </div>
               </>
