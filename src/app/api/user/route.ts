@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { dbHelpers } from '@/lib/supabase';
+import { generateToken } from '@/lib/jwt-auth';
+
+// Force dynamic rendering - never cache this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 
 // Interface untuk User response (tanpa password)
@@ -203,20 +208,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get rememberMe flag from request (optional)
+    const rememberMe = body.rememberMe === true;
+
     // Return user data (tanpa password)
     const { password: _, ...userWithoutPassword } = userData;
+
+    // Generate JWT token with user data
+    const jwtToken = generateToken(
+      {
+        id: String(userData.id),
+        email: userData.email,
+        role: userData.role,
+        name: userData.name
+      },
+      rememberMe
+    );
+
+    // Decode token to get expiration details
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.decode(jwtToken) as any;
+    const now = Math.floor(Date.now() / 1000);
+    const expiresInSeconds = decoded.exp - now;
+
+    // Calculate hours, minutes, seconds
+    const hours = Math.floor(expiresInSeconds / 3600);
+    const minutes = Math.floor((expiresInSeconds % 3600) / 60);
+    const seconds = expiresInSeconds % 60;
+
+    // Format as HH:MM:SS
+    const expiresInFormatted = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
     const loginResponse: LoginResponse = {
       success: true,
       data: {
         user: userWithoutPassword as UserResponse,
-        token: 'dummy-jwt-token-' + userData.id,
-        expiresIn: '24h'
+        token: jwtToken, // Real JWT token with signature
+        expiresIn: expiresInFormatted // Format: HH:MM:SS
       },
       message: 'Login successful'
     };
 
-    return NextResponse.json(loginResponse);
+    // Return response with no-cache headers to prevent browser caching
+    const response = NextResponse.json(loginResponse);
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
 
   } catch (error) {
     console.error('Authentication error:', error);
