@@ -136,6 +136,14 @@ export default function OrderView() {
     }
   };
 
+  const formatPaymentMethod = (method: string) => {
+    // Convert underscore to space and capitalize each word
+    return method
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -559,10 +567,7 @@ export default function OrderView() {
                       <CreditCard className="w-4 h-4 text-blue-700" />
                       <h3 className="font-bold text-gray-900 text-sm">Pembayaran</h3>
                     </div>
-                    <p className="text-gray-700 text-sm">{selectedOrder.payment_method}</p>
-                    {selectedOrder.payment_status && (
-                      <p className="text-xs text-gray-600 mt-1">Status: {selectedOrder.payment_status}</p>
-                    )}
+                    <p className="text-gray-700 text-sm">{formatPaymentMethod(selectedOrder.payment_method)}</p>
                   </div>
                   <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">

@@ -16,19 +16,41 @@ function ReviewContent() {
   const [submitting, setSubmitting] = useState(false);
   const { alertState, showSuccess, showError, showWarning, hideAlert } = usePopupAlert();
 
-  // Check if user is admin and redirect
+  // Check if user is logged in and if they are admin
   useEffect(() => {
     const user = getCurrentUser();
-    if (user && user.role === 'admin') {
+    console.log('=== Review Page User Check ===');
+    console.log('User data:', JSON.stringify(user, null, 2));
+    console.log('User role:', user?.role);
+    console.log('Role type:', typeof user?.role);
+    console.log('Is exactly admin?:', user?.role === 'admin');
+    console.log('Is admin (case-insensitive)?:', user?.role?.toLowerCase() === 'admin');
+    
+    // Check if user is not logged in
+    if (!user) {
+      console.log('No user logged in, redirecting to login...');
+      showError('Anda harus login terlebih dahulu untuk memberikan ulasan.');
+      setTimeout(() => {
+        router.push('/Login');
+      }, 2000);
+      return;
+    }
+    
+    // Only block if role is explicitly set to 'admin' (case-insensitive)
+    const userRole = user.role ? String(user.role).toLowerCase().trim() : '';
+    
+    if (userRole === 'admin') {
+      console.log('Admin user detected, blocking access to review page');
       showError('Admin tidak dapat membuat review. Hanya pelanggan yang dapat memberi ulasan produk.');
       setTimeout(() => {
         router.push('/Admin');
       }, 2000);
+    } else {
+      console.log('Regular user detected (role:', userRole, '), allowing review access');
     }
   }, [router, showError]);
 
   // Get params from URL: orderId, orderItemId, productId
-  // Example URL: /Review?orderId=123&orderItemId=456&productId=789
   const orderId = searchParams.get("orderId");
   const orderItemId = searchParams.get("orderItemId");
 
@@ -160,34 +182,39 @@ function ReviewContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header - consistent with view-order page */}
-      <header className="bg-gradient-to-r from-blue-600 to-blue-800 shadow-xl sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-3 text-white">
-            <button
-              onClick={() => router.back()}
-              className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold">Tulis Ulasan Produk</h1>
-              <p className="text-blue-100 text-sm mt-1">Bagikan pengalaman Anda dengan produk ini</p>
+      {/* Header - Consistent with view-order page */}
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 border-b border-blue-700 shadow-lg">
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            {/* Back Button & Title */}
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => router.back()}
+                className="flex items-center gap-2 text-white hover:text-blue-100 transition-colors group"
+              >
+                <svg className="w-6 h-6 md:w-5 md:h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span className="font-semibold text-sm md:text-base">Kembali</span>
+              </button>
+              <div className="hidden sm:block w-px h-6 bg-blue-600"></div>
+              <h1 className="hidden sm:block text-base md:text-lg font-bold text-white">Tulis Ulasan</h1>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      {/* Main Content */}
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-6 space-y-4">
         {/* Section 1: Product Summary Card */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Package className="w-5 h-5 text-blue-600" />
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Package className="w-4 h-4 text-primary-600" />
             Produk yang Diulas
           </h2>
 
           <div className="flex items-start gap-4">
-            <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+            <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-slate-200">
               <img
                 src={product.image}
                 alt={product.name}
@@ -199,13 +226,13 @@ function ReviewContent() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900 text-base mb-1 line-clamp-2">
+              <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">
                 {product.name}
               </h3>
-              <p className="text-blue-700 font-bold text-lg mb-1">
+              <p className="text-primary-700 font-bold text-base mb-1">
                 {formatPrice(product.price)}
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs text-gray-600">
                 Kategori: <span className="font-medium text-gray-800">{product.category || '—'}</span>
               </p>
             </div>
@@ -213,15 +240,15 @@ function ReviewContent() {
         </div>
 
         {/* Section 2: Rating */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-3">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <h2 className="text-base font-bold text-gray-900 mb-2">
             Penilaian Anda
           </h2>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-xs text-gray-600 mb-6">
             Berikan rating untuk produk ini (1-5 bintang)
           </p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-3">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
@@ -229,11 +256,11 @@ function ReviewContent() {
                 onClick={() => setRating(star)}
                 onMouseEnter={() => setHoveredRating(star)}
                 onMouseLeave={() => setHoveredRating(0)}
-                className="p-1 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                className="p-1 transition-transform hover:scale-110 focus:outline-none  rounded"
                 aria-label={`${star} bintang`}
               >
                 <Star
-                  className={`w-10 h-10 transition-colors ${star <= (hoveredRating || rating)
+                  className={`w-16 h-16 transition-colors ${star <= (hoveredRating || rating)
                     ? "text-yellow-400 fill-yellow-400"
                     : "text-gray-300 fill-gray-300"
                     }`}
@@ -243,7 +270,7 @@ function ReviewContent() {
           </div>
 
           {rating > 0 && (
-            <p className="mt-3 text-sm font-medium text-gray-700">
+            <p className="mt-4 text-sm font-medium text-gray-700 bg-gray-50 px-4 py-2.5 rounded-lg text-center">
               Rating Anda: {rating} dari 5 bintang
               {rating === 5 && " ⭐ Sempurna!"}
               {rating === 4 && " 👍 Sangat Bagus!"}
@@ -255,11 +282,11 @@ function ReviewContent() {
         </div>
 
         {/* Section 3: Review Text */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-3">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <h2 className="text-base font-bold text-gray-900 mb-2">
             Ulasan Anda
           </h2>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-xs text-gray-600 mb-4">
             Ceritakan pengalaman Anda dengan produk ini (minimal 5 kata)
           </p>
 
@@ -267,14 +294,14 @@ function ReviewContent() {
             value={review}
             onChange={(e) => setReview(e.target.value)}
             placeholder="Contoh: Produk ini sangat bagus dan sesuai dengan deskripsi. Kualitas material sangat premium dan pengiriman cepat. Saya sangat merekomendasikan produk ini!"
-            className="w-full min-h-[200px] px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all resize-none"
+            className="w-full min-h-[180px] px-4 py-3 rounded-lg border-2 border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all resize-none text-sm"
             maxLength={500}
           />
 
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-3">
               <span
-                className={`text-sm font-medium ${wordCount >= 5 ? "text-green-600" : "text-orange-600"
+                className={`text-xs font-semibold ${wordCount >= 5 ? "text-green-600" : "text-orange-600"
                   }`}
               >
                 {wordCount} kata
@@ -293,7 +320,7 @@ function ReviewContent() {
           {/* Word count indicator */}
           {review.length > 0 && (
             <div className="mt-3">
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className={`h-full transition-all duration-300 ${wordCount >= 5 ? "bg-green-500" : "bg-orange-500"
                     }`}
@@ -304,11 +331,11 @@ function ReviewContent() {
           )}
 
           {/* Submit button */}
-          <div className="mt-6">
+          <div className="mt-5">
             <button
               onClick={handleSubmit}
-              disabled={submitting}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={submitting || !isValidReview}
+              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2.5 rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary-600"
             >
               {submitting ? "Mengirim..." : "Kirim Ulasan"}
             </button>

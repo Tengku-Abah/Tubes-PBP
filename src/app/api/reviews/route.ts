@@ -184,13 +184,24 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Prevent admin from creating reviews
-        if (user.role === 'admin') {
+        // Log user info for debugging
+        console.log('Review API POST - User Info:', {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            roleType: typeof user.role
+        });
+
+        // Prevent admin from creating reviews (case-insensitive check)
+        if (user.role && user.role.toLowerCase() === 'admin') {
+            console.log('Admin user blocked from creating review');
             return NextResponse.json(
                 { success: false, message: 'Admin cannot create reviews. Only customers can review products.' },
                 { status: 403 }
             );
         }
+
+        console.log('User allowed to create review');
 
         const body = await request.json();
         const { productId, orderId, orderItemId, rating, comment, userAvatar } = body;
