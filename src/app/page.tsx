@@ -9,6 +9,7 @@ import { useToast } from '../components/Toast'
 import Link from 'next/link'
 import { LayoutDashboard, Package, ShoppingCart, Users, TrendingUp, Settings, Menu, X, Zap, LogOut, Tags } from 'lucide-react';
 import UserProfileDropdown from '../components/UserProfileDropdown'
+import { useRouter } from 'next/navigation'
 
 interface Product {
   id: number
@@ -25,6 +26,7 @@ interface Product {
 }
 
 export default function HomePage() {
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -276,6 +278,12 @@ export default function HomePage() {
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData)
+        if (parsedUser.role === 'admin') {
+          setIsLoggedIn(false)
+          setUser(null)
+          router.replace('/Admin')
+          return
+        }
         const userChanged = !user || user.id !== parsedUser.id
 
         setUser(parsedUser)

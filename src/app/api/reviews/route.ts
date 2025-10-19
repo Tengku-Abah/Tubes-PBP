@@ -172,10 +172,10 @@ export async function GET(request: NextRequest) {
 // POST endpoint untuk menambah ulasan baru
 export async function POST(request: NextRequest) {
     try {
-        // Get authenticated user (cookie first, then header fallback)
-        let user = getCookieUser(request) as any;
+        // Get authenticated user (prefer request headers for per-tab accuracy)
+        let user = getApiUser(request) as any;
         if (!user) {
-            user = getApiUser(request);
+            user = getCookieUser(request);
         }
         if (!user) {
             return NextResponse.json(
@@ -399,8 +399,11 @@ export async function POST(request: NextRequest) {
 // PUT endpoint untuk update ulasan
 export async function PUT(request: NextRequest) {
     try {
-        // Get authenticated user
-        const user = getCookieUser(request);
+        // Get authenticated user (prefer headers)
+        let user = getApiUser(request) as any;
+        if (!user) {
+            user = getCookieUser(request);
+        }
         if (!user) {
             return NextResponse.json(
                 { success: false, message: 'Authentication required' },
@@ -518,7 +521,10 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
     try {
         // Get authenticated user
-        const user = getCookieUser(request);
+        let user = getApiUser(request) as any;
+        if (!user) {
+            user = getCookieUser(request);
+        }
         if (!user) {
             return NextResponse.json(
                 { success: false, message: 'Authentication required' },

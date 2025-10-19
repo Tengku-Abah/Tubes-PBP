@@ -367,7 +367,7 @@ export default function CheckoutPage() {
                     <div className="flex items-center justify-between h-16 md:h-20">
                         {/* Back Button & Title */}
                         <div className="flex items-center gap-3">
-                            <Link 
+                            <Link
                                 href="/cart"
                                 className="flex items-center gap-2 text-white hover:text-blue-100 transition-colors group"
                             >
@@ -379,7 +379,7 @@ export default function CheckoutPage() {
                             <div className="hidden sm:block w-px h-6 bg-blue-600"></div>
                             <h1 className="hidden sm:block text-base md:text-lg font-bold text-white">Checkout</h1>
                         </div>
-                        
+
                         {/* Right Actions - User Profile */}
                     </div>
                 </div>
@@ -496,7 +496,7 @@ export default function CheckoutPage() {
                                                     <label className="block text-sm font-medium text-slate-600">Alamat Lengkap</label>
                                                     <textarea value={address} onChange={e => setAddress(e.target.value)} rows={2} className="mt-1 block w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Jalan, RT/RW, Kelurahan, Kecamatan"></textarea>
                                                 </div>
-                                                
+
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
                                                         <label className="block text-sm font-medium text-slate-600">Provinsi</label>
@@ -516,9 +516,9 @@ export default function CheckoutPage() {
                                                     <div>
                                                         <label className="block text-sm font-medium text-slate-600">Metode Pengiriman</label>
                                                         <div className="relative mt-1">
-                                                            <select 
-                                                                value={shippingMethod} 
-                                                                onChange={e => setShippingMethod(e.target.value)} 
+                                                            <select
+                                                                value={shippingMethod}
+                                                                onChange={e => setShippingMethod(e.target.value)}
                                                                 className="block w-full px-4 py-2.5 pr-10 border border-slate-300 rounded-lg bg-white text-slate-700 appearance-none cursor-pointer transition-all duration-200 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm"
                                                             >
                                                                 <option value="standard">Standard (3-5 hari)</option>
@@ -534,8 +534,8 @@ export default function CheckoutPage() {
                                                 </div>
                                             </div>
                                         </div>
-                            </>
-                        )}
+                                    </>
+                                )}
 
                                 {/* Step 2: Payment Form */}
                                 {currentStep === 2 && (
@@ -560,9 +560,9 @@ export default function CheckoutPage() {
                                             <div>
                                                 <label className="block text-sm font-semibold text-slate-700 mb-2">Metode Pembayaran</label>
                                                 <div className="relative">
-                                                    <select 
-                                                        value={paymentMethod} 
-                                                        onChange={e => setPaymentMethod(e.target.value as 'cod' | 'bank' | 'credit-card')} 
+                                                    <select
+                                                        value={paymentMethod}
+                                                        onChange={e => setPaymentMethod(e.target.value as 'cod' | 'bank' | 'credit-card')}
                                                         className="block w-full px-4 py-3 pr-10 border-2 border-slate-300 rounded-xl bg-white text-slate-700 appearance-none cursor-pointer transition-all duration-200 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm font-medium"
                                                     >
                                                         <option value="cod">Bayar di Tempat (COD)</option>
@@ -652,110 +652,110 @@ export default function CheckoutPage() {
                                             {/* Catatan */}
                                             <div>
                                                 <label className="block text-sm font-semibold text-slate-700 mb-2">Catatan untuk Penjual (opsional)</label>
-                                                <textarea 
-                                                    value={notes} 
-                                                    onChange={e => setNotes(e.target.value)} 
-                                                    rows={4} 
-                                                    className="block w-full px-4 py-3 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-primary-400 shadow-sm resize-none" 
+                                                <textarea
+                                                    value={notes}
+                                                    onChange={e => setNotes(e.target.value)}
+                                                    rows={4}
+                                                    className="block w-full px-4 py-3 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-primary-400 shadow-sm resize-none"
                                                     placeholder="Contoh: Tolong kirim dalam kemasan gift, sertakan kartu ucapan, dll..."
                                                 ></textarea>
                                                 <p className="text-xs text-slate-500 mt-2">Tambahkan catatan khusus jika ada permintaan spesial untuk pesanan Anda.</p>
                                             </div>
                                         </div>
-                            </>
-                        )}
+                                    </>
+                                )}
 
                                 {/* Step 3: Review Panel */}
                                 {currentStep === 3 && (
                                     <>
                                         <div className="grid grid-cols-1 gap-4">
-                                    <div className="border rounded-xl p-4">
-                                        <h3 className="font-medium text-slate-800 mb-2">Kontak</h3>
-                                        <p className="text-sm text-slate-700">{contactName} • {contactEmail} • {phoneNumber}</p>
-                                    </div>
-                                    <div className="border rounded-xl p-4">
-                                        <h3 className="font-medium text-slate-800 mb-2">Detail Pengiriman</h3>
-                                        <p className="text-sm text-slate-700">{address}, {city}, {province} {postalCode}</p>
-                                        <p className="text-sm text-slate-600 mt-1">Metode: {shippingMethod === 'express' ? 'Express (1-2 hari)' : 'Standard (3-5 hari)'}</p>
-                                    </div>
-                                    <div className="border rounded-xl p-4">
-                                        <h3 className="font-medium text-slate-800 mb-2">Pembayaran</h3>
-                                        <p className="text-sm text-slate-700">{paymentMethod === 'bank' ? 'Transfer Bank' : (paymentMethod === 'credit-card' ? 'Kartu Kredit' : 'Bayar di Tempat (COD)')}</p>
-                                        {notes && <p className="text-sm text-slate-600 mt-1">Catatan: {notes}</p>}
-                                    </div>
-                                    <div className="border rounded-xl p-4">
-                                        <h3 className="font-medium text-slate-800 mb-3">Produk</h3>
-                                        <div className="space-y-2">
-                                            {(
-                                                (cartItems && cartItems.length > 0)
-                                                    ? cartItems.map((c: any) => ({
-                                                        key: c.id,
-                                                        name: c.product?.name ?? 'Item',
-                                                        qty: c.quantity ?? 1,
-                                                        price: Number((c.product as any)?.price ?? 0)
-                                                    }))
-                                                    : (localSummary?.items ?? []).map((it: any, idx: number) => ({
-                                                        key: idx,
-                                                        name: it.product?.name ?? it.productName ?? 'Item',
-                                                        qty: it.quantity ?? 1,
-                                                        price: Number(it.product?.price ?? it.price ?? 0)
-                                                    }))
-                                            ).map((row: any) => (
-                                                <div key={row.key} className="flex items-center justify-between text-sm">
-                                                    <div className="text-slate-700">{row.name} <span className="text-slate-500">× {row.qty}</span></div>
-                                                    <div className="font-medium text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.price * row.qty)}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="border-t mt-3 pt-3 space-y-1 text-sm">
-                                            <div className="flex justify-between text-slate-600">
-                                                <span>Subtotal Pesanan</span>
-                                                <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.subtotal ?? subtotal)}</span>
+                                            <div className="border rounded-xl p-4">
+                                                <h3 className="font-medium text-slate-800 mb-2">Kontak</h3>
+                                                <p className="text-sm text-slate-700">{contactName} • {contactEmail} • {phoneNumber}</p>
                                             </div>
-                                            <div className="flex justify-between text-slate-600">
-                                                <span>SubtotalPengiriman</span>
-                                                <span>
-                                                    {(localSummary?.shipping ?? shipping) === 0 ? (
-                                                        shippingMethod === 'express' ? (
-                                                            <div className="text-right">
-                                                                <div className="text-green-600 font-bold">Gratis</div>
-                                                                <div className="text-xs text-slate-400 line-through">+Rp 3.000</div>
-                                                            </div>
-                                                        ) : (
-                                                            'Gratis'
-                                                        )
-                                                    ) : (
-                                                        <div className="text-right">
-                                                            <div>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.shipping ?? shipping) + (shippingMethod === 'express' ? 3000 : 0))}</div>
-                                                            {shippingMethod === 'express' && (
-                                                                <div className="text-xs text-slate-400">+Rp 3.000 (Express)</div>
-                                                            )}
+                                            <div className="border rounded-xl p-4">
+                                                <h3 className="font-medium text-slate-800 mb-2">Detail Pengiriman</h3>
+                                                <p className="text-sm text-slate-700">{address}, {city}, {province} {postalCode}</p>
+                                                <p className="text-sm text-slate-600 mt-1">Metode: {shippingMethod === 'express' ? 'Express (1-2 hari)' : 'Standard (3-5 hari)'}</p>
+                                            </div>
+                                            <div className="border rounded-xl p-4">
+                                                <h3 className="font-medium text-slate-800 mb-2">Pembayaran</h3>
+                                                <p className="text-sm text-slate-700">{paymentMethod === 'bank' ? 'Transfer Bank' : (paymentMethod === 'credit-card' ? 'Kartu Kredit' : 'Bayar di Tempat (COD)')}</p>
+                                                {notes && <p className="text-sm text-slate-600 mt-1">Catatan: {notes}</p>}
+                                            </div>
+                                            <div className="border rounded-xl p-4">
+                                                <h3 className="font-medium text-slate-800 mb-3">Produk</h3>
+                                                <div className="space-y-2">
+                                                    {(
+                                                        (cartItems && cartItems.length > 0)
+                                                            ? cartItems.map((c: any) => ({
+                                                                key: c.id,
+                                                                name: c.product?.name ?? 'Item',
+                                                                qty: c.quantity ?? 1,
+                                                                price: Number((c.product as any)?.price ?? 0)
+                                                            }))
+                                                            : (localSummary?.items ?? []).map((it: any, idx: number) => ({
+                                                                key: idx,
+                                                                name: it.product?.name ?? it.productName ?? 'Item',
+                                                                qty: it.quantity ?? 1,
+                                                                price: Number(it.product?.price ?? it.price ?? 0)
+                                                            }))
+                                                    ).map((row: any) => (
+                                                        <div key={row.key} className="flex items-center justify-between text-sm">
+                                                            <div className="text-slate-700">{row.name} <span className="text-slate-500">× {row.qty}</span></div>
+                                                            <div className="font-medium text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.price * row.qty)}</div>
                                                         </div>
-                                                    )}
-                                                </span>
+                                                    ))}
+                                                </div>
+                                                <div className="border-t mt-3 pt-3 space-y-1 text-sm">
+                                                    <div className="flex justify-between text-slate-600">
+                                                        <span>Subtotal Pesanan</span>
+                                                        <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(localSummary?.subtotal ?? subtotal)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-slate-600">
+                                                        <span>SubtotalPengiriman</span>
+                                                        <span>
+                                                            {(localSummary?.shipping ?? shipping) === 0 ? (
+                                                                shippingMethod === 'express' ? (
+                                                                    <div className="text-right">
+                                                                        <div className="text-green-600 font-bold">Gratis</div>
+                                                                        <div className="text-xs text-slate-400 line-through">+Rp 3.000</div>
+                                                                    </div>
+                                                                ) : (
+                                                                    'Gratis'
+                                                                )
+                                                            ) : (
+                                                                <div className="text-right">
+                                                                    <div>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.shipping ?? shipping) + (shippingMethod === 'express' ? 3000 : 0))}</div>
+                                                                    {shippingMethod === 'express' && (
+                                                                        <div className="text-xs text-slate-400">+Rp 3.000 (Express)</div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between text-slate-600">
+                                                        <span>Pajak (11%)</span>
+                                                        <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.subtotal ?? subtotal) * 0.11)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-slate-800 font-semibold text-base pt-1">
+                                                        <span>Total Pembayaran</span>
+                                                        <span>
+                                                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
+                                                                (localSummary?.total ?? total) +
+                                                                (shippingMethod === 'express' && (localSummary?.shipping ?? shipping) > 0 ? 3000 : 0)
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="flex justify-between text-slate-600">
-                                                <span>Pajak (11%)</span>
-                                                <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format((localSummary?.subtotal ?? subtotal) * 0.11)}</span>
-                                            </div>
-                                            <div className="flex justify-between text-slate-800 font-semibold text-base pt-1">
-                                                <span>Total Pembayaran</span>
-                                                <span>
-                                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
-                                                        (localSummary?.total ?? total) + 
-                                                        (shippingMethod === 'express' && (localSummary?.shipping ?? shipping) > 0 ? 3000 : 0)
-                                                    )}
-                                                </span>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <input id="agree" type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="w-4 h-4 text-blue-600 rounded" />
+                                                <label htmlFor="agree" className="text-sm text-slate-700">Saya mengkonfirmasi bahwa informasi di atas sudah benar.</label>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <input id="agree" type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="w-4 h-4 text-blue-600 rounded" />
-                                        <label htmlFor="agree" className="text-sm text-slate-700">Saya mengkonfirmasi bahwa informasi di atas sudah benar.</label>
-                                    </div>
-                                </div>
-                            </>
-                        )}
+                                    </>
+                                )}
 
                                 {/* Navigation Buttons */}
                                 <div className="mt-6 flex items-center justify-between gap-3">
@@ -834,29 +834,29 @@ export default function CheckoutPage() {
                             {/* Items List */}
                             <div className="p-6">
                                 <div className="space-y-3 max-h-60 overflow-y-auto">
-                            {(
-                                (cartItems && cartItems.length > 0)
-                                    ? cartItems.map((c: any) => ({
-                                        key: c.id,
-                                        name: c.product?.name ?? 'Produk',
-                                        qty: c.quantity ?? 1,
-                                        price: typeof c.product?.price === 'number' ? c.product.price : 0
-                                    }))
-                                    : (localSummary?.items ?? []).map((it: any, idx: number) => ({
-                                        key: idx,
-                                        name: it.product?.name ?? it.productName ?? 'Produk',
-                                        qty: it.quantity ?? 1,
-                                        price: it.product?.price ?? it.price ?? 0
-                                    }))
-                            ).map((row: any) => (
-                                <div key={row.key} className="flex items-start justify-between">
-                                    <div>
-                                        <div className="text-sm font-medium text-slate-800">{row.name}</div>
-                                        <div className="text-xs text-slate-500">Qty: {row.qty}</div>
-                                    </div>
-                                    <div className="text-sm font-semibold text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.price * row.qty)}</div>
-                                </div>
-                            ))}
+                                    {(
+                                        (cartItems && cartItems.length > 0)
+                                            ? cartItems.map((c: any) => ({
+                                                key: c.id,
+                                                name: c.product?.name ?? 'Produk',
+                                                qty: c.quantity ?? 1,
+                                                price: typeof c.product?.price === 'number' ? c.product.price : 0
+                                            }))
+                                            : (localSummary?.items ?? []).map((it: any, idx: number) => ({
+                                                key: idx,
+                                                name: it.product?.name ?? it.productName ?? 'Produk',
+                                                qty: it.quantity ?? 1,
+                                                price: it.product?.price ?? it.price ?? 0
+                                            }))
+                                    ).map((row: any) => (
+                                        <div key={row.key} className="flex items-start justify-between">
+                                            <div>
+                                                <div className="text-sm font-medium text-slate-800">{row.name}</div>
+                                                <div className="text-xs text-slate-500">Qty: {row.qty}</div>
+                                            </div>
+                                            <div className="text-sm font-semibold text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.price * row.qty)}</div>
+                                        </div>
+                                    ))}
                                 </div>
 
                                 {/* Summary */}
@@ -900,7 +900,7 @@ export default function CheckoutPage() {
                                             <span className="text-base font-bold text-slate-800">Total Pembayaran</span>
                                             <span className="text-2xl font-bold text-primary-700">
                                                 {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
-                                                    (localSummary?.total ?? total) + 
+                                                    (localSummary?.total ?? total) +
                                                     (shippingMethod === 'express' && (localSummary?.shipping ?? shipping) > 0 ? 3000 : 0)
                                                 )}
                                             </span>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbHelpers, ApiResponse, supabase } from '../../../lib/supabase';
+import { getApiUser, getCookieUser } from '../../../lib/api-auth';
 export const dynamic = 'force-dynamic';
 
 // Normalisasi URL/path avatar menjadi public URL yang valid dari bucket 'product-images'
@@ -185,8 +186,37 @@ export async function POST(request: NextRequest) {
       paymentMethod
     } = body;
 
-    // Get user ID from request headers or query params
-    const userId = request.headers.get('user-id') || request.nextUrl.searchParams.get('user_id');
+    const sessionUser = getApiUser(request) || getCookieUser(request);
+    if (!sessionUser) {
+      return NextResponse.json(
+        { success: false, message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (sessionUser.role === 'admin') {
+      return NextResponse.json(
+        { success: false, message: 'Admins cannot create orders' },
+        { status: 403 }
+      );
+    }
+
+    const requestedUserId = request.headers.get('user-id') || request.nextUrl.searchParams.get('user_id');
+    const userId = sessionUser.id?.toString();
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: 'User session invalid' },
+        { status: 401 }
+      );
+    }
+
+    if (requestedUserId && requestedUserId !== userId) {
+      return NextResponse.json(
+        { success: false, message: 'Forbidden: Cannot create orders for another user' },
+        { status: 403 }
+      );
+    }
 
     // Validasi input
     if (!customerName || !customerEmail || !customerPhone || !items || !shippingAddress || !userId) {

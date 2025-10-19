@@ -4,6 +4,40 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  const redirectIfAdminOnCustomerPage = () => {
+    // Paths that should be redirected when an admin tries to access them
+    const restrictedPaths = ['/', '/Detail', '/Review', '/Profile', '/view-order', '/cart', '/checkout']
+    const isRestricted = restrictedPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
+
+    if (!isRestricted) {
+      return null
+    }
+
+    const adminToken = request.cookies.get('admin-auth-token')?.value
+    const generalToken = request.cookies.get('auth-token')?.value
+    const rawToken = adminToken || generalToken
+
+    if (!rawToken) {
+      return null
+    }
+
+    try {
+      const user = JSON.parse(rawToken)
+      if (user?.role === 'admin') {
+        return NextResponse.redirect(new URL('/Admin', request.url))
+      }
+    } catch (error) {
+      console.error('Invalid admin token while checking customer page access:', error)
+    }
+
+    return null
+  }
+
+  const adminRedirect = redirectIfAdminOnCustomerPage()
+  if (adminRedirect) {
+    return adminRedirect
+  }
+
   // Check if accessing admin routes
   if (pathname.startsWith('/Admin')) {
     // Get admin auth token from dedicated admin cookie
@@ -72,8 +106,13 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/',
     '/Admin/:path*',
     '/cart/:path*',
     '/checkout/:path*',
+    '/Detail/:path*',
+    '/Review/:path*',
+    '/Profile/:path*',
+    '/view-order/:path*',
   ]
 }

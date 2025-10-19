@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbHelpers, } from '../../../lib/supabase';
+import { getApiUser, getCookieUser } from '../../../lib/api-auth';
 
 // Cart item interface for API response
 interface CartItemResponse {
@@ -23,17 +24,39 @@ interface CartItemResponse {
 // GET endpoint untuk mengambil semua cart items
 export async function GET(request: NextRequest) {
   try {
-    // Get user ID from request headers or query params
-    const userId = request.headers.get('user-id') || request.nextUrl.searchParams.get('user_id');
-
-    if (!userId) {
+    const sessionUser = getApiUser(request) || getCookieUser(request);
+    if (!sessionUser) {
       return NextResponse.json(
-        { success: false, message: 'User ID is required' },
+        { success: false, message: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const { data, error } = await dbHelpers.getCartItems(userId);
+    if (sessionUser.role === 'admin') {
+      return NextResponse.json(
+        { success: false, message: 'Admins cannot access cart operations' },
+        { status: 403 }
+      );
+    }
+
+    const requestedUserId = request.headers.get('user-id') || request.nextUrl.searchParams.get('user_id');
+    const effectiveUserId = sessionUser.id?.toString();
+
+    if (!effectiveUserId) {
+      return NextResponse.json(
+        { success: false, message: 'User session invalid' },
+        { status: 401 }
+      );
+    }
+
+    if (requestedUserId && requestedUserId !== effectiveUserId) {
+      return NextResponse.json(
+        { success: false, message: 'Forbidden: Cannot access another user cart' },
+        { status: 403 }
+      );
+    }
+
+    const { data, error } = await dbHelpers.getCartItems(effectiveUserId);
 
     if (error) {
       console.error('Database error:', error);
@@ -88,18 +111,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user ID from request headers or query params
-    const userId = request.headers.get('user-id') || request.nextUrl.searchParams.get('user_id');
+    const sessionUser = getApiUser(request) || getCookieUser(request);
+    if (!sessionUser) {
+      return NextResponse.json(
+        { success: false, message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (sessionUser.role === 'admin') {
+      return NextResponse.json(
+        { success: false, message: 'Admins cannot modify cart' },
+        { status: 403 }
+      );
+    }
+
+    const userId = sessionUser.id?.toString();
 
     if (!userId) {
       return NextResponse.json(
-        { success: false, message: 'User ID is required' },
+        { success: false, message: 'User session invalid' },
         { status: 401 }
       );
     }
 
     // Add item to cart using helper function
-    const {  error } = await dbHelpers.addToCart(userId, productId, quantity);
+    const { error } = await dbHelpers.addToCart(userId, productId, quantity);
 
     if (error) {
       console.error('Add to cart error:', error);
@@ -157,7 +194,22 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { data, error } = await dbHelpers.updateCartItemQuantity(itemId, quantity);
+    const sessionUser = getApiUser(request) || getCookieUser(request);
+    if (!sessionUser) {
+      return NextResponse.json(
+        { success: false, message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (sessionUser.role === 'admin') {
+      return NextResponse.json(
+        { success: false, message: 'Admins cannot modify cart' },
+        { status: 403 }
+      );
+    }
+
+    const { error } = await dbHelpers.updateCartItemQuantity(itemId, quantity);
 
     if (error) {
       console.error('Update cart item error:', error);
@@ -194,7 +246,22 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { data, error } = await dbHelpers.removeFromCart(parseInt(itemId));
+    const sessionUser = getApiUser(request) || getCookieUser(request);
+    if (!sessionUser) {
+      return NextResponse.json(
+        { success: false, message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (sessionUser.role === 'admin') {
+      return NextResponse.json(
+        { success: false, message: 'Admins cannot modify cart' },
+        { status: 403 }
+      );
+    }
+
+    const { error } = await dbHelpers.removeFromCart(parseInt(itemId));
 
     if (error) {
       console.error('Delete cart item error:', error);

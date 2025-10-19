@@ -51,7 +51,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       // Check localStorage for "Remember Me" logins (updated to match new system)
       const rememberedUser = localStorage.getItem('user')
       const rememberMe = localStorage.getItem('rememberMe')
-      
+
       if (rememberedUser && rememberMe === 'true') {
         try {
           const parsedUser = JSON.parse(rememberedUser)
@@ -63,10 +63,10 @@ export default function ProductCard({ product, className }: ProductCardProps) {
             // Restore session
             sessionStorage.setItem('user', JSON.stringify(parsedUser))
             sessionStorage.setItem('loginTime', now.toString())
-            
+
             // Set role-specific cookies for middleware
             const cookieOptions = 'max-age=2592000' // 30 days
-            
+
             if (parsedUser.role === 'admin') {
               document.cookie = `admin-auth-token=${encodeURIComponent(JSON.stringify(parsedUser))}; path=/; ${cookieOptions}`
               document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
@@ -74,10 +74,10 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               document.cookie = `user-auth-token=${encodeURIComponent(JSON.stringify(parsedUser))}; path=/; ${cookieOptions}`
               document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
             }
-            
+
             // Keep general auth-token for backward compatibility
             document.cookie = `auth-token=${encodeURIComponent(JSON.stringify(parsedUser))}; path=/; ${cookieOptions}`
-            
+
             setUser(parsedUser)
             setIsLoggedIn(true)
             return
@@ -138,7 +138,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
       })
 
       const data = await response.json()
-      
+
       if (data.success) {
         showToast('Produk berhasil ditambahkan ke keranjang!', 'success')
         // Trigger cart count update in header if needed
@@ -197,7 +197,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                 <div className="animate-spin rounded-full h-10 w-10 border-3 border-primary-600 border-t-transparent"></div>
               </div>
             )}
-            
+
             {imageError ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                 <div className="text-center text-gray-300">
@@ -211,9 +211,8 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               <img
                 src={product.image}
                 alt={product.name}
-                className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
-                }`}
+                className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${imageLoaded ? 'opacity-100' : 'opacity-0'
+                  }`}
                 onLoad={() => setImageLoaded(true)}
                 onError={() => setImageError(true)}
                 loading="lazy"
@@ -267,14 +266,13 @@ export default function ProductCard({ product, className }: ProductCardProps) {
 
             {/* Add to Cart Button - Clean & Modern */}
             {isLoggedIn ? (
-              <button 
+              <button
                 onClick={handleAddToCart}
                 disabled={addingToCart || product.stock === 0}
-                className={`w-full py-2.5 px-4 text-sm font-bold rounded-lg transition-all duration-200 ${
-                  product.stock > 0
+                className={`w-full py-2.5 px-4 text-sm font-bold rounded-lg transition-all duration-200 ${product.stock > 0
                     ? 'bg-transparent text-gray-700 hover:bg-primary-700 hover:text-white active:scale-[0.98] border border-slate-150 hover:shadow-lg'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
+                  }`}
               >
                 {addingToCart ? (
                   <span className="flex items-center justify-center gap-2">
@@ -293,7 +291,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
                 )}
               </button>
             ) : (
-              <button 
+              <button
                 onClick={handleAddToCart}
                 className="w-full py-3.5 px-4 text-sm font-bold bg-gray-50 text-slate-700 rounded-lg hover:bg-primary-700 hover:text-white active:scale-[0.98] shadow-md hover:shadow-lg transition-all duration-200"
               >

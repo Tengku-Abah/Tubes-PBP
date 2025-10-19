@@ -58,7 +58,7 @@ function ProductDetailPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const productId = searchParams.get('id')
-  
+
   // Popup Alert
   const { alertState, showSuccess, showError, showWarning, showConfirm, hideAlert } = usePopupAlert()
 
@@ -90,10 +90,10 @@ function ProductDetailPageContent() {
             // Restore session from localStorage
             sessionStorage.setItem('user', JSON.stringify(parsedUser))
             sessionStorage.setItem('loginTime', now.toString())
-            
+
             // Set role-specific cookies for middleware
             const cookieOptions = 'max-age=2592000' // 30 days
-            
+
             if (parsedUser.role === 'admin') {
               document.cookie = `admin-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
               document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
@@ -101,7 +101,7 @@ function ProductDetailPageContent() {
               document.cookie = `user-auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
               document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
             }
-            
+
             // Keep general auth-token for backward compatibility
             document.cookie = `auth-token=${JSON.stringify(parsedUser)}; path=/; ${cookieOptions}`
             userData = JSON.stringify(parsedUser)
@@ -180,7 +180,7 @@ function ProductDetailPageContent() {
       setLoading(true)
       const response = await fetch(`/api/product?id=${productId}`)
       const data = await response.json()
-      
+
       if (data.success && data.data) {
         setProduct(data.data)
       } else {
@@ -222,14 +222,14 @@ function ProductDetailPageContent() {
       // Fetch reviews dari API
       const response = await fetch(`/api/reviews?productId=${productId}&limit=100`)
       const data = await response.json()
-      
+
       if (data.success && data.data) {
         setReviews(data.data)
-        
+
         // Use stats from API if available, otherwise calculate from data
         if (data.stats) {
           setReviewStats(data.stats)
-          
+
           // Update product rating to match actual reviews
           if (product && data.stats.averageRating !== product.rating) {
             setProduct({
@@ -244,22 +244,22 @@ function ProductDetailPageContent() {
           if (totalReviews > 0) {
             const ratingDistribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
             let totalRating = 0
-            
+
             data.data.forEach((review: Review) => {
               ratingDistribution[review.rating as keyof typeof ratingDistribution]++
               totalRating += review.rating
             })
-            
+
             // Calculate precise average rating without rounding
             const averageRating = parseFloat((totalRating / totalReviews).toFixed(2))
             // const averageRating = product.rating?.toFixed(1)
-            
+
             setReviewStats({
               totalReviews,
               averageRating,
               ratingDistribution
             })
-            
+
             // Update product rating to match actual reviews
             if (product && averageRating !== product.rating) {
               setProduct({
@@ -274,7 +274,7 @@ function ProductDetailPageContent() {
               averageRating: 0,
               ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
             })
-            
+
             // Update product with zero reviews
             if (product) {
               setProduct({
@@ -293,7 +293,7 @@ function ProductDetailPageContent() {
           averageRating: 0,
           ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
         })
-        
+
         // Update product with zero reviews
         if (product) {
           setProduct({
@@ -349,7 +349,7 @@ function ProductDetailPageContent() {
       })
 
       const data = await response.json()
-      
+
       if (data.success) {
         showSuccess('Produk berhasil ditambahkan ke keranjang!')
         fetchCartCount() // Update cart count
@@ -418,7 +418,7 @@ function ProductDetailPageContent() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-slate-800 mb-4">Produk tidak ditemukan</h1>
-          <Link 
+          <Link
             href="/"
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
@@ -436,7 +436,7 @@ function ProductDetailPageContent() {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Back Button - Left */}
-            <Link 
+            <Link
               href="/"
               className="flex items-center gap-2 text-white hover:text-blue-100 transition-colors group"
             >
@@ -445,7 +445,7 @@ function ProductDetailPageContent() {
               </svg>
               <span className="font-medium text-sm md:text-base">Kembali</span>
             </Link>
-            
+
             {/* Right Actions - Cart & Profile */}
             <div className="flex items-center gap-2 md:gap-4">
               {/* Cart Button */}
@@ -515,19 +515,18 @@ function ProductDetailPageContent() {
                 <span>
                   Stok: {" "}
                   <span
-                    className={`font-medium ${
-                      product.stock > 10
+                    className={`font-medium ${product.stock > 10
                         ? 'text-blue-600'
                         : product.stock > 0
                           ? 'text-gray-700'
                           : 'text-gray-400'
-                    }`}
+                      }`}
                   >
                     {product.stock > 0 ? product.stock : 'Habis'}
                   </span>
                 </span>
               </div>
-              
+
               {/* Price */}
               <div className="my-4 py-4 border-y border-gray-100">
                 <div className="text-3xl lg:text-4xl font-bold text-blue-600 mb-1">
@@ -609,11 +608,10 @@ function ProductDetailPageContent() {
               <button
                 onClick={handleAddToCart}
                 disabled={addingToCart || product.stock === 0}
-                className={`w-full py-4 px-6 rounded-xl font-semibold text-base transition-all duration-200 flex items-center justify-center gap-2 ${
-                  product.stock > 0
+                className={`w-full py-4 px-6 rounded-xl font-semibold text-base transition-all duration-200 flex items-center justify-center gap-2 ${product.stock > 0
                     ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl active:scale-[0.98]'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
+                  }`}
               >
                 {addingToCart ? (
                   <>
@@ -725,38 +723,38 @@ function ProductDetailPageContent() {
                   Berdasarkan {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'penilaian' : 'penilaian'}
                 </p>
               </div>
-          </div>
-          
-          {/* Rating Distribution */}
-          <div className="lg:col-span-2 space-y-3">
-            {[5, 4, 3, 2, 1].map((rating) => {
-              const count = reviewStats.ratingDistribution[rating as keyof typeof reviewStats.ratingDistribution]
-              const percentage = reviewStats.totalReviews > 0 ? (count / reviewStats.totalReviews) * 100 : 0
-              
-              return (
-                <div key={rating} className="flex items-center gap-3">
-                  <div className="flex items-center gap-1 min-w-[60px]">
-                    <span className="text-sm font-medium text-gray-700">{rating}</span>
-                    <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                  <span className="text-sm text-gray-600 min-w-[45px] text-right">
-                    {count}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+            </div>
 
-        {/* Review Form: tampil setelah tombol diklik */}
+            {/* Rating Distribution */}
+            <div className="lg:col-span-2 space-y-3">
+              {[5, 4, 3, 2, 1].map((rating) => {
+                const count = reviewStats.ratingDistribution[rating as keyof typeof reviewStats.ratingDistribution]
+                const percentage = reviewStats.totalReviews > 0 ? (count / reviewStats.totalReviews) * 100 : 0
+
+                return (
+                  <div key={rating} className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 min-w-[60px]">
+                      <span className="text-sm font-medium text-gray-700">{rating}</span>
+                      <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600 min-w-[45px] text-right">
+                      {count}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Review Form: tampil setelah tombol diklik */}
 
           {/* Expandable Reviews List */}
           {reviewsLoading ? (
@@ -786,10 +784,10 @@ function ProductDetailPageContent() {
                     className="py-2.5 text-blue-600 hover:text-blue-700 transition-all duration-200 font-medium text-sm active:scale-[0.98] inline-flex items-center gap-2"
                   >
                     <span>{showAllReviews ? 'Tampilkan Lebih Sedikit' : `Tampilkan Semua ${reviews.length} Ulasan`}</span>
-                    <svg 
+                    <svg
                       className={`w-4 h-4 transition-transform duration-200 ${showAllReviews ? 'rotate-180' : ''}`}
-                      fill="none" 
-                      stroke="currentColor" 
+                      fill="none"
+                      stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -826,11 +824,10 @@ function ProductDetailPageContent() {
                             {[...Array(5)].map((_, i) => (
                               <svg
                                 key={i}
-                                className={`w-4 h-4 ${
-                                  i < review.rating
+                                className={`w-4 h-4 ${i < review.rating
                                     ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300 fill-current'
-                                }`}
+                                  }`}
                                 viewBox="0 0 20 20"
                               >
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -849,7 +846,7 @@ function ProductDetailPageContent() {
           )}
         </div>
       </div>
-      
+
       {/* Popup Alert */}
       <PopupAlert
         isOpen={alertState.isOpen}
