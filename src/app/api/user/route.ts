@@ -155,8 +155,9 @@ export async function POST(request: NextRequest) {
 
       if (insertError) {
         console.error('Database insert error:', insertError);
+        const errorMessage = (insertError as any)?.message || 'Gagal mendaftarkan user';
         return NextResponse.json(
-          { success: false, message: 'Gagal mendaftarkan user' },
+          { success: false, message: errorMessage },
           { status: 500 }
         );
       }

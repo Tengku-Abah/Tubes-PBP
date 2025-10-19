@@ -533,9 +533,25 @@ export const dbHelpers = {
   // Users
   async registerUser(userData: UserInsert) {
     try {
-      return await supabase
+      // Normalize payload and rely on DB default for role when it's a regular user
+      let payload: any = {
+        ...userData,
+        is_active: userData.is_active ?? true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const roleVal = (userData as any)?.role;
+      const normalizedRole = roleVal ? String(roleVal).trim().toLowerCase() : undefined;
+      if (!normalizedRole || normalizedRole === 'user') {
+        // Drop role to let database default apply (avoids check constraint mismatches)
+        const { role, ...rest } = payload;
+        payload = rest;
+      }
+
+      return await supabaseAdmin
         .from('users')
-        .insert(userData)
+        .insert(payload)
         .select()
         .single();
     } catch (error) {
