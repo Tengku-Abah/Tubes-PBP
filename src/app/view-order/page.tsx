@@ -428,7 +428,7 @@ export default function OrderView() {
                                       className="flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-semibold rounded-lg transition-all shadow-sm"
                                     >
                                       <Star className="w-3 h-3 fill-current" />
-                                      Review
+                                      Beri Ulasan
                                     </button>
                                   )}
                                 </div>
