@@ -381,16 +381,6 @@ export default function CheckoutPage() {
                         </div>
                         
                         {/* Right Actions - User Profile */}
-                        {/* <div className="flex items-center gap-2 md:gap-4">
-                            {user && (
-                                <div className="flex items-center gap-2 text-white">
-                                    <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
-                                        <span className="text-sm font-bold">{user.name?.charAt(0).toUpperCase()}</span>
-                                    </div>
-                                    <span className="hidden md:inline text-sm font-medium">{user.name}</span>
-                                </div>
-                            )}
-                        </div> */}
                     </div>
                 </div>
             </header>
