@@ -7,7 +7,7 @@ import { usePopupAlert } from '../../hooks/usePopupAlert';
 import { useToast } from '../../components/Toast';
 import { requireAdmin, getAuthHeaders } from '../../lib/auth';
 import { useAdminContext } from './AdminContext';
-import { DollarSign, X, ShoppingCart, Package, Users, TrendingUp, CheckCircle, Clock, ArrowUpRight, ArrowDownRight, Activity, ShoppingBag, Pencil, Trash, Eye, Tags } from 'lucide-react';
+import { DollarSign, X, ShoppingCart, Package, TrendingUp, CheckCircle, ArrowUpRight, ShoppingBag, Pencil, Trash, Eye, Calendar, MapPin, CreditCard, Truck} from 'lucide-react';
 
 // Define types
 interface Product {
@@ -24,8 +24,19 @@ interface Product {
   updated_at?: string;
 }
 
+interface OrderItem {
+  id: number;
+  product_id: number;
+  product_name: string;
+  quantity: number;
+  price: number;
+}
+
 interface Order {
   id: number;
+  order_number: string;
+  tracking_number?: string;
+  user_id: string;
   customerName: string;
   customerAvatar?: string | null;
   products: Array<{
@@ -35,8 +46,15 @@ interface Order {
     price: number;
   }>;
   total: number;
+  total_amount: number;
   status: string;
   date: string;
+  shipping_address: string;
+  payment_method: string;
+  payment_status?: string;
+  created_at: string;
+  updated_at: string;
+  order_items?: OrderItem[];
 }
 
 interface ProductForm {
@@ -55,10 +73,6 @@ interface Category {
 
 // Simple icons as components
 const Plus = (props: any) => <span {...props}>+</span>;
-const Edit = (props: any) => <span {...props}>✏️</span>;
-const Trash2 = (props: any) => <span {...props}>🗑️</span>;
-const Search = (props: any) => <span {...props}>🔍</span>;
-const Check = (props: any) => <span {...props}>✅</span>;
 
 const AdminPanel = () => {
   // Helper untuk membangun URL publik avatar dari path/bucket Supabase atau URL eksternal
@@ -122,8 +136,41 @@ const AdminPanel = () => {
   // State untuk orders
   const [orders, setOrders] = useState<Order[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showDetailPopup, setShowDetailPopup] = useState(false);
   const pendingOrders = orders.filter(order => order.status === 'pending');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled'>('all');
+  useEffect(() => {
+    const savedStatus = localStorage.getItem('selectedStatus');
+    if (savedStatus) {
+      setSelectedStatus(savedStatus as any);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('selectedStatus', selectedStatus);
+  }, [selectedStatus]);
+
+    const handleViewDetail = (order: Order) => {
+    setSelectedOrder(order);
+    setShowDetailPopup(true);
+  };
+
+  const handleCloseDetailPopup = () => {
+    setShowDetailPopup(false);
+  };
+
+    const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'shipped': return 'bg-purple-100 text-purple-800';
+      case 'processing': return 'bg-blue-100 text-blue-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   // State untuk customers
   const [customers, setCustomers] = useState<any[]>([]);
@@ -182,22 +229,6 @@ const AdminPanel = () => {
   const totalOrders = financialData?.summary?.totalOrders || 0;
 
 
-  // Fungsi untuk mendapatkan status berikutnya
-  const getNextStatuses = (currentStatus: string) => {
-    switch (currentStatus) {
-      case "pending":
-        return ["processing", "cancelled"];
-      case "processing":
-        return ["shipped", "cancelled"];
-      case "shipped":
-        return ["completed"];
-      case "delivered":
-        return ["completed"];
-      default:
-        return []; // completed / cancelled tidak bisa diubah lagi
-    }
-  };
-
   // Status forward default untuk tombol Next (tanpa opsi cancel)
   const getForwardStatus = (currentStatus: string): string | null => {
     switch (currentStatus) {
@@ -223,8 +254,6 @@ const AdminPanel = () => {
         return "Diproses";
       case "shipped":
         return "Dikirim";
-      case "delivered":
-        return "Diterima";
       case "completed":
         return "Selesai";
       case "cancelled":
@@ -373,17 +402,27 @@ const AdminPanel = () => {
         }
       });
       const result = await response.json();
-
+      const ordersData = (result.data || []) as any[];
       if (result.success) {
         // Transform data untuk kompatibilitas dengan UI yang ada
-        const transformedOrders = result.data.map((order: any) => ({
-          id: order.id,
-          customerName: order.customerName,
-          customerAvatar: order.userAvatar || null,
-          products: order.items || [], // Menggunakan items dari API
-          total: order.totalAmount,
-          status: order.status,
-          date: new Date(order.orderDate).toLocaleDateString('id-ID')
+        const transformedOrders = ordersData.map((o: any) => ({
+          id: o.id,
+          customerName: o.customerName,
+          customerAvatar: o.userAvatar || null,
+          products: o.items || [], // Menggunakan items dari API
+          total: o.totalAmount,
+          status: o.status,
+          date: new Date(o.orderDate).toLocaleDateString('id-ID'),
+          order_number: o.order_number || o.orderNumber || `ORD-${o.id}`,
+          tracking_number: o.tracking_number || o.order_number || o.orderNumber,
+          user_id: o.userId || user.id,
+          total_amount: Number(o.totalAmount ?? 0),
+          shipping_address: (o.shippingAddress && (o.shippingAddress.street || o.shippingAddress)) || '',
+          payment_method: o.paymentMethod || 'cash_on_delivery',
+          payment_status: o.paymentStatus || 'pending',
+          created_at: o.orderDate || new Date().toISOString(),
+          updated_at: o.orderDate || new Date().toISOString(),
+          order_items: o.order_items || o.items || []
         }));
 
         // Debug: tampilkan avatar dari API
@@ -1011,6 +1050,24 @@ const AdminPanel = () => {
     }).format(amount);
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatPaymentMethod = (method: string) => {
+    // Convert underscore to space and capitalize each word
+    return method
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   // Fungsi untuk handle upload gambar
   const handleImageUpload = async (file: File) => {
     setUploadingImage(true);
@@ -1072,8 +1129,6 @@ const AdminPanel = () => {
 
   // Orders Component
   const Orders = () => {
-    const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled'>('all');
-
     // Hitung jumlah order per status
     const countByStatus = {
       all: orders.length,
@@ -1092,7 +1147,7 @@ const AdminPanel = () => {
 
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800">Manajemen Order</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Manajemen Pesanan</h2>
 
         {/* === Tabs Filter Section === */}
         <div className="flex items-center gap-6 border-b border-gray-200 pb-2">
@@ -1213,7 +1268,7 @@ const AdminPanel = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.date}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center gap-3">
                       <button
-                        onClick={() => openModal('view', order)}
+                        onClick={() => handleViewDetail(order)}
                         className="text-blue-600 hover:text-blue-900"
                         title="Lihat Detail"
                       >
@@ -1269,6 +1324,138 @@ const AdminPanel = () => {
               </tbody>
             </table>
           </div>
+        {showDetailPopup && selectedOrder && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+              {/* Header */}
+              <div className="sticky top-0 bg-gradient-to-r from-blue-900 to-blue-800 text-white px-6 py-4 flex justify-between items-center border-b border-blue-700 z-10">
+                <h2 className="text-lg font-bold">Detail Pesanan</h2>
+                <button 
+                  onClick={handleCloseDetailPopup} 
+                  className="p-2 hover:bg-blue-800 rounded-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Order ID & Status */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-blue-50 rounded-lg">
+                      <Package className="w-4 h-4 text-primary-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Nomor Pesanan</p>
+                      <p className="font-bold text-gray-900 text-base">{selectedOrder.order_number}</p>
+                    </div>
+                  </div>
+                  <span className={'px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap ' + getStatusColor(selectedOrder.status)}>
+                    {getStatusText(selectedOrder.status)}
+                  </span>
+                </div>
+
+                {/* Customer Info */}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h3 className="font-bold text-gray-900 mb-3 text-sm flex items-center gap-2">
+                    <Package className="w-4 h-4 text-primary-600" />
+                    Informasi Pelanggan
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2">
+                      <div className="bg-blue-100 rounded-lg p-1.5 mt-0.5">
+                        <Package className="w-3.5 h-3.5 text-blue-700" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500">Nama Pelanggan</p>
+                        <p className="font-semibold text-gray-900 text-sm">{selectedOrder.customerName}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="bg-blue-100 rounded-lg p-1.5 mt-0.5">
+                        <MapPin className="w-3.5 h-3.5 text-blue-700" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500">Alamat Pengiriman</p>
+                        <p className="font-semibold text-gray-900 text-sm">{selectedOrder.shipping_address}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="bg-blue-100 rounded-lg p-1.5 mt-0.5">
+                        <Calendar className="w-3.5 h-3.5 text-blue-700" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500">Tanggal Pesanan</p>
+                        <p className="font-semibold text-gray-900 text-sm">{formatDate(selectedOrder.created_at)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Items */}
+                {selectedOrder.order_items && selectedOrder.order_items.length > 0 && (
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-bold text-gray-900 mb-3 text-sm flex items-center gap-2">
+                      <ShoppingBag className="w-4 h-4 text-gray-700" />
+                      Produk Dipesan ({selectedOrder.order_items.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedOrder.order_items.map((item) => (
+                        <div key={item.id} className="flex justify-between items-start p-3 bg-white rounded-lg">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 text-sm">{item.product_name}</p>
+                            <p className="text-xs text-gray-600 mt-0.5">
+                              {formatCurrency(item.price)} × {item.quantity}
+                            </p>
+                          </div>
+                          <p className="font-bold text-primary-700 text-sm ml-3 whitespace-nowrap">
+                            {formatCurrency(item.price * item.quantity)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment & Shipping Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CreditCard className="w-4 h-4 text-blue-700" />
+                      <h3 className="font-bold text-gray-900 text-sm">Pembayaran</h3>
+                    </div>
+                    <p className="text-gray-700 text-sm">{formatPaymentMethod(selectedOrder.payment_method)}</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Truck className="w-4 h-4 text-purple-700" />
+                      <h3 className="font-bold text-gray-900 text-sm">Status Pengiriman</h3>
+                    </div>
+                    <p className="text-gray-700 text-sm">{getStatusText(selectedOrder.status)}</p>
+                    {/* Tracking Number - Show for shipped/delivered orders */}
+                    {(selectedOrder.status.toLowerCase() === 'shipped' || selectedOrder.status.toLowerCase() === 'delivered') && selectedOrder.tracking_number && (
+                      <div className="mt-2 pt-2 border-t border-purple-200">
+                        <p className="text-xs text-gray-600 mb-1">Nomor Resi</p>
+                        <div className="flex items-center gap-2 bg-white/60 px-3 py-2 rounded-lg">
+                          <Package className="w-3.5 h-3.5 text-purple-600" />
+                          <p className="font-bold text-purple-700 text-sm">{selectedOrder.tracking_number}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Total */}
+                <div className="bg-primary-50 rounded-xl p-4">
+                  <div className="flex justify-between items-center border-t-2 border-primary-200 pt-3">
+                    <span className="font-bold text-gray-900 text-sm">Total Pembayaran</span>
+                    <span className="font-bold text-primary-700 text-lg">{formatCurrency(selectedOrder.total_amount)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
       </div>
     );
@@ -1283,10 +1470,10 @@ const AdminPanel = () => {
     }));
 
     return (
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-800">
             Daftar Kategori
           </h2>
           <button
@@ -2204,35 +2391,6 @@ const AdminPanel = () => {
                 <X className="w-6 h-6" />
               </button>
             </div>
-
-            {modalType === 'view' && selectedItem && 'customerName' in selectedItem && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Customer</label>
-                  <p className="text-sm text-gray-900">{selectedItem.customerName}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Total</label>
-                  <p className="text-sm text-gray-900">{formatCurrency(selectedItem.total)}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <p className="text-sm text-gray-900">{selectedItem.status}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Produk</label>
-                  <div className="space-y-2">
-                    {selectedItem.products.map((product: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                        <span className="text-sm text-gray-900">{product.name || product.product_name || product.productName || 'Unknown Product'}</span>
-                        <span className="text-sm font-medium text-gray-900">x{product.quantity}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
 
             {(modalType === 'add' || modalType === 'edit') && (
               <form className="space-y-4">

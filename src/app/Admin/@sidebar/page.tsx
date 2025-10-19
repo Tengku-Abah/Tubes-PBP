@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { LayoutDashboard, Package, ShoppingCart, Users, TrendingUp, Settings, Menu, X, Zap, LogOut, Tags } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, TrendingUp, Menu, X, Zap, LogOut, Tags } from 'lucide-react';
 import { useAdminContext } from '../AdminContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { logout } from '../../../lib/logout';
@@ -17,8 +17,7 @@ export default function AdminSidebar() {
     { id: 'products', icon: Package, label: 'Produk', href: '/Admin?menu=products' },
     { id: 'categories', icon: Tags, label: 'Kategori', href: '/Admin?menu=categories' },
     { id: 'customers', icon: Users, label: 'Pelanggan', href: '/Admin?menu=customers' },
-    { id: 'keuangan', icon: TrendingUp, label: 'Keuangan', href: '/Admin?menu=keuangan' },
-    { id: 'settings', icon: Settings, label: 'Pengaturan', href: '/Admin?menu=settings' }
+    { id: 'keuangan', icon: TrendingUp, label: 'Keuangan', href: '/Admin?menu=keuangan' }
   ];
 
   const handleMenuClick = (menuId: string, href: string) => {
@@ -43,7 +42,7 @@ export default function AdminSidebar() {
         {sidebarOpen && (
           <div className="flex items-center gap-2">
             <Zap className="w-8 h-8 text-yellow-400" />
-            <span className="font-bold text-lg">ElektroShop</span>
+            <span className="font-bold text-lg">OctaMart</span>
           </div>
         )}
         <button 
