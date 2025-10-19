@@ -106,7 +106,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/',
+    // Removed root '/' to avoid unintended redirects on home page
     '/Admin/:path*',
     '/cart/:path*',
     '/checkout/:path*',
