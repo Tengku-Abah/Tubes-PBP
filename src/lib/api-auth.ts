@@ -52,10 +52,8 @@ export const getCookieUser = (request: NextRequest) => {
 
         const parsed: any = JSON.parse(rawToken);
 
-        // ✅ FIX: ALWAYS use role from token data, NEVER from cookie name
-        // Cookie name is just for organization, NOT for determining role
         const id = typeof parsed.id === 'string' ? parsed.id : parsed.id;
-        const role = parsed.role; // ✅ Always get role from token data
+        const role = parsed.role;
         const email = parsed.email || parsed.user?.email || undefined;
         const name = parsed.name || parsed.user?.user_metadata?.name || parsed.user?.user_metadata?.full_name || parsed.user?.email?.split('@')[0] || undefined;
 

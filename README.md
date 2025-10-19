@@ -166,8 +166,8 @@ npm start
 Untuk menjaga kejelasan scope kerja, pembagian tim di kawasan frontend dan backend dirangkum di sini. Detail lebih lengkap dapat dilihat di `docs/README-frontend.md` dan `docs/README-backend.md`.
 
 ### Frontend
-- Tim A: Autentikasi, halaman produk, keranjang, checkout.
-- Tim B: Admin dashboard, manajemen produk, review & order tracking.
+- Shakila: Seluruh halaman dan flow yang berhadapan langsung dengan user (autentikasi, katalog produk, keranjang, checkout, profil, review).
+- Tsabita: Seluruh pengalaman admin (dashboard, manajemen produk, review & order tracking, utilitas internal).
 
 ### Backend
 - Tim A: User service, auth endpoints, session management.

@@ -48,7 +48,7 @@ export function verifyToken(token: string): JWTPayload | null {
 }
 
 /**
- * Decode JWT token without verification (use carefully!)
+ * Decode JWT token without verification
  */
 export function decodeToken(token: string): JWTPayload | null {
     try {

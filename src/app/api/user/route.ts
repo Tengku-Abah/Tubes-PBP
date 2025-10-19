@@ -3,12 +3,12 @@ import bcrypt from 'bcryptjs';
 import { dbHelpers } from '@/lib/supabase';
 import { generateToken } from '@/lib/jwt-auth';
 
-// Force dynamic rendering - never cache this route
+// Force dynamic rendering 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 
-// Interface untuk User response (tanpa password)
+// Interface untuk User response
 interface UserResponse {
   id: number;
   name: string;
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get rememberMe flag from request (optional)
+    // Get rememberMe flag from request
     const rememberMe = body.rememberMe === true;
 
     // Return user data (tanpa password)
@@ -249,7 +249,6 @@ export async function POST(request: NextRequest) {
       message: 'Login successful'
     };
 
-    // Return response with no-cache headers to prevent browser caching
     const response = NextResponse.json(loginResponse);
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response.headers.set('Pragma', 'no-cache');
