@@ -75,7 +75,7 @@ export default function AdminSidebar() {
       {/* Logout Button */}
       <div className="p-4 border-t border-blue-700">
         <button
-          onClick={() => logout()}
+          onClick={() => logout('admin')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:bg-red-600/20 hover:text-red-300 ${
             sidebarOpen ? 'text-blue-200' : 'justify-center'
           }`}

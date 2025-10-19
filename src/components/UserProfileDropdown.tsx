@@ -75,8 +75,10 @@ export default function UserProfileDropdown({ user }: UserProfileDropdownProps) 
     setIsOpen(false)
   }
 
+  const derivedRole = ((user?.role || user?.user_metadata?.role) === 'admin') ? 'admin' : 'user'
+
   const handleLogout = () => {
-    logout()
+    logout(derivedRole)
     setIsOpen(false)
   }
 
