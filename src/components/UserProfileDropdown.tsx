@@ -52,6 +52,19 @@ export default function UserProfileDropdown({ user }: UserProfileDropdownProps) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
+  // Listen for avatar updates from Profile page
+  useEffect(() => {
+    const handleAvatarUpdate = (event: CustomEvent) => {
+      const newAvatarUrl = event.detail?.avatarUrl
+      setAvatarUrl(newAvatarUrl)
+    }
+
+    window.addEventListener('userAvatarUpdated', handleAvatarUpdate as EventListener)
+    return () => {
+      window.removeEventListener('userAvatarUpdated', handleAvatarUpdate as EventListener)
+    }
+  }, [])
+
   const handleProfileClick = () => {
     router.push('/Profile')
     setIsOpen(false)
