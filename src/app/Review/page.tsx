@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Star, Package } from "lucide-react";
 import PopupAlert from "../../components/PopupAlert";
 import { usePopupAlert } from "../../hooks/usePopupAlert";
-import { getAuthHeaders } from "../../lib/auth";
+import { getAuthHeaders, getCurrentUser } from "../../lib/auth";
 
 function ReviewContent() {
   const router = useRouter();
@@ -15,6 +15,17 @@ function ReviewContent() {
   const [review, setReview] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { alertState, showSuccess, showError, showWarning, hideAlert } = usePopupAlert();
+
+  // Check if user is admin and redirect
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (user && user.role === 'admin') {
+      showError('Admin tidak dapat membuat review. Hanya pelanggan yang dapat memberi ulasan produk.');
+      setTimeout(() => {
+        router.push('/Admin');
+      }, 2000);
+    }
+  }, [router, showError]);
 
   // Get params from URL: orderId, orderItemId, productId
   // Example URL: /Review?orderId=123&orderItemId=456&productId=789
@@ -223,8 +234,8 @@ function ReviewContent() {
               >
                 <Star
                   className={`w-10 h-10 transition-colors ${star <= (hoveredRating || rating)
-                      ? "text-yellow-400 fill-yellow-400"
-                      : "text-gray-300 fill-gray-300"
+                    ? "text-yellow-400 fill-yellow-400"
+                    : "text-gray-300 fill-gray-300"
                     }`}
                 />
               </button>

@@ -296,6 +296,49 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Pastikan id adalah angka
+    const orderId = typeof id === 'string' ? parseInt(id, 10) : id;
+
+    // ✅ CONSTRAINT: Validasi status transition untuk SHIPPED
+    if (status === 'shipped') {
+      // Get current order untuk cek status saat ini
+      const { data: currentOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select('id, status, order_number')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError || !currentOrder) {
+        console.error('Order not found:', fetchError);
+        return NextResponse.json(
+          { success: false, message: 'Order not found' },
+          { status: 404 }
+        );
+      }
+
+      // ✅ CONSTRAINT 1: Hanya dari status 'processing' yang bisa jadi 'shipped'
+      if (currentOrder.status !== 'processing') {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Cannot ship order with status '${currentOrder.status}'. Order must be in 'processing' status first.`
+          },
+          { status: 400 }
+        );
+      }
+
+      // ✅ CONSTRAINT 2: Validasi order_number harus ada (akan digunakan sebagai resi)
+      if (!currentOrder.order_number) {
+        console.error('Order number is missing for order:', orderId);
+        return NextResponse.json(
+          { success: false, message: 'Order number is missing. Cannot generate tracking number.' },
+          { status: 500 }
+        );
+      }
+
+      console.log(`✅ Order ${orderId} ready to ship. Tracking number: ${currentOrder.order_number}`);
+    }
+
     console.log('Updating order in database - ID:', id, 'Status:', status);
 
     // Update data di database
@@ -306,8 +349,15 @@ export async function PUT(request: NextRequest) {
     if (deliveryDate) updateData.delivery_date = deliveryDate;
     if (notes !== undefined) updateData.notes = notes;
 
-    // Pastikan id adalah angka
-    const orderId = typeof id === 'string' ? parseInt(id, 10) : id;
+    // Auto-set shipping_date jika status shipped
+    if (status === 'shipped' && !shippingDate) {
+      updateData.shipping_date = new Date().toISOString();
+    }
+
+    // Auto-set delivery_date jika status delivered
+    if (status === 'delivered' && !deliveryDate) {
+      updateData.delivery_date = new Date().toISOString();
+    }
 
     console.log('Updating order with ID:', orderId, 'Data:', updateData);
 
@@ -364,6 +414,8 @@ export async function PUT(request: NextRequest) {
     // Transform data untuk response
     const transformedOrder = {
       id: orderData.id,
+      order_number: orderData.order_number,
+      tracking_number: orderData.order_number, // order_number digunakan sebagai resi/tracking number
       customerName: (orderData.users as any)?.name || 'Unknown',
       customerEmail: (orderData.users as any)?.email || '',
       customerPhone: (orderData.users as any)?.phone || '',
@@ -379,17 +431,25 @@ export async function PUT(request: NextRequest) {
       paymentMethod: orderData.payment_method,
       paymentStatus: orderData.payment_status || 'pending',
       orderDate: orderData.created_at,
-      shippingDate: null, // Column doesn't exist in database
-      deliveryDate: null, // Column doesn't exist in database
-      notes: null // Column doesn't exist in database
+      shippingDate: orderData.shipping_date || null,
+      deliveryDate: orderData.delivery_date || null,
+      notes: orderData.notes || null
     };
 
     console.log('Order updated successfully:', transformedOrder);
+
+    // Log khusus untuk status shipped
+    if (orderData.status === 'shipped') {
+      console.log(`📦 Order ${orderData.id} has been shipped with tracking number: ${orderData.order_number}`);
+    }
+
     console.log('=== API PUT /api/orders DEBUG END ===');
 
     return NextResponse.json({
       success: true,
-      message: 'Order updated successfully',
+      message: orderData.status === 'shipped'
+        ? `Order shipped successfully. Tracking number: ${orderData.order_number}`
+        : 'Order updated successfully',
       data: transformedOrder
     });
 

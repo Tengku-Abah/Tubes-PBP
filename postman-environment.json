@@ -1,10 +1,10 @@
 {
-    "id": "ecommerce-api-env",
-    "name": "E-Commerce API Environment",
+    "id": "octamart-api-env",
+    "name": "Octamart API Environment",
     "values": [
         {
             "key": "baseUrl",
-            "value": "https://www.octamart.site",
+            "value": "http://localhost:3000",
             "enabled": true,
             "type": "default"
         },

@@ -33,7 +33,7 @@ const resolveAvatarUrlForApi = (raw: string | null | undefined, name: string): s
 // Interface untuk Review response
 interface ReviewResponse {
     id: number;
-    productId: number;
+     productId: number;
     userId: string;
     userName: string;
     userAvatar: string;
@@ -175,13 +175,21 @@ export async function POST(request: NextRequest) {
         // Get authenticated user (cookie first, then header fallback)
         let user = getCookieUser(request) as any;
         if (!user) {
-          user = getApiUser(request);
+            user = getApiUser(request);
         }
         if (!user) {
-          return NextResponse.json(
-            { success: false, message: 'Authentication required' },
-            { status: 401 }
-          );
+            return NextResponse.json(
+                { success: false, message: 'Authentication required' },
+                { status: 401 }
+            );
+        }
+
+        // Prevent admin from creating reviews
+        if (user.role === 'admin') {
+            return NextResponse.json(
+                { success: false, message: 'Admin cannot create reviews. Only customers can review products.' },
+                { status: 403 }
+            );
         }
 
         const body = await request.json();
@@ -319,8 +327,8 @@ export async function POST(request: NextRequest) {
             user_id: user.id,
             user_name: nameToPersist,
             user_avatar:
-              avatarToPersist ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(nameToPersist)}&background=random`,
+                avatarToPersist ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(nameToPersist)}&background=random`,
             rating: parseInt(rating),
             comment: String(comment).trim(),
             verified: false,
@@ -386,6 +394,14 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json(
                 { success: false, message: 'Authentication required' },
                 { status: 401 }
+            );
+        }
+
+        // Prevent admin from updating reviews
+        if (user.role === 'admin') {
+            return NextResponse.json(
+                { success: false, message: 'Admin cannot update reviews. Only review owners can edit their reviews.' },
+                { status: 403 }
             );
         }
 
@@ -499,6 +515,14 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
+        // Prevent admin from deleting reviews
+        if (user.role === 'admin') {
+            return NextResponse.json(
+                { success: false, message: 'Admin cannot delete reviews. Only review owners can delete their reviews.' },
+                { status: 403 }
+            );
+        }
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 
@@ -509,7 +533,7 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        // Check if review exists and belongs to user (or user is admin)
+        // Check if review exists and belongs to user
         const { data: existingReview, error: fetchError } = await supabase
             .from('reviews')
             .select('*')
@@ -523,8 +547,8 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        // Check if user owns the review or is admin
-        if (existingReview.user_id !== user.id && user.role !== 'admin') {
+        // Check if user owns the review
+        if (existingReview.user_id !== user.id) {
             return NextResponse.json(
                 { success: false, message: 'Access denied' },
                 { status: 403 }

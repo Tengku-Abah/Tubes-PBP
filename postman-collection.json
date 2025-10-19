@@ -1,13 +1,14 @@
 {
     "info": {
-        "name": "E-Commerce API Collection",
-        "description": "Complete API collection for E-Commerce application with all routes and parameters",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+        "name": "Octamart API Collection",
+        "description": "Complete API collection for Octamart E-Commerce application with all routes and parameters (Updated with latest API structure)",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "version": "2.0.0"
     },
     "variable": [
         {
             "key": "baseUrl",
-            "value": "https://www.octamart.site",
+            "value": "http://localhost:3000",
             "type": "string"
         },
         {
@@ -49,7 +50,7 @@
                                 "user"
                             ]
                         },
-                        "description": "Login admin and get JWT token"
+                        "description": "Login admin and get JWT token. Returns token with 86400 seconds expiration (24 hours)."
                     },
                     "response": []
                 },
@@ -77,7 +78,7 @@
                                 "user"
                             ]
                         },
-                        "description": "Login regular user and get JWT token"
+                        "description": "Login regular user and get JWT token. Returns token with 86400 seconds expiration (24 hours)."
                     },
                     "response": []
                 },
@@ -93,7 +94,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"Tengku Muhamad Afif\",\n  \"email\": \"afifj27@gmail.com\",\n  \"password\": \"Tengkuafif1234\",\n  \"phone\": \"08123456789\",\n  \"action\": \"register\"\n}"
+                            "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"SecurePassword123\",\n  \"phone\": \"08123456789\",\n  \"action\": \"register\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/user",
@@ -149,7 +150,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"phone\": \"08123456789\",\n  \"address\": \"Jl. Contoh No. 123\"\n}"
+                            "raw": "{\n  \"id\": \"{{userId}}\",\n  \"name\": \"John Doe Updated\",\n  \"phone\": \"08123456789\",\n  \"address\": \"Jl. Contoh No. 123, Kelurahan Tandang, Kecamatan Tembalang\",\n  \"Provinsi\": \"Jawa Tengah\",\n  \"Kota\": \"Semarang\",\n  \"Kode_pose\": \"50275\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/user",
@@ -161,7 +162,7 @@
                                 "user"
                             ]
                         },
-                        "description": "Update user profile"
+                        "description": "Update user profile including new address fields (Provinsi, Kota, Kode_pose)"
                     },
                     "response": []
                 }
@@ -539,7 +540,7 @@
                     "response": []
                 },
                 {
-                    "name": "Update Order Status (Admin)",
+                    "name": "Update Order Status - Processing (Admin)",
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -554,7 +555,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"id\": 1,\n  \"status\": \"processing\",\n  \"paymentStatus\": \"paid\",\n  \"shippingDate\": \"2024-01-15\",\n  \"deliveryDate\": \"2024-01-20\",\n  \"notes\": \"Order is being processed\"\n}"
+                            "raw": "{\n  \"id\": 1,\n  \"status\": \"processing\",\n  \"paymentStatus\": \"paid\",\n  \"notes\": \"Order is being processed\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/orders",
@@ -566,7 +567,136 @@
                                 "orders"
                             ]
                         },
-                        "description": "Update order status (Admin only)"
+                        "description": "Update order status to processing (Admin only)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Order Status - Shipped (Admin)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": 1,\n  \"status\": \"shipped\",\n  \"notes\": \"Order has been shipped\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/orders",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "orders"
+                            ]
+                        },
+                        "description": "Update order status to shipped (Admin only). CONSTRAINT: Order must be in 'processing' status first. Response will include tracking_number (order_number as tracking number). shipping_date will be auto-set to current timestamp."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Order Status - Delivered (Admin)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": 1,\n  \"status\": \"delivered\",\n  \"notes\": \"Order has been delivered\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/orders",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "orders"
+                            ]
+                        },
+                        "description": "Update order status to delivered (Admin only). delivery_date will be auto-set to current timestamp."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Order Status - Completed (Admin)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": 1,\n  \"status\": \"completed\",\n  \"notes\": \"Order completed\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/orders",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "orders"
+                            ]
+                        },
+                        "description": "Update order status to completed (Admin only)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Cancel Order (User)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"orderId\": 1,\n  \"reason\": \"Changed my mind\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/orders/cancel",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "orders",
+                                "cancel"
+                            ]
+                        },
+                        "description": "Cancel order (User only, only works for pending orders)"
                     },
                     "response": []
                 },
@@ -657,7 +787,69 @@
                                 "reviews"
                             ]
                         },
-                        "description": "Create new review"
+                        "description": "Create new review (User only, Admin cannot create reviews)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Review (User)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": 1,\n  \"rating\": 4,\n  \"comment\": \"Updated review comment. Produk bagus setelah beberapa minggu pemakaian.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/reviews",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reviews"
+                            ]
+                        },
+                        "description": "Update own review (User only, Admin cannot update reviews)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Review (User)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/reviews?id=1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reviews"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                }
+                            ]
+                        },
+                        "description": "Delete own review (User only, Admin cannot delete reviews)"
                     },
                     "response": []
                 },
@@ -685,74 +877,6 @@
                         "description": "Get review statistics for a product"
                     },
                     "response": []
-                },
-                {
-                    "name": "Get Admin Reviews",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/api/admin/reviews?page=1&limit=20",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "reviews"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "20"
-                                }
-                            ]
-                        },
-                        "description": "Get all reviews for admin (Admin only)"
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Update Review Status (Admin)",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"id\": 1,\n  \"verified\": true\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/api/admin/reviews",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "reviews"
-                            ]
-                        },
-                        "description": "Update review verification status (Admin only)"
-                    },
-                    "response": []
                 }
             ]
         },
@@ -760,7 +884,7 @@
             "name": "Admin",
             "item": [
                 {
-                    "name": "Get New Orders Notification",
+                    "name": "Get Financial Report - All Time",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -770,32 +894,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{baseUrl}}/api/admin/new-orders",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "new-orders"
-                            ]
-                        },
-                        "description": "Get new orders notification (Admin only)"
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Get Financial Report",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{authToken}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/api/financial?startDate=2024-01-01&endDate=2024-12-31",
+                            "raw": "{{baseUrl}}/api/financial?period=all",
                             "host": [
                                 "{{baseUrl}}"
                             ],
@@ -805,16 +904,167 @@
                             ],
                             "query": [
                                 {
-                                    "key": "startDate",
-                                    "value": "2024-01-01"
-                                },
-                                {
-                                    "key": "endDate",
-                                    "value": "2024-12-31"
+                                    "key": "period",
+                                    "value": "all"
                                 }
                             ]
                         },
-                        "description": "Get financial report (Admin only)"
+                        "description": "Get financial report for all time (Admin only)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Financial Report - Monthly",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/financial?period=month&year=2025&month=0",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "financial"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "month"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2025",
+                                    "description": "Year (e.g., 2025)"
+                                },
+                                {
+                                    "key": "month",
+                                    "value": "0",
+                                    "description": "Month (0-11, where 0=January, 11=December)"
+                                }
+                            ]
+                        },
+                        "description": "Get financial report for specific month (Admin only). Month is 0-indexed (0=January)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Financial Report - Quarterly",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/financial?period=quarter&year=2025&quarter=1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "financial"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "quarter"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2025",
+                                    "description": "Year (e.g., 2025)"
+                                },
+                                {
+                                    "key": "quarter",
+                                    "value": "1",
+                                    "description": "Quarter (1-4)"
+                                }
+                            ]
+                        },
+                        "description": "Get financial report for specific quarter (Admin only)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Financial Report - Semester",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/financial?period=semester&year=2025&semester=1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "financial"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "semester"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2025",
+                                    "description": "Year (e.g., 2025)"
+                                },
+                                {
+                                    "key": "semester",
+                                    "value": "1",
+                                    "description": "Semester (1-2)"
+                                }
+                            ]
+                        },
+                        "description": "Get financial report for specific semester (Admin only)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Financial Report - Yearly",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/financial?period=year&year=2025",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "financial"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "year"
+                                },
+                                {
+                                    "key": "year",
+                                    "value": "2025",
+                                    "description": "Year (e.g., 2025)"
+                                }
+                            ]
+                        },
+                        "description": "Get financial report for specific year (Admin only)"
                     },
                     "response": []
                 }
@@ -842,9 +1092,10 @@
                                     "src": []
                                 },
                                 {
-                                    "key": "bucket",
-                                    "value": "product-images",
-                                    "type": "text"
+                                    "key": "folder",
+                                    "value": "products",
+                                    "type": "text",
+                                    "description": "Folder name (e.g., products, avatars)"
                                 }
                             ]
                         },
@@ -863,7 +1114,7 @@
                     "response": []
                 },
                 {
-                    "name": "Get Upload URL",
+                    "name": "Get Signed Upload URL",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -878,19 +1129,50 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"fileName\": \"product-image.jpg\",\n  \"bucket\": \"product-images\"\n}"
+                            "raw": "{\n  \"folder\": \"products\",\n  \"fileExt\": \"jpg\"\n}"
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/api/upload-url",
+                            "raw": "{{baseUrl}}/api/upload",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
                                 "api",
-                                "upload-url"
+                                "upload"
                             ]
                         },
-                        "description": "Get signed upload URL"
+                        "description": "Get signed upload URL for direct browser upload"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete File",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{authToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/upload?path=avatars/filename.jpg",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "upload"
+                            ],
+                            "query": [
+                                {
+                                    "key": "path",
+                                    "value": "avatars/filename.jpg",
+                                    "description": "File path in storage (folder/filename.ext)"
+                                }
+                            ]
+                        },
+                        "description": "Delete file from Supabase storage"
                     },
                     "response": []
                 }
