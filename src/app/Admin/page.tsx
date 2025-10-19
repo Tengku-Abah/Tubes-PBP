@@ -7,7 +7,7 @@ import { usePopupAlert } from '../../hooks/usePopupAlert';
 import { useToast } from '../../components/Toast';
 import { requireAdmin, getAuthHeaders } from '../../lib/auth';
 import { useAdminContext } from './AdminContext';
-import { DollarSign, X, ShoppingCart, Package, TrendingUp, CheckCircle, ArrowUpRight, ShoppingBag, Pencil, Trash, Eye, Calendar, MapPin, CreditCard, Truck} from 'lucide-react';
+import { DollarSign, X, ShoppingCart, Package, TrendingUp, CheckCircle, ArrowUpRight, ShoppingBag, Pencil, Trash, Eye, Calendar, MapPin, CreditCard, Truck, Clock} from 'lucide-react';
 
 // Define types
 interface Product {
@@ -2029,10 +2029,15 @@ const AdminPanel = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-blue-100 text-sm font-medium mb-1">Last Updated</p>
-                  <p className="text-2xl font-bold text-white">{new Date().toLocaleTimeString('id-ID', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</p>
+                  <div className="flex items-center justify-end gap-2">
+                    <Clock className="w-5 h-5 text-blue-200" />
+                    <p className="text-2xl font-bold text-white">
+                      {new Date().toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2 mt-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     <span className="text-green-400 text-xs font-medium">Live</span>
