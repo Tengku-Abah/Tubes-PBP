@@ -364,7 +364,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+      <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+      <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+
       {showAlert && alertData && (
         <SimpleAlert
           type={alertData.type}
@@ -373,117 +378,175 @@ export default function LoginPage() {
           onClose={hideAlert}
         />
       )}
+      
       {/* Back to Home Button */}
       <Link
         href="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-primary-600 hover:text-primary-800 transition-colors"
+        className="absolute top-6 left-6 z-10 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-blue-700 hover:text-blue-900 hover:bg-white transition-all rounded-xl shadow-sm hover:shadow group"
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
-        <span className="font-medium">Kembali ke Beranda</span>
+        <span className="font-semibold text-sm">Beranda</span>
       </Link>
 
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
+      <div className="max-w-md w-full relative z-10">
+        {/* Header Section */}
+        <div className="text-center mb-6">
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 bg-primary-600 rounded-full flex items-center justify-center shadow-xl">
-              <ShoppingCart className="w-10 h-10 text-white" />
+            <div className="relative">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-6 transition-transform">
+                <ShoppingCart className="w-10 h-10 text-white" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-white"></div>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Selamat Datang
+          <h1 className="text-3xl md:text-3xl font-bold text-gray-900 mb-2">
+            Selamat Datang Kembali! 👋
           </h1>
-          <p className="text-gray-700 text-lg">
-            Masuk untuk melanjutkan belanja Anda
+          <p className="text-gray-600 text-sm md:text-base">
+            Masuk ke akun Anda untuk melanjutkan
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-gray-100">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Login Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 md:p-8 backdrop-blur-sm bg-white/95">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email Field */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-1.5">
+                <Mail className="w-4 h-4 text-blue-600" />
                 Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-400" />
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 flex items-center justify-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                </div>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-4 py-3.5 border-2 ${errors.email ? 'border-red-400' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition bg-gray-50`}
-                  placeholder="email@example.com"
+                  className={`w-full pl-10 pr-4 py-3 border-2 ${
+                    errors.email 
+                      ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                      : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'
+                  } rounded-xl focus:ring-2 focus:outline-none transition-all bg-white text-sm`}
+                  placeholder="nama@email.com"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.email}</p>
+                <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                  <XCircle className="w-3.5 h-3.5" />
+                  {errors.email}
+                </p>
               )}
             </div>
 
+            {/* Password Field */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-1.5">
+                <Lock className="w-4 h-4 text-blue-600" />
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-400" />
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 flex items-center justify-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-12 py-3.5 border-2 ${errors.password ? 'border-red-400' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition bg-gray-50`}
-                  placeholder="Masukkan password"
+                  className={`w-full pl-10 pr-12 py-3 border-2 ${
+                    errors.password 
+                      ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                      : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500'
+                  } rounded-xl focus:ring-2 focus:outline-none transition-all bg-white text-sm`}
+                  placeholder="Masukkan password Anda"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-primary-400 hover:text-primary-600 transition"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-slate-400 hover:text-blue-600 transition rounded-lg hover:bg-blue-50"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-
               {errors.password && (
-                <p className="mt-1.5 text-sm text-red-500 font-medium">{errors.password}</p>
+                <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                  <XCircle className="w-3.5 h-3.5" />
+                  {errors.password}
+                </p>
               )}
             </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 text-primary-600 bg-gray-50 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
-              />
-              <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-700 font-medium">
-                Ingat saya
+            {/* Remember Me */}
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                />
+                <span className="text-sm text-gray-700 font-medium group-hover:text-gray-900 transition">
+                  Ingat saya
+                </span>
               </label>
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-primary-700 transform hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold text-sm hover:from-blue-700 hover:to-indigo-700 transform hover:scale-[1.01] active:scale-[0.99] transition-all shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none mt-2 flex items-center justify-center gap-2"
             >
-              {loading ? 'Memproses...' : 'Masuk'}
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Memproses...</span>
+                </>
+              ) : (
+                <>
+                  <span>Masuk ke Akun</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </>
+              )}
             </button>
           </form>
 
-          <div className="mt-8 text-center border-t-2 border-gray-100 pt-6">
-            <p className="text-gray-700">
+          {/* Divider */}
+          <div className="mt-6 mb-6 flex items-center gap-3">
+            <div className="flex-1 h-px bg-slate-200"></div>
+            <span className="text-xs text-slate-500 font-medium">ATAU</span>
+            <div className="flex-1 h-px bg-slate-200"></div>
+          </div>
+
+          {/* Register Link */}
+          <div className="text-center">
+            <p className="text-sm text-gray-700">
               Belum punya akun?{' '}
-              <Link href="/Register" className="text-primary-600 font-bold hover:text-primary-800 hover:underline transition">
-                Daftar sekarang
+              <Link 
+                href="/Register" 
+                className="text-blue-600 font-bold hover:text-blue-800 hover:underline transition inline-flex items-center gap-1"
+              >
+                Daftar Sekarang
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
               </Link>
             </p>
           </div>
         </div>
 
+        {/* Footer */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-700">
-            © 2025 UMKM Elektronik. Semua hak dilindungi.
+          <p className="text-xs text-gray-500">
+            © 2025 OctaMart. Semua hak dilindungi.
           </p>
         </div>
       </div>
