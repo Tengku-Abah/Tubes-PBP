@@ -17,7 +17,7 @@ export default function CheckoutSuccessPage() {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
             <div className="flex items-center gap-3">
-              <Link 
+              <Link
                 href="/"
                 className="flex items-center gap-2 text-white hover:text-blue-100 transition-colors group"
               >
@@ -104,7 +104,7 @@ export default function CheckoutSuccessPage() {
                   <li className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
                     <div className="flex-1">
-                      <p className="text-sm text-slate-700">Anda dapat melacak status pesanan di halaman "Pesanan Saya".</p>
+                      <p className="text-sm text-slate-700">Anda dapat melacak status pesanan di halaman &quot;Pesanan Saya&quot;.</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3">
@@ -118,8 +118,8 @@ export default function CheckoutSuccessPage() {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Link 
-                  href="/view-order" 
+                <Link
+                  href="/view-order"
                   className="flex-1 px-6 py-3.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all duration-200 font-semibold text-center shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -129,8 +129,8 @@ export default function CheckoutSuccessPage() {
                     Lihat Pesanan Saya
                   </div>
                 </Link>
-                <Link 
-                  href="/" 
+                <Link
+                  href="/"
                   className="flex-1 px-6 py-3.5 bg-white border-2 border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 font-semibold text-center shadow-sm"
                 >
                   <div className="flex items-center justify-center gap-2">
