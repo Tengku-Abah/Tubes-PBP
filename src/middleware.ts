@@ -13,6 +13,18 @@ export function middleware(request: NextRequest) {
       return null
     }
 
+    const userToken = request.cookies.get('user-auth-token')?.value
+    if (userToken) {
+      try {
+        const parsedUser = JSON.parse(userToken)
+        if (parsedUser?.role !== 'admin') {
+          return null
+        }
+      } catch (error) {
+        console.error('Invalid user token while checking customer page access:', error)
+      }
+    }
+
     const adminToken = request.cookies.get('admin-auth-token')?.value
     const generalToken = request.cookies.get('auth-token')?.value
     const rawToken = adminToken || generalToken
