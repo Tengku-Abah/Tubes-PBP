@@ -1,0 +1,541 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { dbHelpers, ApiResponse, supabase } from '../../../lib/supabase';
+import { getApiUser, getCookieUser } from '../../../lib/api-auth';
+export const dynamic = 'force-dynamic';
+
+// Normalisasi URL/path avatar menjadi public URL yang valid dari bucket 'product-images'
+const resolveAvatarUrlForApi = (raw: string | null, name: string): string => {
+  if (!raw) {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+  }
+
+  const val = String(raw);
+  // Jika sudah full URL
+  if (/^https?:\/\//.test(val)) {
+    // Perbaiki URL yang mengarah ke bucket yang tidak ada ("/public/avatars/")
+    if (/\/storage\/v1\/object\/public\/avatars\//i.test(val)) {
+      return val.replace(
+        /\/storage\/v1\/object\/public\/avatars\//i,
+        '/storage/v1/object/public/product-images/avatars/'
+      );
+    }
+    return val;
+  }
+
+  // Jika berupa path relatif, asumsikan berada di bucket 'product-images'
+  // Contoh: 'avatars/filename.jpg' -> public URL pada bucket 'product-images'
+  const { data } = supabase.storage.from('product-images').getPublicUrl(val);
+  return data?.publicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+};
+
+// Interface untuk pesanan response
+interface OrderResponse {
+  id: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  userId?: string;
+  userAvatar?: string | null;
+  items: {
+    productId: number;
+    productName: string;
+    quantity: number;
+    price: number;
+  }[];
+  totalAmount: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'cancelled';
+  shippingAddress: {
+    street: string;
+    city: string;
+    postalCode: string;
+    province: string;
+  };
+  paymentMethod: 'credit_card' | 'bank_transfer' | 'cash_on_delivery';
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+  orderDate: string;
+  shippingDate?: string;
+  deliveryDate?: string;
+  notes?: string;
+}
+
+// Data sekarang diambil dari database Supabase, bukan dummy data
+
+// GET endpoint untuk mengambil semua pesanan
+export async function GET(request: NextRequest) {
+  try {
+    // Verifikasi bahwa request berasal dari admin untuk akses ke semua pesanan
+    const authHeader = request.headers.get('authorization');
+    const userRole = request.headers.get('x-user-role');
+
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const customerEmail = searchParams.get('customerEmail');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const id = searchParams.get('id');
+
+    if (id) {
+      // Jika ada ID, ambil pesanan spesifik
+      // Untuk pesanan spesifik, verifikasi admin atau pemilik pesanan
+      const { data: order, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', parseInt(id))
+        .single();
+
+      if (!order) {
+        return NextResponse.json(
+          { success: false, message: 'Order not found' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: order,
+        message: 'Order retrieved successfully'
+      });
+    }
+
+    const { data, error } = await dbHelpers.getOrders({
+      status: status || undefined,
+      customerEmail: customerEmail || undefined,
+      page,
+      limit
+    });
+
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { success: false, message: `Database error: ${error}` },
+        { status: 500 }
+      );
+    }
+
+    // Transform data dari database ke format yang diharapkan frontend
+    const transformedOrders = data?.map(order => {
+      const user = (order.users as any) || {};
+      const name = user?.name || 'Unknown';
+      const avatarPath = user?.user_avatar || null;
+      const avatarUrl = resolveAvatarUrlForApi(avatarPath, name);
+
+      return {
+        id: order.id,
+        order_number: order.order_number,
+        customerName: name,
+        customerEmail: user?.email || '',
+        customerPhone: '', // Phone tidak tersedia di tabel users
+        userId: user?.id || undefined,
+        userAvatar: avatarUrl,
+        items: order.order_items || [], // Use the order_items dari join
+        order_items: order.order_items || [],
+        totalAmount: order.total_amount,
+        status: order.status,
+        shippingAddress: {
+          street: order.shipping_address || '',
+          city: '',
+          postalCode: '',
+          province: ''
+        },
+        paymentMethod: order.payment_method,
+        paymentStatus: 'pending', // TODO: tambahkan field payment_status jika tersedia
+        orderDate: order.created_at,
+        shippingDate: null,
+        deliveryDate: null,
+        notes: null
+      };
+    }) || [];
+
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedOrders = transformedOrders.slice(startIndex, endIndex);
+
+
+    return NextResponse.json({
+      success: true,
+      data: paginatedOrders,
+      pagination: {
+        page,
+        limit,
+        total: transformedOrders.length,
+        totalPages: Math.ceil(transformedOrders.length / limit)
+      },
+      message: 'Orders retrieved successfully from database'
+    });
+
+  } catch (error) {
+    console.error('Get orders error:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST endpoint untuk membuat pesanan baru
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const {
+      customerName,
+      customerEmail,
+      customerPhone,
+      items,
+      shippingAddress,
+      paymentMethod
+    } = body;
+
+    const sessionUser = getApiUser(request) || getCookieUser(request);
+    if (!sessionUser) {
+      return NextResponse.json(
+        { success: false, message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    if (sessionUser.role === 'admin') {
+      return NextResponse.json(
+        { success: false, message: 'Admins cannot create orders' },
+        { status: 403 }
+      );
+    }
+
+    const requestedUserId = request.headers.get('user-id') || request.nextUrl.searchParams.get('user_id');
+    const userId = sessionUser.id?.toString();
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: 'User session invalid' },
+        { status: 401 }
+      );
+    }
+
+    if (requestedUserId && requestedUserId !== userId) {
+      return NextResponse.json(
+        { success: false, message: 'Forbidden: Cannot create orders for another user' },
+        { status: 403 }
+      );
+    }
+
+    // Validasi input
+    if (!customerName || !customerEmail || !customerPhone || !items || !shippingAddress || !userId) {
+      return NextResponse.json(
+        { success: false, message: 'Required fields are missing' },
+        { status: 400 }
+      );
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return NextResponse.json(
+        { success: false, message: 'Items array is required and cannot be empty' },
+        { status: 400 }
+      );
+    }
+
+    // Hitung total amount
+    const totalAmount = items.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+    // Reduce product stock before creating order
+    const stockItems = items.map(item => ({
+      productId: item.productId,
+      quantity: item.quantity
+    }));
+
+    const { data: stockUpdateResult, error: stockError } = await dbHelpers.reduceMultipleProductsStock(stockItems);
+
+    if (stockError) {
+      console.error('Stock reduction error:', stockError);
+      return NextResponse.json(
+        { success: false, message: `Stock error: ${(stockError as any).message}` },
+        { status: 400 }
+      );
+    }
+
+    // Buat pesanan baru di database
+    const { data: newOrder, error } = await dbHelpers.createOrder({
+      user_id: String(userId),
+      order_number: `ORD-${Date.now()}`,
+      total_amount: totalAmount,
+      status: 'pending',
+      shipping_address: `${shippingAddress.street}, ${shippingAddress.city}`,
+      payment_method: paymentMethod || 'cash_on_delivery'
+    }, items);
+
+    if (error) {
+      console.error('Database insert error:', error);
+      const message = (error as any)?.message || (typeof error === 'string' ? error : JSON.stringify(error));
+      return NextResponse.json(
+        { success: false, message: `Database error: ${message}` },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: newOrder,
+      message: 'Order created successfully'
+    }, { status: 201 });
+
+  } catch (error) {
+    console.error('Create order error:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT endpoint untuk update status pesanan
+export async function PUT(request: NextRequest) {
+  try {
+    console.log('=== API PUT /api/orders DEBUG ===');
+
+    // Verifikasi bahwa request berasal dari admin
+    const authHeader = request.headers.get('authorization');
+    const userRole = request.headers.get('x-user-role');
+
+    if (!authHeader || !authHeader.startsWith('Bearer ') || userRole !== 'admin') {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized: Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    console.log('Request body:', body);
+
+    const { id, status, paymentStatus, shippingDate, deliveryDate, notes } = body;
+
+    // Validasi input
+    if (!id) {
+      console.log('Missing required field - id:', id);
+      return NextResponse.json(
+        { success: false, message: 'Order ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validasi status
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'completed', 'cancelled'];
+    if (status && !validStatuses.includes(status)) {
+      console.log('Invalid status:', status);
+      return NextResponse.json(
+        { success: false, message: 'Invalid status value' },
+        { status: 400 }
+      );
+    }
+
+    // Pastikan id adalah angka
+    const orderId = typeof id === 'string' ? parseInt(id, 10) : id;
+
+    // ✅ CONSTRAINT: Validasi status transition untuk SHIPPED
+    if (status === 'shipped') {
+      // Get current order untuk cek status saat ini
+      const { data: currentOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select('id, status, order_number')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError || !currentOrder) {
+        console.error('Order not found:', fetchError);
+        return NextResponse.json(
+          { success: false, message: 'Order not found' },
+          { status: 404 }
+        );
+      }
+
+      // ✅ CONSTRAINT 1: Hanya dari status 'processing' yang bisa jadi 'shipped'
+      if (currentOrder.status !== 'processing') {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Cannot ship order with status '${currentOrder.status}'. Order must be in 'processing' status first.`
+          },
+          { status: 400 }
+        );
+      }
+
+      // ✅ CONSTRAINT 2: Validasi order_number harus ada (akan digunakan sebagai resi)
+      if (!currentOrder.order_number) {
+        console.error('Order number is missing for order:', orderId);
+        return NextResponse.json(
+          { success: false, message: 'Order number is missing. Cannot generate tracking number.' },
+          { status: 500 }
+        );
+      }
+
+      console.log(`✅ Order ${orderId} ready to ship. Tracking number: ${currentOrder.order_number}`);
+    }
+
+    console.log('Updating order in database - ID:', id, 'Status:', status);
+
+    // Update data di database
+    const updateData: any = {};
+    if (status) updateData.status = status;
+    if (paymentStatus) updateData.payment_status = paymentStatus;
+    if (shippingDate) updateData.shipping_date = shippingDate;
+    if (deliveryDate) updateData.delivery_date = deliveryDate;
+    if (notes !== undefined) updateData.notes = notes;
+
+    // Auto-set shipping_date jika status shipped
+    if (status === 'shipped' && !shippingDate) {
+      updateData.shipping_date = new Date().toISOString();
+    }
+
+    // Auto-set delivery_date jika status delivered
+    if (status === 'delivered' && !deliveryDate) {
+      updateData.delivery_date = new Date().toISOString();
+    }
+
+    console.log('Updating order with ID:', orderId, 'Data:', updateData);
+
+    const { data, error } = await dbHelpers.updateOrder(orderId, updateData);
+    console.log('Database update result - data:', data, 'error:', error);
+
+    if (error) {
+      console.error('Database update error:', error);
+      const errorMessage = typeof error === 'object' ? JSON.stringify(error) : String(error);
+      return NextResponse.json(
+        { success: false, message: `Database error: ${errorMessage}` },
+        { status: 500 }
+      );
+    }
+
+    // Periksa apakah data ditemukan
+    // Jika data adalah null atau undefined, maka order tidak ditemukan
+    if (!data) {
+      return NextResponse.json(
+        { success: false, message: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
+    // Jika data adalah array kosong, maka order mungkin ditemukan tapi tidak ada perubahan
+    if (Array.isArray(data) && data.length === 0) {
+      // Coba ambil data order untuk memastikan order ada (tanpa .single())
+      const { data: orderCheck } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId);
+
+      if (!orderCheck || orderCheck.length === 0) {
+        return NextResponse.json(
+          { success: false, message: 'Order not found' },
+          { status: 404 }
+        );
+      }
+
+      // Order ada tapi tidak ada perubahan, anggap sukses
+      return NextResponse.json({
+        success: true,
+        message: 'No changes were made to the order',
+        data: {
+          id: orderCheck[0].id,
+          status: orderCheck[0].status
+        }
+      });
+    }
+
+    // Ambil data pertama dari array hasil
+    const orderData = Array.isArray(data) ? data : data;
+
+    // Transform data untuk response
+    const transformedOrder = {
+      id: orderData.id,
+      order_number: orderData.order_number,
+      tracking_number: orderData.order_number, // order_number digunakan sebagai resi/tracking number
+      customerName: (orderData.users as any)?.name || 'Unknown',
+      customerEmail: (orderData.users as any)?.email || '',
+      customerPhone: (orderData.users as any)?.phone || '',
+      items: [], // TODO: Implement order items relationship
+      totalAmount: orderData.total_amount,
+      status: orderData.status,
+      shippingAddress: {
+        street: orderData.shipping_address || '',
+        city: '',
+        postalCode: '',
+        province: ''
+      },
+      paymentMethod: orderData.payment_method,
+      paymentStatus: orderData.payment_status || 'pending',
+      orderDate: orderData.created_at,
+      shippingDate: orderData.shipping_date || null,
+      deliveryDate: orderData.delivery_date || null,
+      notes: orderData.notes || null
+    };
+
+    console.log('Order updated successfully:', transformedOrder);
+
+    // Log khusus untuk status shipped
+    if (orderData.status === 'shipped') {
+      console.log(`📦 Order ${orderData.id} has been shipped with tracking number: ${orderData.order_number}`);
+    }
+
+    console.log('=== API PUT /api/orders DEBUG END ===');
+
+    return NextResponse.json({
+      success: true,
+      message: orderData.status === 'shipped'
+        ? `Order shipped successfully. Tracking number: ${orderData.order_number}`
+        : 'Order updated successfully',
+      data: transformedOrder
+    });
+
+  } catch (error) {
+    console.error('Update order error:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE endpoint untuk menghapus pesanan
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: 'Order ID is required' },
+        { status: 400 }
+      );
+    }
+
+
+    // Hapus dari database
+    const { data, error } = await dbHelpers.deleteOrder(parseInt(id));
+
+    if (error) {
+      console.error('Database delete error:', error);
+      return NextResponse.json(
+        { success: false, message: `Database error: ${error}` },
+        { status: 500 }
+      );
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { success: false, message: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
+
+    return NextResponse.json({
+      success: true,
+      data: data,
+      message: 'Order deleted successfully from database'
+    });
+
+  } catch (error) {
+    console.error('Delete order error:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

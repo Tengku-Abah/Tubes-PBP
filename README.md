@@ -1,24 +1,181 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# UMKM Store - Platform E-commerce
 
-## Getting Started
+Platform e-commerce modern yang dibangun dengan Next.js 14, menampilkan manajemen produk, autentikasi pengguna, dan fungsionalitas keranjang belanja.
 
-First, run the development server:
+## 🚀 Fitur
 
+- **Katalog Produk**: Jelajahi dan cari berbagai produk
+- **Autentikasi Pengguna**: Sistem login dan registrasi dengan peran admin/pengguna
+- **Keranjang Belanja**: Tambah, hapus, dan kelola item keranjang
+- **Panel Admin**: Dashboard admin untuk mengelola produk dan pengguna
+- **Desain Responsif**: Interface yang ramah mobile
+- **UI Modern**: Desain bersih dan profesional dengan Tailwind CSS
+
+## 📋 Persyaratan
+
+Sebelum menjalankan proyek ini, pastikan Anda telah menginstal:
+
+- **Node.js** (versi 18.0 atau lebih tinggi)
+- **npm** atau **yarn** package manager
+
+## 🛠️ Instalasi & Setup
+
+### 1. Clone Repository
+```bash
+git clone <your-repository-url>
+cd projek-bpb
+```
+
+### 2. Install Dependencies
+```bash
+npm install
+# atau
+yarn install
+```
+
+### 3. Install Dependencies Tambahan
+```bash
+npm install bcryptjs @types/bcryptjs
+# atau
+yarn add bcryptjs @types/bcryptjs
+```
+
+## 🏃‍♂️ Menjalankan Aplikasi
+
+### Mode Development
 ```bash
 npm run dev
-# or
+# atau
 yarn dev
-# or
+# atau
 pnpm dev
-# or
+# atau
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000) di browser untuk melihat hasilnya.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build Production
+```bash
+npm run build
+npm start
+# atau
+yarn build
+yarn start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## 🔑 Kredensial Demo
+
+### Akun Admin
+- **Email**: `admin@gmail.com`
+- **Password**: `admin2123`
+
+### Akun Pengguna Biasa
+- **Email**: `user@gmail.com`
+- **Password**: `password123`
+
+## 📁 Struktur Proyek
+
+```
+projek-bpb/
+├── src/
+│   ├── app/
+│   │   ├── (auth)/
+│   │   │   ├── Login/
+│   │   │   └── Register/
+│   │   ├── Admin/
+│   │   ├── api/
+│   │   │   ├── product/
+│   │   │   ├── user/
+│   │   │   └── cart/
+│   │   ├── cart/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   └── lib/
+├── public/
+├── package.json
+└── README.md
+```
+
+## 🎯 Rute yang Tersedia
+
+- **Home**: `/` - Katalog produk dan pencarian
+- **Login**: `/Login` - Autentikasi pengguna
+- **Register**: `/Register` - Registrasi pengguna
+- **Cart**: `/cart` - Manajemen keranjang belanja
+- **Admin**: `/Admin` - Dashboard admin (hanya admin)
+
+## 🔧 API Endpoints
+
+### Produk
+- `GET /api/product` - Ambil semua produk
+- `GET /api/product?search=keyword` - Cari produk
+- `GET /api/product?category=category` - Filter berdasarkan kategori
+
+### Pengguna
+- `POST /api/user` - Login pengguna
+- `GET /api/user` - Ambil semua pengguna (hanya admin)
+- `PUT /api/user` - Update pengguna
+- `DELETE /api/user` - Hapus pengguna
+
+### Keranjang
+- `GET /api/cart` - Ambil item keranjang
+- `POST /api/cart` - Tambah item ke keranjang
+- `PUT /api/cart` - Update jumlah item keranjang
+- `DELETE /api/cart` - Hapus item dari keranjang
+
+## 🎨 Teknologi yang Digunakan
+
+- **Next.js 14** - Framework React
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **bcryptjs** - Password hashing
+- **REST API** - Backend endpoints
+
+## 🚀 Deployment
+
+### Deploy di Vercel
+1. Push kode Anda ke GitHub
+2. Hubungkan repository Anda ke Vercel
+3. Deploy otomatis
+
+### Deploy di Platform Lain
+```bash
+npm run build
+npm start
+```
+
+## 📝 Catatan Development
+
+- Proyek menggunakan Next.js App Router
+- API routes berada di `src/app/api/`
+- Komponen berada di `src/components/`
+- Semua styling menggunakan Tailwind CSS classes
+- Data mock digunakan untuk tujuan demonstrasi
+
+## 🤝 Kontribusi
+
+1. Fork repository
+2. Buat feature branch
+3. Lakukan perubahan Anda
+4. Submit pull request
+
+## 👥 Pembagian Tim
+
+Untuk menjaga kejelasan scope kerja, pembagian tim di kawasan frontend dan backend dirangkum di sini. Detail lebih lengkap dapat dilihat di `docs/README-frontend.md` dan `docs/README-backend.md`.
+
+### Frontend
+- Shakila: Seluruh halaman dan flow yang berhadapan langsung dengan user (autentikasi, katalog produk, keranjang, checkout, profil, review).
+- Tsabita: Seluruh pengalaman admin (dashboard, manajemen produk, review & order tracking, utilitas internal).
+
+### Backend
+- Tim A: User service, auth endpoints, session management.
+- Tim B: Product service, cart & order APIs, admin utilities.
+
+## 📄 Lisensi
+
+Proyek ini dilisensikan di bawah MIT License.
 
 ## Learn More
 
@@ -34,3 +191,54 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Perbaikan Database: Kolom `user_avatar` pada tabel `users`
+
+Jika Anda melihat error seperti:
+
+```
+Database error: column users_1.user_avatar does not exist
+```
+
+itu berarti kolom `user_avatar` belum ada di tabel `users`. Aplikasi Admin kini melakukan join ke `users.user_avatar` untuk menampilkan foto pelanggan di "Pesanan Terbaru" dan tabel Orders.
+
+### Langkah Perbaikan (melalui Supabase SQL Editor)
+
+- Buka Supabase Project → SQL → New Query, lalu jalankan:
+
+```
+ALTER TABLE public.users
+ADD COLUMN IF NOT EXISTS user_avatar text;
+
+ALTER TABLE public.users
+ALTER COLUMN user_avatar DROP NOT NULL;
+```
+
+- Verifikasi kolom sudah ada:
+
+```
+SELECT column_name
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'users'
+  AND column_name = 'user_avatar';
+```
+
+### Mengisi Nilai Avatar
+
+- Simpan path file avatar (bukan URL penuh) ke kolom `user_avatar`, contoh: `avatars/nama-file.jpg`.
+- File avatar diletakkan di bucket Storage `product-images` pada folder `avatars/`.
+- Contoh update:
+
+```
+UPDATE public.users
+SET user_avatar = 'avatars/contoh.jpg'
+WHERE email = 'user@example.com';
+```
+
+### Alternatif: Jalankan Migration dari Repo
+
+- File migration tersedia di `migrations/add_user_avatar.sql`. Anda bisa menyalin isi file tersebut ke Supabase SQL Editor dan mengeksekusinya.
+
+### Setelah Perbaikan
+
+- Restart dev server jika perlu dan buka `/admin`. Avatar pelanggan akan muncul jika `user_avatar` berisi path yang valid dan file tersedia di Storage.

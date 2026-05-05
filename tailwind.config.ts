@@ -8,6 +8,30 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      colors: {
+        // Custom color palette untuk konsistensi
+        primary: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb', // Main blue admin
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+        },
+        secondary: {
+          DEFAULT: '#2d2d2d',
+          light: '#404040',
+          dark: '#1a1a1a',
+        },
+        accent: {
+          blue: '#2563eb', // Blue dari admin panel
+          dark: '#2d2d2d',
+        }
+      },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic":
