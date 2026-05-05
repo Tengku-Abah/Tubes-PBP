@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '../../../../lib/supabase';
+
+import { dbHelpers } from '@/lib/supabase';
+import { getApiUser, getCookieUser } from '@/lib/api-auth';
 
 /**
  * POST endpoint untuk user membatalkan pesanan mereka sendiri
  */
 export async function POST(request: NextRequest) {
   try {
+    const user = getApiUser(request) || getCookieUser(request);
     const body = await request.json();
     const { orderId } = body;
 
-    // Get user ID from request headers
-    const userId = request.headers.get('user-id');
-
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
-        { success: false, message: 'User ID is required' },
+        { success: false, message: 'Authentication required' },
         { status: 401 }
       );
     }
@@ -26,12 +26,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // First, verify the order belongs to the user and is in pending status
-    const { data: order, error: fetchError } = await supabaseAdmin
-      .from('orders')
-      .select('id, user_id, status')
-      .eq('id', orderId)
-      .single();
+    const { data: order, error: fetchError } = await dbHelpers.getOrderById(Number(orderId));
 
     if (fetchError || !order) {
       console.error('Order fetch error:', fetchError);
@@ -41,37 +36,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify ownership
-    if (order.user_id !== userId) {
+    if (String(order.user_id) !== String(user.id)) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized: You can only cancel your own orders' },
         { status: 403 }
       );
     }
 
-    // Verify status - only pending orders can be cancelled
-    if (order.status.toLowerCase() !== 'pending') {
+    if (String(order.status).toLowerCase() !== 'pending') {
       return NextResponse.json(
         { success: false, message: 'Only pending orders can be cancelled' },
         { status: 400 }
       );
     }
 
-    // Update the order status to cancelled using supabaseAdmin to bypass RLS
-    const { data: updatedOrder, error: updateError } = await supabaseAdmin
-      .from('orders')
-      .update({ 
-        status: 'cancelled',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', orderId)
-      .select()
-      .single();
+    const { data: updatedOrder, error: updateError } = await dbHelpers.updateOrder(Number(orderId), {
+      status: 'cancelled'
+    });
 
     if (updateError) {
       console.error('Order update error:', updateError);
       return NextResponse.json(
-        { success: false, message: 'Failed to cancel order: ' + updateError.message },
+        { success: false, message: 'Failed to cancel order' },
         { status: 500 }
       );
     }
@@ -81,7 +67,6 @@ export async function POST(request: NextRequest) {
       message: 'Order cancelled successfully',
       data: updatedOrder
     });
-
   } catch (error) {
     console.error('Cancel order error:', error);
     return NextResponse.json(

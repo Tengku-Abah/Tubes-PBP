@@ -1,23 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
-import { SUPABASE_URL, SUPABASE_ANON_KEY, supabase as supabaseBrowserClient } from './supabaseClient'
+import { deleteStoredFile, saveUploadedFile } from './local-storage'
+import {
+  hasColumn,
+  mapAppRoleToDbRole,
+  mapDbRoleToAppRole,
+  nowIso,
+  query,
+  toNumber,
+  withTransaction,
+} from './db'
+import { resolveStoredAssetUrl } from './storage-path'
 
-// Optional service key for admin operations (server-side only)
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// Share the lightweight browser client for general use
-export const supabase = supabaseBrowserClient
-
-// Create admin Supabase client for bypassing RLS
-export const supabaseAdmin = supabaseServiceKey
-  ? createClient(SUPABASE_URL, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  })
-  : supabase
-
-// Database types
 export interface Database {
   public: {
     Tables: {
@@ -39,9 +31,9 @@ export interface Database {
           id?: number
           name: string
           price: number
-          description: string
-          image: string
-          category: string
+          description?: string
+          image?: string
+          category?: string
           stock: number
           rating?: number
           reviews_count?: number
@@ -75,7 +67,7 @@ export interface Database {
           id?: number
           user_id: string
           product_id: number
-          quantity: number
+          quantity?: number
           created_at?: string
           updated_at?: string
         }
@@ -97,7 +89,10 @@ export interface Database {
           status: string
           shipping_address: string
           payment_method: string
-          payment_status?: string
+          payment_status?: string | null
+          notes?: string | null
+          shipping_date?: string | null
+          delivery_date?: string | null
           created_at: string
           updated_at: string
         }
@@ -106,10 +101,11 @@ export interface Database {
           user_id: string
           order_number: string
           total_amount: number
-          status: string
-          shipping_address: string
-          payment_method: string
-          payment_status?: string
+          status?: string
+          shipping_address?: string
+          payment_method?: string
+          payment_status?: string | null
+          notes?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -121,7 +117,10 @@ export interface Database {
           status?: string
           shipping_address?: string
           payment_method?: string
-          payment_status?: string
+          payment_status?: string | null
+          notes?: string | null
+          shipping_date?: string | null
+          delivery_date?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -168,6 +167,8 @@ export interface Database {
           rating: number | null
           comment: string | null
           verified: boolean | null
+          order_id?: number | null
+          order_item_id?: number | null
           created_at: string | null
           updated_at: string | null
         }
@@ -180,6 +181,8 @@ export interface Database {
           rating?: number | null
           comment?: string | null
           verified?: boolean | null
+          order_id?: number | null
+          order_item_id?: number | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -192,6 +195,8 @@ export interface Database {
           rating?: number | null
           comment?: string | null
           verified?: boolean | null
+          order_id?: number | null
+          order_item_id?: number | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -203,7 +208,12 @@ export interface Database {
           password: string
           name: string
           role: 'admin' | 'user'
-          phone?: string
+          phone?: string | null
+          address?: string | null
+          user_avatar?: string | null
+          Provinsi?: string | null
+          Kota?: string | null
+          Kode_pose?: string | null
           is_active: boolean
           created_at: string
           updated_at: string
@@ -214,7 +224,12 @@ export interface Database {
           password: string
           name: string
           role?: 'admin' | 'user'
-          phone?: string
+          phone?: string | null
+          address?: string | null
+          user_avatar?: string | null
+          Provinsi?: string | null
+          Kota?: string | null
+          Kode_pose?: string | null
           is_active?: boolean
           created_at?: string
           updated_at?: string
@@ -225,7 +240,12 @@ export interface Database {
           password?: string
           name?: string
           role?: 'admin' | 'user'
-          phone?: string
+          phone?: string | null
+          address?: string | null
+          user_avatar?: string | null
+          Provinsi?: string | null
+          Kota?: string | null
+          Kode_pose?: string | null
           is_active?: boolean
           created_at?: string
           updated_at?: string
@@ -235,7 +255,7 @@ export interface Database {
         Row: {
           id: number
           name: string
-          slug: string
+          slug?: string | null
           created_at: string
           updated_at: string
         }
@@ -267,15 +287,10 @@ export interface Database {
   }
 }
 
-// Typed Supabase client
-export const supabaseTyped = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-// Type definitions for API responses
 export type Product = Database['public']['Tables']['products']['Row']
 export type ProductInsert = Database['public']['Tables']['products']['Insert']
 export type ProductUpdate = Database['public']['Tables']['products']['Update']
 
-// Extended Product type for API responses (includes 'reviews' alias for 'reviews_count')
 export interface ProductWithReviews extends Product {
   reviews?: number
 }
@@ -304,7 +319,6 @@ export type Category = Database['public']['Tables']['categories']['Row']
 export type CategoryInsert = Database['public']['Tables']['categories']['Insert']
 export type CategoryUpdate = Database['public']['Tables']['categories']['Update']
 
-// API Response types
 export interface ApiResponse<T = any> {
   success: boolean
   data?: T
@@ -318,7 +332,6 @@ export interface ApiResponse<T = any> {
   }
 }
 
-// Product filters type
 export interface ProductFilters {
   category?: string
   search?: string
@@ -328,770 +341,1025 @@ export interface ProductFilters {
   limit?: number
 }
 
-// Helper functions untuk database operations
+type JoinedOrder = Order & {
+  users?: Partial<User> | null
+  order_items?: OrderItem[]
+}
+
+const mapProductRow = (row: any): Product => ({
+  id: Number(row.id),
+  name: row.name,
+  price: toNumber(row.price),
+  description: row.description || '',
+  image: row.image || '',
+  category: row.category || '',
+  stock: Number(row.stock || 0),
+  rating: toNumber(row.rating),
+  reviews_count: Number(row.reviews_count || 0),
+  created_at: row.created_at?.toISOString?.() || row.created_at,
+  updated_at: row.updated_at?.toISOString?.() || row.updated_at,
+})
+
+const mapUserRow = (row: any): User => ({
+  id: String(row.id),
+  email: row.email,
+  password: row.password,
+  name: row.name,
+  role: mapDbRoleToAppRole(row.role),
+  phone: row.phone ?? null,
+  address: row.address ?? null,
+  user_avatar: row.user_avatar ?? null,
+  Provinsi: row.Provinsi ?? row.provinsi ?? null,
+  Kota: row.Kota ?? row.kota ?? null,
+  Kode_pose: row.Kode_pose ?? row.kode_pose ?? null,
+  is_active: row.is_active !== false,
+  created_at: row.created_at?.toISOString?.() || row.created_at,
+  updated_at: row.updated_at?.toISOString?.() || row.updated_at,
+})
+
+const mapReviewRow = (row: any): Review => ({
+  id: Number(row.id),
+  product_id: row.product_id == null ? null : Number(row.product_id),
+  user_id: row.user_id == null ? null : String(row.user_id),
+  user_name: row.user_name,
+  user_avatar: row.user_avatar ?? null,
+  rating: row.rating == null ? null : Number(row.rating),
+  comment: row.comment ?? row.content ?? null,
+  verified: row.verified ?? false,
+  order_id: row.order_id == null ? null : Number(row.order_id),
+  order_item_id: row.order_item_id == null ? null : Number(row.order_item_id),
+  created_at: row.created_at?.toISOString?.() || row.created_at || null,
+  updated_at: row.updated_at?.toISOString?.() || row.updated_at || null,
+})
+
+const mapCartRow = (row: any) => ({
+  id: Number(row.id),
+  user_id: String(row.user_id),
+  product_id: Number(row.product_id),
+  quantity: Number(row.quantity),
+  created_at: row.created_at?.toISOString?.() || row.created_at,
+  updated_at: row.updated_at?.toISOString?.() || row.updated_at,
+  products: {
+    id: Number(row.product_id),
+    name: row.product_name,
+    price: toNumber(row.product_price),
+    description: row.product_description || '',
+    image: row.product_image || '',
+    category: row.product_category || '',
+    stock: Number(row.product_stock || 0),
+    rating: toNumber(row.product_rating),
+    reviews_count: Number(row.product_reviews_count || 0),
+  },
+})
+
+const mapOrderRow = (row: any): Order => ({
+  id: Number(row.id),
+  user_id: row.user_id == null ? '' : String(row.user_id),
+  order_number: row.order_number,
+  total_amount: toNumber(row.total_amount),
+  status: row.status || 'pending',
+  shipping_address: row.shipping_address || '',
+  payment_method: row.payment_method || 'cash_on_delivery',
+  payment_status: row.payment_status ?? null,
+  notes: row.notes ?? null,
+  shipping_date: row.shipping_date?.toISOString?.() || row.shipping_date || null,
+  delivery_date: row.delivery_date?.toISOString?.() || row.delivery_date || null,
+  created_at: row.created_at?.toISOString?.() || row.created_at,
+  updated_at: row.updated_at?.toISOString?.() || row.updated_at,
+})
+
+const mapOrderItemRow = (row: any): OrderItem => ({
+  id: Number(row.id),
+  order_id: Number(row.order_id),
+  product_id: Number(row.product_id),
+  product_name: row.product_name,
+  quantity: Number(row.quantity),
+  price: toNumber(row.price),
+  created_at: row.created_at?.toISOString?.() || row.created_at,
+  updated_at: row.updated_at?.toISOString?.() || row.updated_at,
+})
+
+const mapCategoryRow = (row: any): Category => ({
+  id: Number(row.id),
+  name: row.name,
+  slug: row.slug ?? null,
+  created_at: row.created_at?.toISOString?.() || row.created_at,
+  updated_at: row.updated_at?.toISOString?.() || row.updated_at,
+})
+
+const buildUpdateClause = (payload: Record<string, any>, columnMap?: Record<string, string>) => {
+  const keys = Object.keys(payload).filter((key) => payload[key] !== undefined)
+  const values = keys.map((key) => payload[key])
+  const assignments = keys.map((key, index) => {
+    const columnName = columnMap?.[key] || key
+    return `"${columnName}" = $${index + 1}`
+  })
+
+  return {
+    keys,
+    values,
+    assignments,
+  }
+}
+
+const getUserColumns = async () => {
+  const candidates = ['id', 'email', 'password', 'name', 'role', 'phone', 'address', 'user_avatar', 'Provinsi', 'Kota', 'Kode_pose', 'is_active', 'created_at', 'updated_at']
+  const available = await Promise.all(candidates.map(async (column) => ({ column, exists: await hasColumn('users', column) })))
+  return available.filter((item) => item.exists).map((item) => item.column)
+}
+
+const getReviewColumns = async () => {
+  const candidates = ['id', 'product_id', 'user_id', 'user_name', 'user_avatar', 'rating', 'comment', 'content', 'verified', 'order_id', 'order_item_id', 'created_at', 'updated_at']
+  const available = await Promise.all(candidates.map(async (column) => ({ column, exists: await hasColumn('reviews', column) })))
+  return available.filter((item) => item.exists).map((item) => item.column)
+}
+
+export const getStoredAssetUrl = (value?: string | null, fallback?: string) => {
+  return resolveStoredAssetUrl(value, fallback)
+}
+
 export const dbHelpers = {
-  // Products
   async getProducts(filters?: ProductFilters) {
     try {
-      let query = supabase
-        .from('products')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false });
+      const conditions: string[] = []
+      const values: unknown[] = []
 
-      // Apply filters
       if (filters?.category) {
-        query = query.eq('category', filters.category);
+        values.push(filters.category)
+        conditions.push(`category = $${values.length}`)
       }
 
       if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+        values.push(`%${filters.search}%`)
+        const index = values.length
+        conditions.push(`(name ILIKE $${index} OR description ILIKE $${index} OR category ILIKE $${index})`)
       }
 
-      if (filters?.minPrice) {
-        query = query.gte('price', filters.minPrice);
+      if (filters?.minPrice !== undefined) {
+        values.push(filters.minPrice)
+        conditions.push(`price >= $${values.length}`)
       }
 
-      if (filters?.maxPrice) {
-        query = query.lte('price', filters.maxPrice);
+      if (filters?.maxPrice !== undefined) {
+        values.push(filters.maxPrice)
+        conditions.push(`price <= $${values.length}`)
       }
 
-      // Pagination
-      if (filters?.page && filters?.limit) {
-        const startIndex = (filters.page - 1) * filters.limit;
-        const endIndex = startIndex + filters.limit;
-        query = query.range(startIndex, endIndex - 1);
-      }
+      const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : ''
+      const countResult = await query<{ count: string }>(`select count(*)::text as count from products ${whereClause}`, values)
+      const totalCount = Number(countResult.rows[0]?.count || 0)
 
-      return await query;
+      const page = filters?.page || 1
+      const limit = filters?.limit || 10
+      const offset = (page - 1) * limit
+
+      const pagedValues = [...values, limit, offset]
+      const rows = await query(
+        `
+          select *
+          from products
+          ${whereClause}
+          order by created_at desc
+          limit $${pagedValues.length - 1}
+          offset $${pagedValues.length}
+        `,
+        pagedValues
+      )
+
+      return {
+        data: rows.rows.map(mapProductRow),
+        error: null,
+        count: totalCount,
+      }
     } catch (error) {
-      return { data: null, error, count: 0 };
+      return { data: null, error, count: 0 }
     }
   },
 
   async getProductById(id: number) {
     try {
-      return await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const result = await query(`select * from products where id = $1 limit 1`, [id])
+      return { data: result.rows[0] ? mapProductRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
-  // Reviews
+  async createProduct(productData: ProductInsert) {
+    try {
+      const result = await query(
+        `
+          insert into products (name, price, description, image, category, stock, rating, reviews_count, created_at, updated_at)
+          values ($1, $2, $3, $4, $5, $6, $7, $8, coalesce($9, now()), coalesce($10, now()))
+          returning *
+        `,
+        [
+          productData.name,
+          productData.price,
+          productData.description || '',
+          productData.image || '',
+          productData.category || '',
+          productData.stock,
+          productData.rating ?? 0,
+          productData.reviews_count ?? 0,
+          productData.created_at || null,
+          productData.updated_at || null,
+        ]
+      )
+
+      return { data: mapProductRow(result.rows[0]), error: null }
+    } catch (error) {
+      return { data: null, error }
+    }
+  },
+
+  async updateProduct(id: number, productData: ProductUpdate) {
+    try {
+      const payload = {
+        ...(productData.name !== undefined && { name: productData.name }),
+        ...(productData.price !== undefined && { price: productData.price }),
+        ...(productData.description !== undefined && { description: productData.description }),
+        ...(productData.image !== undefined && { image: productData.image }),
+        ...(productData.category !== undefined && { category: productData.category }),
+        ...(productData.stock !== undefined && { stock: productData.stock }),
+        ...(productData.rating !== undefined && { rating: productData.rating }),
+        ...(productData.reviews_count !== undefined && { reviews_count: productData.reviews_count }),
+        updated_at: productData.updated_at || nowIso(),
+      }
+
+      const { values, assignments } = buildUpdateClause(payload)
+      const result = await query(
+        `update products set ${assignments.join(', ')} where id = $${values.length + 1} returning *`,
+        [...values, id]
+      )
+
+      return { data: result.rows[0] ? mapProductRow(result.rows[0]) : null, error: null }
+    } catch (error) {
+      return { data: null, error }
+    }
+  },
+
+  async deleteProduct(id: number) {
+    try {
+      const result = await query(`delete from products where id = $1 returning *`, [id])
+      return { data: result.rows[0] ? mapProductRow(result.rows[0]) : null, error: null }
+    } catch (error) {
+      return { data: null, error }
+    }
+  },
+
   async getReviews(params?: {
-    productId?: number;
-    userId?: string;
-    page?: number;
-    limit?: number;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-    rating?: number;
-    verified?: boolean;
+    productId?: number
+    userId?: string
+    page?: number
+    limit?: number
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+    rating?: number
+    verified?: boolean
   }) {
     try {
-      let query = supabase
-        .from('reviews')
-        .select('*');
+      const conditions: string[] = []
+      const values: unknown[] = []
 
-      // Apply filters
       if (params?.productId) {
-        query = query.eq('product_id', params.productId);
+        values.push(params.productId)
+        conditions.push(`product_id = $${values.length}`)
       }
 
       if (params?.userId) {
-        query = query.eq('user_id', params.userId);
+        values.push(params.userId)
+        conditions.push(`user_id = $${values.length}`)
       }
 
       if (params?.rating) {
-        query = query.eq('rating', params.rating);
+        values.push(params.rating)
+        conditions.push(`rating = $${values.length}`)
       }
 
       if (params?.verified !== undefined) {
-        query = query.eq('verified', params.verified);
+        values.push(params.verified)
+        conditions.push(`verified = $${values.length}`)
       }
 
-      // Apply sorting
-      const sortBy = params?.sortBy || 'created_at';
-      const sortOrder = params?.sortOrder || 'desc';
-      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+      const allowedSortColumns = new Set(['created_at', 'updated_at', 'rating', 'id'])
+      const sortBy = allowedSortColumns.has(params?.sortBy || '') ? params?.sortBy : 'created_at'
+      const sortOrder = params?.sortOrder === 'asc' ? 'asc' : 'desc'
+      const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : ''
 
-      // Apply pagination
-      if (params?.page && params?.limit) {
-        const startIndex = (params.page - 1) * params.limit;
-        const endIndex = startIndex + params.limit - 1;
-        query = query.range(startIndex, endIndex);
-      }
+      const page = params?.page || 1
+      const limit = params?.limit || 10
+      const offset = (page - 1) * limit
 
-      return await query;
+      const result = await query(
+        `
+          select *
+          from reviews
+          ${whereClause}
+          order by ${sortBy} ${sortOrder}
+          limit $${values.length + 1}
+          offset $${values.length + 2}
+        `,
+        [...values, limit, offset]
+      )
+
+      return { data: result.rows.map(mapReviewRow), error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async addReview(review: ReviewInsert) {
     try {
-      const client = supabaseAdmin;
-      const tryInsert = async (payload: any) => {
-        return await client.from('reviews').insert(payload).select().single();
-      };
-
-      let payload: any = { ...review };
-      let { data, error } = await tryInsert(payload);
-
-      // Fallback untuk skema lama: comment->content, hapus user_name, hapus order_* jika kolom tidak tersedia
-      if (error) {
-        const mkMsg = (err: any) => `${err?.message || ''} ${err?.details || ''}`.toLowerCase();
-        let msg = mkMsg(error);
-
-        // 1) Gunakan kolom legacy 'content' jika 'comment' tidak ada
-        if (msg.includes('comment') && !msg.includes('constraint')) {
-          const { comment, ...rest } = payload;
-          payload = { ...rest, content: comment };
-          ({ data, error } = await tryInsert(payload));
-          msg = error ? mkMsg(error) : '';
-        }
-
-        // 2) Hapus user_name jika kolom tidak ada
-        if (error && msg.includes('user_name')) {
-          const { user_name, ...rest } = payload;
-          payload = { ...rest };
-          ({ data, error } = await tryInsert(payload));
-          msg = error ? mkMsg(error) : '';
-        }
-
-        // 3) Hapus order_id/order_item_id jika kolom tidak ada
-        if (error && (msg.includes('order_id') || msg.includes('order_item_id'))) {
-          const { order_id, order_item_id, ...rest } = payload;
-          payload = { ...rest };
-          ({ data, error } = await tryInsert(payload));
-        }
+      const reviewColumns = await getReviewColumns()
+      const payload: Record<string, unknown> = {
+        product_id: review.product_id ?? null,
+        user_id: review.user_id ?? null,
+        user_name: review.user_name,
+        user_avatar: review.user_avatar ?? null,
+        rating: review.rating ?? null,
+        verified: review.verified ?? false,
+        created_at: review.created_at || nowIso(),
+        updated_at: review.updated_at || nowIso(),
       }
 
-      return { data, error };
+      if (reviewColumns.includes('comment')) {
+        payload.comment = review.comment ?? null
+      } else if (reviewColumns.includes('content')) {
+        payload.content = review.comment ?? null
+      }
+
+      if (reviewColumns.includes('order_id') && review.order_id !== undefined) {
+        payload.order_id = review.order_id
+      }
+
+      if (reviewColumns.includes('order_item_id') && review.order_item_id !== undefined) {
+        payload.order_item_id = review.order_item_id
+      }
+
+      const columns = Object.keys(payload)
+      const placeholders = columns.map((_, index) => `$${index + 1}`)
+      const values = columns.map((column) => payload[column])
+
+      const result = await query(
+        `insert into reviews (${columns.map((column) => `"${column}"`).join(', ')}) values (${placeholders.join(', ')}) returning *`,
+        values
+      )
+
+      return { data: result.rows[0] ? mapReviewRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async updateReview(reviewId: number, updateData: ReviewUpdate) {
     try {
-      return await supabase
-        .from('reviews')
-        .update({
-          ...updateData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', reviewId)
-        .select()
-        .single();
+      const reviewColumns = await getReviewColumns()
+      const payload: Record<string, unknown> = {
+        ...(updateData.product_id !== undefined && { product_id: updateData.product_id }),
+        ...(updateData.user_id !== undefined && { user_id: updateData.user_id }),
+        ...(updateData.user_name !== undefined && { user_name: updateData.user_name }),
+        ...(updateData.user_avatar !== undefined && { user_avatar: updateData.user_avatar }),
+        ...(updateData.rating !== undefined && { rating: updateData.rating }),
+        ...(updateData.verified !== undefined && { verified: updateData.verified }),
+        updated_at: updateData.updated_at || nowIso(),
+      }
+
+      if (reviewColumns.includes('comment') && updateData.comment !== undefined) {
+        payload.comment = updateData.comment
+      }
+
+      if (reviewColumns.includes('content') && updateData.comment !== undefined) {
+        payload.content = updateData.comment
+      }
+
+      if (reviewColumns.includes('order_id') && updateData.order_id !== undefined) {
+        payload.order_id = updateData.order_id
+      }
+
+      if (reviewColumns.includes('order_item_id') && updateData.order_item_id !== undefined) {
+        payload.order_item_id = updateData.order_item_id
+      }
+
+      const { values, assignments } = buildUpdateClause(payload)
+      const result = await query(
+        `update reviews set ${assignments.join(', ')} where id = $${values.length + 1} returning *`,
+        [...values, reviewId]
+      )
+
+      return { data: result.rows[0] ? mapReviewRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async deleteReview(reviewId: number) {
     try {
-      return await supabase
-        .from('reviews')
-        .delete()
-        .eq('id', reviewId)
-        .select()
-        .single();
+      const result = await query(`delete from reviews where id = $1 returning *`, [reviewId])
+      return { data: result.rows[0] ? mapReviewRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async getReviewById(reviewId: number) {
     try {
-      return await supabase
-        .from('reviews')
-        .select('*')
-        .eq('id', reviewId)
-        .single();
+      const result = await query(`select * from reviews where id = $1 limit 1`, [reviewId])
+      return { data: result.rows[0] ? mapReviewRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async getUserReviewForProduct(userId: string, productId: number) {
     try {
-      return await supabase
-        .from('reviews')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('product_id', productId)
-        .single();
+      const reviewColumns = await getReviewColumns()
+      const extraConditions =
+        reviewColumns.includes('order_id') && reviewColumns.includes('order_item_id')
+          ? 'and order_id is null and order_item_id is null'
+          : ''
+
+      const result = await query(
+        `
+          select *
+          from reviews
+          where user_id = $1
+            and product_id = $2
+            ${extraConditions}
+          limit 1
+        `,
+        [userId, productId]
+      )
+
+      return { data: result.rows[0] ? mapReviewRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
-  // Users
   async registerUser(userData: UserInsert) {
     try {
-      // Normalize payload and rely on DB default for role when it's a regular user
-      let payload: any = {
-        ...userData,
+      const userColumns = await getUserColumns()
+      const payload: Record<string, unknown> = {
+        email: userData.email,
+        password: userData.password,
+        name: userData.name,
+        role: mapAppRoleToDbRole(userData.role),
         is_active: userData.is_active ?? true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      const roleVal = (userData as any)?.role;
-      const normalizedRole = roleVal ? String(roleVal).trim().toLowerCase() : undefined;
-      if (!normalizedRole || normalizedRole === 'user') {
-        // Drop role to let database default apply (avoids check constraint mismatches)
-        const { role, ...rest } = payload;
-        payload = rest;
+        created_at: userData.created_at || nowIso(),
+        updated_at: userData.updated_at || nowIso(),
       }
 
-      return await supabaseAdmin
-        .from('users')
-        .insert(payload)
-        .select()
-        .single();
+      if (userColumns.includes('phone')) payload.phone = userData.phone ?? null
+      if (userColumns.includes('address')) payload.address = userData.address ?? null
+      if (userColumns.includes('user_avatar')) payload.user_avatar = userData.user_avatar ?? null
+      if (userColumns.includes('Provinsi')) payload.Provinsi = userData.Provinsi ?? null
+      if (userColumns.includes('Kota')) payload.Kota = userData.Kota ?? null
+      if (userColumns.includes('Kode_pose')) payload.Kode_pose = userData.Kode_pose ?? null
+      if (userData.id) payload.id = userData.id
+
+      const columns = Object.keys(payload)
+      const placeholders = columns.map((_, index) => `$${index + 1}`)
+      const values = columns.map((column) => payload[column])
+
+      const result = await query(
+        `insert into users (${columns.map((column) => `"${column}"`).join(', ')}) values (${placeholders.join(', ')}) returning *`,
+        values
+      )
+
+      return { data: mapUserRow(result.rows[0]), error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async getUserByEmail(email: string) {
     try {
-      return await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
+      const result = await query(`select * from users where lower(email) = lower($1) limit 1`, [email])
+      return { data: result.rows[0] ? mapUserRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
+    }
+  },
+
+  async getUserById(userId: string) {
+    try {
+      const result = await query(`select * from users where id = $1 limit 1`, [userId])
+      return { data: result.rows[0] ? mapUserRow(result.rows[0]) : null, error: null }
+    } catch (error) {
+      return { data: null, error }
     }
   },
 
   async getAllUsers() {
     try {
-      const { data, error } = await supabaseAdmin
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        return { data: null, error };
-      }
-
-      return { data, error: null };
+      const result = await query(`select * from users order by created_at desc`)
+      return { data: result.rows.map(mapUserRow), error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async updateUser(userId: string, updateData: UserUpdate) {
     try {
-      const { data, error } = await supabaseAdmin
-        .from('users')
-        .update(updateData)
-        .eq('id', userId)
-        .select()
-        .single();
-
-      if (error) {
-        return { data: null, error };
+      const userColumns = await getUserColumns()
+      const payload: Record<string, unknown> = {
+        ...(updateData.email !== undefined && { email: updateData.email }),
+        ...(updateData.password !== undefined && { password: updateData.password }),
+        ...(updateData.name !== undefined && { name: updateData.name }),
+        ...(updateData.role !== undefined && { role: mapAppRoleToDbRole(updateData.role) }),
+        ...(updateData.is_active !== undefined && { is_active: updateData.is_active }),
+        updated_at: updateData.updated_at || nowIso(),
       }
 
-      return { data, error: null };
+      if (userColumns.includes('phone') && updateData.phone !== undefined) payload.phone = updateData.phone
+      if (userColumns.includes('address') && updateData.address !== undefined) payload.address = updateData.address
+      if (userColumns.includes('user_avatar') && updateData.user_avatar !== undefined) payload.user_avatar = updateData.user_avatar
+      if (userColumns.includes('Provinsi') && updateData.Provinsi !== undefined) payload.Provinsi = updateData.Provinsi
+      if (userColumns.includes('Kota') && updateData.Kota !== undefined) payload.Kota = updateData.Kota
+      if (userColumns.includes('Kode_pose') && updateData.Kode_pose !== undefined) payload.Kode_pose = updateData.Kode_pose
+
+      const columnMap: Record<string, string> = {
+        Provinsi: 'Provinsi',
+        Kota: 'Kota',
+        Kode_pose: 'Kode_pose',
+      }
+
+      const { values, assignments } = buildUpdateClause(payload, columnMap)
+      const result = await query(
+        `update users set ${assignments.join(', ')} where id = $${values.length + 1} returning *`,
+        [...values, userId]
+      )
+
+      return { data: result.rows[0] ? mapUserRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async deleteUser(userId: string) {
     try {
-      const { data, error } = await supabaseAdmin
-        .from('users')
-        .delete()
-        .eq('id', userId)
-        .select()
-        .single();
-
-      if (error) {
-        return { data: null, error };
-      }
-
-      return { data, error: null };
+      const result = await query(`delete from users where id = $1 returning *`, [userId])
+      return { data: result.rows[0] ? mapUserRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
-  // Cart operations
   async getCartItems(userId: string) {
     try {
-      return await supabase
-        .from('cart_items')
-        .select(`
-          *,
-          products (
-            id,
-            name,
-            price,
-            image,
-            stock
-          )
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      const result = await query(
+        `
+          select
+            ci.*,
+            p.id as product_id,
+            p.name as product_name,
+            p.price as product_price,
+            p.description as product_description,
+            p.image as product_image,
+            p.category as product_category,
+            p.stock as product_stock,
+            p.rating as product_rating,
+            p.reviews_count as product_reviews_count
+          from cart_items ci
+          join products p on p.id = ci.product_id
+          where ci.user_id = $1
+          order by ci.created_at desc
+        `,
+        [userId]
+      )
+
+      return { data: result.rows.map(mapCartRow), error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async addToCart(userId: string, productId: number, quantity: number) {
     try {
-      // Check if item already exists in cart
-      const { data: existingItem } = await supabase
-        .from('cart_items')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('product_id', productId)
-        .single();
+      const existing = await query(`select * from cart_items where user_id = $1 and product_id = $2 limit 1`, [userId, productId])
 
-      if (existingItem) {
-        // Update quantity
-        return await supabase
-          .from('cart_items')
-          .update({ quantity: existingItem.quantity + quantity })
-          .eq('id', existingItem.id)
-          .select()
-          .single();
-      } else {
-        // Add new item
-        return await supabase
-          .from('cart_items')
-          .insert({
-            user_id: userId,
-            product_id: productId,
-            quantity
-          })
-          .select()
-          .single();
+      if (existing.rows[0]) {
+        const result = await query(
+          `
+            update cart_items
+            set quantity = quantity + $1,
+                updated_at = now()
+            where id = $2
+            returning *
+          `,
+          [quantity, existing.rows[0].id]
+        )
+        return { data: result.rows[0], error: null }
       }
+
+      const result = await query(
+        `
+          insert into cart_items (user_id, product_id, quantity, created_at, updated_at)
+          values ($1, $2, $3, now(), now())
+          returning *
+        `,
+        [userId, productId, quantity]
+      )
+
+      return { data: result.rows[0], error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async updateCartItemQuantity(itemId: number, quantity: number) {
     try {
       if (quantity <= 0) {
-        // Remove item if quantity is 0 or negative
-        return await supabase
-          .from('cart_items')
-          .delete()
-          .eq('id', itemId);
-      } else {
-        // Update quantity
-        return await supabase
-          .from('cart_items')
-          .update({ quantity })
-          .eq('id', itemId)
-          .select()
-          .single();
+        const deleted = await query(`delete from cart_items where id = $1 returning *`, [itemId])
+        return { data: deleted.rows[0] || null, error: null }
       }
+
+      const result = await query(
+        `
+          update cart_items
+          set quantity = $1,
+              updated_at = now()
+          where id = $2
+          returning *
+        `,
+        [quantity, itemId]
+      )
+
+      return { data: result.rows[0] || null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async removeFromCart(itemId: number) {
     try {
-      return await supabase
-        .from('cart_items')
-        .delete()
-        .eq('id', itemId);
+      const result = await query(`delete from cart_items where id = $1 returning *`, [itemId])
+      return { data: result.rows[0] || null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
-  // Orders operations
   async getOrders(filters?: { status?: string; customerEmail?: string; limit?: number; page?: number }) {
     try {
-      const buildQuery = (includeAvatar: boolean) => {
-        const userFields = includeAvatar ? 'id,\n              name,\n              email,\n              user_avatar' : 'id,\n              name,\n              email';
+      const conditions: string[] = []
+      const values: unknown[] = []
 
-        let q;
-        if (filters?.customerEmail) {
-          q = supabaseAdmin
-            .from('orders')
-            .select(`
-              *,
-              users!inner (
-                ${userFields}
-              ),
-              order_items (
-                id,
-                product_id,
-                product_name,
-                quantity,
-                price
-              )
-            `)
-            .eq('users.email', filters.customerEmail);
-        } else {
-          q = supabaseAdmin
-            .from('orders')
-            .select(`
-              *,
-              users (
-                ${userFields}
-              ),
-              order_items (
-                id,
-                product_id,
-                product_name,
-                quantity,
-                price
-              )
-            `);
-        }
-
-        if (filters?.status) {
-          q = q.eq('status', filters.status);
-        }
-        if (filters?.limit) {
-          q = q.limit(filters.limit);
-        }
-        if (filters?.page && filters?.limit) {
-          const offset = (filters.page - 1) * filters.limit;
-          q = q.range(offset, offset + filters.limit - 1);
-        }
-        return q;
-      };
-
-      // First attempt: include avatar
-      let query = buildQuery(true);
-      let { data, error } = await query.order('created_at', { ascending: false });
-
-      // Fallback: if column does not exist, retry without avatar
-      const msg = error?.message || '';
-      if (msg.includes('does not exist') && msg.includes('user_avatar')) {
-        query = buildQuery(false);
-        const retry = await query.order('created_at', { ascending: false });
-        data = retry.data;
-        error = retry.error;
+      if (filters?.status) {
+        values.push(filters.status)
+        conditions.push(`o.status = $${values.length}`)
       }
 
-      return { data, error: error?.message || null };
+      if (filters?.customerEmail) {
+        values.push(filters.customerEmail)
+        conditions.push(`lower(u.email) = lower($${values.length})`)
+      }
+
+      const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : ''
+      const page = filters?.page || 1
+      const limit = filters?.limit || 50
+      const offset = (page - 1) * limit
+
+      const result = await query(
+        `
+          select
+            o.*,
+            u.id as user_ref_id,
+            u.email as user_email,
+            u.name as user_name,
+            u.role as user_role,
+            u.phone as user_phone,
+            u.address as user_address,
+            ${await hasColumn('users', 'user_avatar') ? 'u.user_avatar as user_avatar,' : 'null as user_avatar,'}
+            ${await hasColumn('users', 'Provinsi') ? 'u."Provinsi" as "Provinsi",' : 'null as "Provinsi",'}
+            ${await hasColumn('users', 'Kota') ? 'u."Kota" as "Kota",' : 'null as "Kota",'}
+            ${await hasColumn('users', 'Kode_pose') ? 'u."Kode_pose" as "Kode_pose"' : 'null as "Kode_pose"'}
+          from orders o
+          left join users u on u.id = o.user_id
+          ${whereClause}
+          order by o.created_at desc
+          limit $${values.length + 1}
+          offset $${values.length + 2}
+        `,
+        [...values, limit, offset]
+      )
+
+      const orders = result.rows.map((row) => {
+        const order = mapOrderRow(row) as JoinedOrder
+        order.users = row.user_ref_id
+          ? {
+              id: String(row.user_ref_id),
+              email: row.user_email,
+              name: row.user_name,
+              role: mapDbRoleToAppRole(row.user_role),
+              phone: row.user_phone ?? null,
+              address: row.user_address ?? null,
+              user_avatar: row.user_avatar ?? null,
+              Provinsi: row.Provinsi ?? null,
+              Kota: row.Kota ?? null,
+              Kode_pose: row.Kode_pose ?? null,
+              is_active: true,
+              created_at: '',
+              updated_at: '',
+              password: '',
+            }
+          : null
+        return order
+      })
+
+      if (orders.length === 0) {
+        return { data: [], error: null }
+      }
+
+      const orderIds = orders.map((order) => order.id)
+      const itemsResult = await query(`select * from order_items where order_id = any($1::bigint[]) order by created_at asc`, [orderIds])
+      const itemsByOrderId = new Map<number, OrderItem[]>()
+
+      for (const row of itemsResult.rows) {
+        const item = mapOrderItemRow(row)
+        const current = itemsByOrderId.get(item.order_id) || []
+        current.push(item)
+        itemsByOrderId.set(item.order_id, current)
+      }
+
+      for (const order of orders) {
+        order.order_items = itemsByOrderId.get(order.id) || []
+      }
+
+      return { data: orders, error: null }
     } catch (error) {
-      console.error('Get orders error:', error);
-      return { data: null, error: (error as Error).message };
+      return { data: null, error: (error as Error).message || error }
     }
   },
 
-  async createOrder(orderData: {
-    user_id: string;
-    order_number: string;
-    total_amount: number;
-    status: string;
-    shipping_address: string;
-    payment_method: string;
-    notes?: string;
-  }, items?: { productId: number; productName: string; quantity: number; price: number }[]) {
+  async getOrderById(orderId: number) {
     try {
-      // Use supabaseAdmin to bypass RLS for order creation
-      const client = supabaseAdmin || supabase;
-      
-      // Create the order first
-      const { data: order, error: orderError } = await client
-        .from('orders')
-        .insert(orderData)
-        .select()
-        .single();
-
-      if (orderError) {
-        console.error('Order creation error:', orderError);
-        return { data: null, error: orderError.message };
-      }
-
-      // If items are provided, create order items
-      if (items && items.length > 0) {
-        const orderItems = items.map(item => ({
-          order_id: order.id,
-          product_id: item.productId,
-          product_name: item.productName,
-          quantity: item.quantity,
-          price: item.price
-        }));
-
-        const { error: itemsError } = await client
-          .from('order_items')
-          .insert(orderItems);
-
-        if (itemsError) {
-          console.error('Order items creation error:', itemsError);
-          // Rollback: delete the created order
-          await client.from('orders').delete().eq('id', order.id);
-          return { data: null, error: itemsError.message };
-        }
-      }
-
-      return { data: order, error: null };
+      const result = await query(`select * from orders where id = $1 limit 1`, [orderId])
+      return { data: result.rows[0] ? mapOrderRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      console.error('Create order error:', error);
-      return { data: null, error: (error as Error).message };
+      return { data: null, error }
+    }
+  },
+
+  async createOrder(
+    orderData: {
+      user_id: string
+      order_number: string
+      total_amount: number
+      status: string
+      shipping_address: string
+      payment_method: string
+      notes?: string
+      payment_status?: string
+    },
+    items?: { productId: number; productName: string; quantity: number; price: number }[]
+  ) {
+    try {
+      const paymentStatusExists = await hasColumn('orders', 'payment_status')
+      const notesExists = await hasColumn('orders', 'notes')
+
+      const insertColumns = ['user_id', 'order_number', 'total_amount', 'status', 'shipping_address', 'payment_method', 'created_at', 'updated_at']
+      const insertValues: unknown[] = [
+        orderData.user_id,
+        orderData.order_number,
+        orderData.total_amount,
+        orderData.status,
+        orderData.shipping_address,
+        orderData.payment_method,
+        nowIso(),
+        nowIso(),
+      ]
+
+      if (paymentStatusExists) {
+        insertColumns.push('payment_status')
+        insertValues.push(orderData.payment_status || 'pending')
+      }
+
+      if (notesExists) {
+        insertColumns.push('notes')
+        insertValues.push(orderData.notes || null)
+      }
+
+      const placeholders = insertValues.map((_, index) => `$${index + 1}`)
+
+      const createdOrder = await withTransaction(async (client) => {
+        const orderResult = await query(
+          `insert into orders (${insertColumns.map((column) => `"${column}"`).join(', ')}) values (${placeholders.join(', ')}) returning *`,
+          insertValues,
+          client
+        )
+
+        const order = mapOrderRow(orderResult.rows[0])
+
+        if (items && items.length > 0) {
+          for (const item of items) {
+            await query(
+              `
+                insert into order_items (order_id, product_id, product_name, quantity, price, created_at, updated_at)
+                values ($1, $2, $3, $4, $5, now(), now())
+              `,
+              [order.id, item.productId, item.productName, item.quantity, item.price],
+              client
+            )
+          }
+        }
+
+        return order
+      })
+
+      return { data: createdOrder, error: null }
+    } catch (error) {
+      return { data: null, error: (error as Error).message || error }
     }
   },
 
   async updateOrder(orderId: number, updateData: {
-    status?: string;
-    payment_status?: string;
+    status?: string
+    payment_status?: string
+    shipping_date?: string
+    delivery_date?: string
+    notes?: string | null
   }) {
     try {
-      // Pastikan orderId adalah angka
-      if (typeof orderId !== 'number') {
-        orderId = parseInt(String(orderId), 10);
-        if (isNaN(orderId)) {
-          throw new Error('Invalid order ID');
-        }
+      const orderColumns = {
+        payment_status: await hasColumn('orders', 'payment_status'),
+        shipping_date: await hasColumn('orders', 'shipping_date'),
+        delivery_date: await hasColumn('orders', 'delivery_date'),
+        notes: await hasColumn('orders', 'notes'),
       }
 
-      // Filter out fields that don't exist in the database
-      const dataToUpdate = {
-        ...(updateData.status && { status: updateData.status }),
-        ...(updateData.payment_status && { payment_status: updateData.payment_status }),
-        updated_at: new Date().toISOString()
-      };
-
-      // Log untuk debugging
-      console.log('NEW updateOrder - Input parameters:', { orderId, updateData });
-      console.log('NEW updateOrder - Filtered data to update:', dataToUpdate);
-      console.log('NEW updateOrder - Data to update keys:', Object.keys(dataToUpdate));
-      console.log('NEW updateOrder - Data to update values:', Object.values(dataToUpdate));
-
-      // Pertama, cek apakah order ada (tanpa .single())
-      const { data: existingOrders, error: checkError } = await supabase
-        .from('orders')
-        .select('id, status')
-        .eq('id', orderId);
-
-      console.log('NEW updateOrder - Existing order check:', { existingOrders, checkError });
-
-      if (checkError) {
-        console.log('NEW updateOrder - Error checking order:', checkError);
-        return { data: null, error: checkError };
+      const payload: Record<string, unknown> = {
+        ...(updateData.status !== undefined && { status: updateData.status }),
+        updated_at: nowIso(),
       }
 
-      if (!existingOrders || existingOrders.length === 0) {
-        console.log('NEW updateOrder - Order not found:', orderId);
-        return { data: null, error: new Error(`Order with ID ${orderId} not found`) };
+      if (orderColumns.payment_status && updateData.payment_status !== undefined) {
+        payload.payment_status = updateData.payment_status
       }
 
-      console.log('NEW updateOrder - Using supabaseAdmin:', !!supabaseServiceKey);
-      console.log('NEW updateOrder - Service key exists:', supabaseServiceKey ? 'YES' : 'NO');
-
-      // Lakukan update tanpa .single() - bypass RLS untuk admin operations
-      const { data: updatedData, error: updateError } = await supabaseAdmin
-        .from('orders')
-        .update(dataToUpdate)
-        .eq('id', orderId)
-        .select('*');
-
-      // Log hasil untuk debugging
-      console.log('NEW updateOrder - Update result:', { data: updatedData, error: updateError });
-
-      if (updateError) {
-        console.log('NEW updateOrder - Update error:', updateError);
-        return { data: null, error: updateError };
+      if (orderColumns.shipping_date && updateData.shipping_date !== undefined) {
+        payload.shipping_date = updateData.shipping_date
       }
 
-      if (!updatedData || updatedData.length === 0) {
-        console.log('NEW updateOrder - No rows updated');
-        return { data: null, error: new Error('No rows were updated') };
+      if (orderColumns.delivery_date && updateData.delivery_date !== undefined) {
+        payload.delivery_date = updateData.delivery_date
       }
 
-      console.log('NEW updateOrder - Success, returning:', updatedData[0]);
-      // Return the first (and should be only) updated record
-      return { data: updatedData[0], error: null };
+      if (orderColumns.notes && updateData.notes !== undefined) {
+        payload.notes = updateData.notes
+      }
+
+      const { values, assignments } = buildUpdateClause(payload)
+      const result = await query(
+        `update orders set ${assignments.join(', ')} where id = $${values.length + 1} returning *`,
+        [...values, orderId]
+      )
+
+      return { data: result.rows[0] ? mapOrderRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      console.error('NEW updateOrder - catch error:', error);
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async deleteOrder(orderId: number) {
     try {
-      return await supabase
-        .from('orders')
-        .delete()
-        .eq('id', orderId)
-        .select()
-        .single();
+      const result = await query(`delete from orders where id = $1 returning *`, [orderId])
+      return { data: result.rows[0] ? mapOrderRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
-  // Storage operations
   async uploadFile(file: File, folder: string = 'products') {
     try {
-      const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
-      const client = supabaseAdmin || supabase;
-
-      // Generate unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${folder}/${fileName}`;
-
-      // Upload file to Supabase Storage
-      const { data, error } = await client.storage
-        .from(BUCKET_NAME)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type
-        });
-
-      if (error) {
-        return { data: null, error };
-      }
-
-      // Get public URL
-      const { data: urlData } = client.storage
-        .from(BUCKET_NAME)
-        .getPublicUrl(filePath);
-
+      const stored = await saveUploadedFile(file, folder)
       return {
-        data: {
-          url: urlData.publicUrl,
-          path: filePath,
-          fileName: fileName
-        },
-        error: null
-      };
+        data: stored,
+        error: null,
+      }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async deleteFile(filePath: string) {
     try {
-      const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
-      const client = supabaseAdmin || supabase;
-
-      const { error } = await client.storage
-        .from(BUCKET_NAME)
-        .remove([filePath]);
-
-      return { data: error ? null : { success: true }, error };
+      await deleteStoredFile(filePath)
+      return { data: { success: true }, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
-  // Categories operations
   async getCategories() {
     try {
-      return await supabase
-        .from('categories')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const result = await query(`select * from categories order by name asc`)
+      return { data: result.rows.map(mapCategoryRow), error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async addCategory(categoryData: CategoryInsert) {
     try {
-      return await supabase
-        .from('categories')
-        .insert(categoryData)
-        .select()
-        .single();
+      const result = await query(
+        `
+          insert into categories (name, created_at, updated_at)
+          values ($1, coalesce($2, now()), coalesce($3, now()))
+          returning *
+        `,
+        [categoryData.name, categoryData.created_at || null, categoryData.updated_at || null]
+      )
+
+      return { data: mapCategoryRow(result.rows[0]), error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async updateCategory(id: number, categoryData: CategoryUpdate) {
     try {
-      return await supabase
-        .from('categories')
-        .update(categoryData)
-        .eq('id', id)
-        .select()
-        .single();
+      const payload = {
+        ...(categoryData.name !== undefined && { name: categoryData.name }),
+        updated_at: categoryData.updated_at || nowIso(),
+      }
+
+      const { values, assignments } = buildUpdateClause(payload)
+      const result = await query(
+        `update categories set ${assignments.join(', ')} where id = $${values.length + 1} returning *`,
+        [...values, id]
+      )
+
+      return { data: result.rows[0] ? mapCategoryRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async deleteCategory(id: number) {
     try {
-      return await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id)
-        .select()
-        .single();
+      const result = await query(`delete from categories where id = $1 returning *`, [id])
+      return { data: result.rows[0] ? mapCategoryRow(result.rows[0]) : null, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
-  // Product stock management
   async updateProductStock(productId: number, quantityToReduce: number) {
     try {
-      // First, get current stock
-      const { data: product, error: getError } = await supabase
-        .from('products')
-        .select('stock')
-        .eq('id', productId)
-        .single();
+      return await withTransaction(async (client) => {
+        const productResult = await query(`select stock from products where id = $1 limit 1`, [productId], client)
+        const product = productResult.rows[0]
 
-      if (getError || !product) {
-        return { data: null, error: getError || new Error('Product not found') };
-      }
+        if (!product) {
+          return { data: null, error: new Error('Product not found') }
+        }
 
-      const newStock = product.stock - quantityToReduce;
+        const currentStock = Number(product.stock || 0)
+        const newStock = currentStock - quantityToReduce
 
-      // Prevent negative stock
-      if (newStock < 0) {
-        return { data: null, error: new Error(`Stok tidak mencukupi. Tersedia: ${product.stock} unit, Diminta: ${quantityToReduce} unit`) };
-      }
+        if (newStock < 0) {
+          return {
+            data: null,
+            error: new Error(`Stok tidak mencukupi. Tersedia: ${currentStock} unit, Diminta: ${quantityToReduce} unit`),
+          }
+        }
 
-      // Update the stock
-      return await supabase
-        .from('products')
-        .update({ stock: newStock })
-        .eq('id', productId)
-        .select()
-        .single();
+        const updateResult = await query(
+          `
+            update products
+            set stock = $1,
+                updated_at = now()
+            where id = $2
+            returning *
+          `,
+          [newStock, productId],
+          client
+        )
+
+        return { data: updateResult.rows[0] ? mapProductRow(updateResult.rows[0]) : null, error: null }
+      })
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
   },
 
   async reduceMultipleProductsStock(items: { productId: number; quantity: number }[]) {
     try {
-      const results = [];
+      const results = []
 
       for (const item of items) {
-        const result = await this.updateProductStock(item.productId, item.quantity);
+        const result = await this.updateProductStock(item.productId, item.quantity)
         if (result.error) {
-          // If any product fails, we should ideally rollback previous updates
-          // For now, we'll return the error
-          return { data: null, error: result.error };
+          return { data: null, error: result.error }
         }
-        results.push(result.data);
+        results.push(result.data)
       }
 
-      return { data: results, error: null };
+      return { data: results, error: null }
     } catch (error) {
-      return { data: null, error };
+      return { data: null, error }
     }
-  }
+  },
 }
-

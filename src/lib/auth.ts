@@ -7,6 +7,7 @@ export const getCurrentUser = () => {
         if (!userData) return null;
 
         const user = JSON.parse(userData);
+        user.role = user.role === 'admin' ? 'admin' : 'user';
 
         // Validate user data structure
         if (!user.id || !user.email || !user.role) {

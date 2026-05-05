@@ -1,34 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbHelpers, ApiResponse, supabase } from '../../../../lib/supabase';
+
+import { getStoredAssetUrl } from '@/lib/supabase';
+import { query, toNumber } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-// Normalisasi URL/path avatar menjadi public URL yang valid
-const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
-const resolveAvatarUrlForApi = (raw: string | null | undefined, name: string): string => {
-    if (!raw) {
-        return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
-    }
-
-    const val = String(raw);
-    // Jika sudah berupa full URL
-    if (/^https?:\/\//.test(val)) {
-        // Perbaiki URL yang mengarah ke bucket yang tidak sesuai ("/public/avatars/")
-        if (/\/storage\/v1\/object\/public\/avatars\//i.test(val)) {
-            return val.replace(
-                /\/storage\/v1\/object\/public\/avatars\//i,
-                `/storage/v1/object/public/${STORAGE_BUCKET}/avatars/`
-            );
-        }
-        return val;
-    }
-
-    // Jika berupa path relatif, asumsikan berada di bucket STORAGE_BUCKET
-    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(val);
-    return data?.publicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+const resolveAvatarUrlForApi = (raw: string | null | undefined) => {
+    return getStoredAssetUrl(raw, '/default-avatar.svg');
 };
 
-// Interface untuk Product Review Statistics
 interface ProductReviewStats {
     productId: number;
     productName: string;
@@ -54,12 +34,11 @@ interface ProductReviewStats {
     }>;
 }
 
-// GET endpoint untuk mendapatkan statistik review per produk
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const productId = searchParams.get('productId');
-        const limit = parseInt(searchParams.get('limit') || '5');
+        const limit = parseInt(searchParams.get('limit') || '5', 10);
 
         if (!productId) {
             return NextResponse.json(
@@ -68,38 +47,34 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Get product info
-        const { data: product, error: productError } = await supabase
-            .from('products')
-            .select('id, name')
-            .eq('id', parseInt(productId))
-            .single();
+        const productResult = await query(
+            `select id, name from products where id = $1 limit 1`,
+            [parseInt(productId, 10)]
+        );
 
-        if (productError || !product) {
+        const product = productResult.rows[0];
+        if (!product) {
             return NextResponse.json(
                 { success: false, message: 'Product not found' },
                 { status: 404 }
             );
         }
 
-        // Get all reviews for this product
-        const { data: reviews, error: reviewsError } = await supabase
-            .from('reviews')
-            .select('*')
-            .eq('product_id', parseInt(productId))
-            .order('created_at', { ascending: false });
+        const reviewsResult = await query(
+            `
+              select *
+              from reviews
+              where product_id = $1
+              order by created_at desc
+            `,
+            [parseInt(productId, 10)]
+        );
 
-        if (reviewsError) {
-            console.error('Database error:', reviewsError);
-            return NextResponse.json(
-                { success: false, message: 'Failed to fetch reviews' },
-                { status: 500 }
-            );
-        }
+        const reviews = reviewsResult.rows;
 
         if (!reviews || reviews.length === 0) {
             const emptyStats: ProductReviewStats = {
-                productId: parseInt(productId),
+                productId: parseInt(productId, 10),
                 productName: product.name,
                 totalReviews: 0,
                 averageRating: 0,
@@ -115,52 +90,45 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // Calculate statistics
         const totalReviews = reviews.length;
         const verifiedReviews = reviews.filter(r => r.verified).length;
-
-        // Calculate average rating - use precise calculation
-        const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+        const totalRating = reviews.reduce((sum, review) => sum + toNumber(review.rating), 0);
         const averageRating = parseFloat((totalRating / totalReviews).toFixed(2));
 
-        // Calculate rating distribution
         const ratingDistribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
         reviews.forEach(review => {
-            ratingDistribution[review.rating as keyof typeof ratingDistribution]++;
+            ratingDistribution[toNumber(review.rating) as keyof typeof ratingDistribution]++;
         });
 
-        // Calculate recent reviews (last 7 days)
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const recentReviews = reviews.filter(review =>
             new Date(review.created_at) > sevenDaysAgo
         ).length;
 
-        // Get top reviews (highest rated, verified first)
         const topReviews = reviews
             .sort((a, b) => {
-                // Sort by verified first, then by rating, then by date
                 if (a.verified !== b.verified) {
                     return b.verified ? 1 : -1;
                 }
                 if (a.rating !== b.rating) {
-                    return b.rating - a.rating;
+                    return toNumber(b.rating) - toNumber(a.rating);
                 }
                 return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
             })
             .slice(0, limit)
             .map(review => ({
-                id: review.id,
+                id: Number(review.id),
                 userName: review.user_name,
-                userAvatar: resolveAvatarUrlForApi(review.user_avatar, review.user_name),
-                rating: review.rating,
-                comment: review.comment,
-                date: review.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-                verified: review.verified
+                userAvatar: resolveAvatarUrlForApi(review.user_avatar),
+                rating: toNumber(review.rating),
+                comment: review.comment || review.content || '',
+                date: review.created_at?.toISOString?.().split('T')[0] || new Date().toISOString().split('T')[0],
+                verified: Boolean(review.verified)
             }));
 
         const stats: ProductReviewStats = {
-            productId: parseInt(productId),
+            productId: parseInt(productId, 10),
             productName: product.name,
             totalReviews,
             averageRating,

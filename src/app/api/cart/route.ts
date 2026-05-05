@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbHelpers, } from '../../../lib/supabase';
+import { dbHelpers, getStoredAssetUrl } from '../../../lib/supabase';
 import { getApiUser, getCookieUser } from '../../../lib/api-auth';
 
 // Cart item interface for API response
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
         name: (item.products as any)?.name,
         price: (item.products as any)?.price,
         description: (item.products as any)?.description,
-        image: (item.products as any)?.image,
+        image: getStoredAssetUrl((item.products as any)?.image, ''),
         category: (item.products as any)?.category,
         stock: (item.products as any)?.stock,
         rating: (item.products as any)?.rating,
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
         name: (item.products as any)?.name,
         price: (item.products as any)?.price,
         description: (item.products as any)?.description,
-        image: (item.products as any)?.image,
+        image: getStoredAssetUrl((item.products as any)?.image, ''),
         category: (item.products as any)?.category,
         stock: (item.products as any)?.stock,
         rating: (item.products as any)?.rating,

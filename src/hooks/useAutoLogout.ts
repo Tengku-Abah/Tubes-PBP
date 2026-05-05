@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
 
 interface UseAutoLogoutOptions {
   timeout?: number; // dalam milidetik, default 5 menit
@@ -21,9 +20,13 @@ export const useAutoLogout = (options: UseAutoLogoutOptions = {}) => {
       try {
         // Clear sessionStorage untuk keamanan
         sessionStorage.clear();
-        
-        // Logout dari Supabase
-        await supabase.auth.signOut();
+
+        localStorage.removeItem('user');
+        localStorage.removeItem('rememberMe');
+        localStorage.removeItem('loginTime');
+        document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'admin-auth-token=; path=/Admin; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         
         // Panggil callback logout jika ada
         if (onLogout) {

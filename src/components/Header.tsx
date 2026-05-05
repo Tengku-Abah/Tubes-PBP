@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 import { ShoppingCart } from "lucide-react";
 import React from "react";
 
@@ -12,95 +11,56 @@ interface HeaderProps {
     onSearchSubmit?: (e: React.FormEvent) => void;
 }
 
+const getBrowserUser = () => {
+    try {
+        const sessionUser = sessionStorage.getItem('user');
+        if (sessionUser) {
+            return JSON.parse(sessionUser);
+        }
+
+        const rememberedUser = localStorage.getItem('user');
+        const rememberMe = localStorage.getItem('rememberMe');
+        if (rememberedUser && rememberMe === 'true') {
+            return JSON.parse(rememberedUser);
+        }
+    } catch (error) {
+        console.error('Error reading user from browser storage:', error);
+    }
+
+    return null;
+};
+
 export default function Header({ searchTerm = '', onSearchChange, onSearchSubmit }: HeaderProps){
     const [user, setUser] = useState<any | null>(null);
     const [cartCount, setCartCount] = useState<number>(0);
     const router = useRouter();
 
     useEffect(() => {
-        let mounted = true;
-
-        const fetchUser = async () => {
-            // Try sessionStorage first (keeps parity with existing page.tsx usage)
-            try {
-                const userData = sessionStorage.getItem('user');
-                if (userData) {
-                    const parsed = JSON.parse(userData);
-                    if (mounted) {
-                        setUser(parsed);
-                        // keep sessionStorage in sync (no-op if already set)
-                        try { sessionStorage.setItem('user', JSON.stringify(parsed)); } catch (e) {}
-                        return;
-                    }
-                }
-            } catch (e) {
-                // ignore and fallback to supabase
-            }
-
-            const {data} = await supabase.auth.getUser();
-            if (!mounted) return;
-            const supaUser = data?.user ?? null;
-            setUser(supaUser);
-            try {
-                if (supaUser) {
-                    sessionStorage.setItem('user', JSON.stringify(supaUser));
-                } else {
-                    sessionStorage.removeItem('user');
-                }
-            } catch (e) {}
+        const refreshUser = () => {
+            setUser(getBrowserUser());
         };
 
-        fetchUser();
+        refreshUser();
 
-        const { data: listener} = supabase.auth.onAuthStateChange((_event, session) => {
-            const u = session?.user ?? null;
-            setUser(u);
-            try {
-                if (u) {
-                    sessionStorage.setItem('user', JSON.stringify(u));
-                } else {
-                    sessionStorage.removeItem('user');
-                }
-            } catch (e) {}
-        });
-
-        // React to sessionStorage changes (cross-tab) and to tab focus/visibility so
-        // Header can pick up login flows that only write sessionStorage directly.
         const handleStorage = (e: StorageEvent) => {
-            if (e.key === 'user') {
-                try {
-                    setUser(e.newValue ? JSON.parse(e.newValue) : null);
-                } catch (er) {
-                    setUser(null);
-                }
+            if (!e.key || ['user', 'rememberMe', 'loginTime'].includes(e.key)) {
+                refreshUser();
             }
         };
 
-        const handleFocus = () => {
-            // re-check sessionStorage quickly
-            try {
-                const ud = sessionStorage.getItem('user');
-                setUser(ud ? JSON.parse(ud) : null);
-            } catch (e) {
-                // fallback to supabase
-                supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null)).catch(() => {});
-            }
-        };
-
-        const handleVisibility = () => {
-            if (document.visibilityState === 'visible') handleFocus();
-        };
+        const handleFocus = () => refreshUser();
+        const handleUserUpdate = () => refreshUser();
 
         window.addEventListener('storage', handleStorage);
         window.addEventListener('focus', handleFocus);
-        document.addEventListener('visibilitychange', handleVisibility);
+        window.addEventListener('userAvatarUpdated', handleUserUpdate as EventListener);
+        document.addEventListener('visibilitychange', handleFocus);
 
         return() => {
-            mounted=false;
-            listener?.subscription?.unsubscribe();
             window.removeEventListener('storage', handleStorage);
             window.removeEventListener('focus', handleFocus);
-            document.removeEventListener('visibilitychange', handleVisibility);
+            window.removeEventListener('userAvatarUpdated', handleUserUpdate as EventListener);
+            document.removeEventListener('visibilitychange', handleFocus);
         };
     }, []);
 
@@ -110,51 +70,37 @@ export default function Header({ searchTerm = '', onSearchChange, onSearchSubmit
             return;
         }
 
-        let subscribed = true;
-        let channel: ReturnType<typeof supabase.channel> | null = null;
-
-    const fetchCartCount = async (userData?: any) => {
-            const currentUser = userData || user
-            if (!currentUser?.id) {
-            setCartCount(0)
-            return
+        const fetchCartCount = async () => {
+            if (!user?.id) {
+                setCartCount(0);
+                return;
             }
 
-        try {
-            const response = await fetch(`/api/cart?user_id=${currentUser.id}`)
-            const data = await response.json()
+            try {
+                const response = await fetch(`/api/cart?user_id=${user.id}`);
+                const data = await response.json();
 
-            if (data.success && data.data) {
-                const totalItems = data.data.reduce((sum: number, item: any) => sum + item.quantity, 0)
-                setCartCount(totalItems)
-            } else {
-                setCartCount(0)
-            }
+                if (data.success && data.data) {
+                    const totalItems = data.data.reduce((sum: number, item: any) => sum + item.quantity, 0);
+                    setCartCount(totalItems);
+                } else {
+                    setCartCount(0);
+                }
             } catch (error) {
-            console.error('Error fetching cart count:', error)
-            setCartCount(0)
+                console.error('Error fetching cart count:', error);
+                setCartCount(0);
             }
         };
+
         fetchCartCount();
 
-        try {
-            channel = supabase
-                .channel(`cart-user-${user.id}`)
-                .on(
-                    'postgres_changes',
-                    { event: '*', schema: 'public', table: 'cart', filter: `user_id=eq.${user.id}` },
-                    () => { fetchCartCount(); }
-                )
-                .subscribe();
-        } catch (e) {
-            // ignore if realtime not configured
-        }
+        const handleCartUpdate = () => {
+            fetchCartCount();
+        };
 
+        window.addEventListener('cartUpdated', handleCartUpdate);
         return () => {
-            subscribed = false;
-            if (channel) {
-                channel.unsubscribe();
-            }
+            window.removeEventListener('cartUpdated', handleCartUpdate);
         };
     }, [user]);
 
@@ -164,19 +110,21 @@ export default function Header({ searchTerm = '', onSearchChange, onSearchSubmit
             try { return currentUserStr ? JSON.parse(currentUserStr)?.role : null; } catch { return null; }
         })();
 
-        // Clear only this tab's session
         sessionStorage.clear();
 
-        // Role-aware cookie clearing to avoid nuking other tab's session
         try {
+            localStorage.removeItem('user');
+            localStorage.removeItem('rememberMe');
+            localStorage.removeItem('loginTime');
+
             if (currentRole === 'admin') {
                 document.cookie = 'admin-auth-token=; path=/Admin; expires=Thu, 01 Jan 1970 00:00:00 GMT';
             } else {
                 document.cookie = 'user-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
             }
-            await supabase.auth.signOut();
+            document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         } catch (e) {
-            // ignore
+            console.error('Logout cleanup error:', e);
         }
         setUser(null);
         router.push('/');
@@ -221,12 +169,10 @@ export default function Header({ searchTerm = '', onSearchChange, onSearchSubmit
                         )}
                     </Link>
 
-                    {/* Show profile only when user is present */}
                     {user && (
                         <Link href="/profile" className="text-white hover:text-primary-200 transition-colors">Profile</Link>
                     )}
 
-                    {/* Login button hidden when user exists; show Logout when user exists */}
                     {user ? (
                         <button onClick={handleLogout}
                             className="text-sm px-3 py-1 border border-white rounded bg-red-600 text-white hover:bg-red-700 transition-colors">

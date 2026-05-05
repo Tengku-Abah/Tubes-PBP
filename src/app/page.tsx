@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
 import ProductCard from '../components/cardproduk'
 import ProductFilter from '../components/ProductFilter'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -125,13 +124,11 @@ export default function HomePage() {
 
   const fetchCategoriesFromDB = async () => {
     try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('name')
-        .order('name', { ascending: true })
+      const response = await fetch('/api/categories', { cache: 'no-store' })
+      const result = await response.json()
 
-      if (!error && data && data.length > 0) {
-        const categoryNames = data.map(cat => cat.name)
+      if (result.success && result.data && result.data.length > 0) {
+        const categoryNames = result.data.map((cat: any) => cat.name)
         setCategories(categoryNames)
         sessionStorage.setItem('cachedCategories', JSON.stringify(categoryNames))
       } else {
@@ -182,26 +179,27 @@ export default function HomePage() {
       } else {
         setLoading(true)
       }
-      let query = supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const params = new URLSearchParams({
+        limit: '1000',
+        page: '1'
+      })
 
-      // Add search filter if searchTerm exists
       if (searchTerm.trim()) {
-        query = query.or(`name.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+        params.set('search', searchTerm.trim())
       }
 
-      const { data, error } = await query
+      const response = await fetch(`/api/product?${params.toString()}`, { cache: 'no-store' })
+      const result = await response.json()
 
-      if (error) {
+      if (!result.success) {
         setProducts([])
       } else {
+        const data = result.data || []
         setProducts(data || [])
 
         // Extract unique categories from products
-        const categoryList = data?.map(product => product.category) || []
-        const uniqueCategories = Array.from(new Set(categoryList.filter(cat => cat && cat.trim() !== '')))
+        const categoryList = data?.map((product: any) => product.category) || []
+        const uniqueCategories = Array.from(new Set(categoryList.filter((cat: string) => cat && cat.trim() !== ''))) as string[]
 
         if (uniqueCategories.length > 0) {
           setCategories(uniqueCategories)

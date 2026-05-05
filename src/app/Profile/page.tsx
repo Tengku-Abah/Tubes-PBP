@@ -2,8 +2,7 @@
 import { User, Mail, Phone, MapPin, Edit2, Save, ArrowLeft, Camera, Trash2, UserCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from '../../lib/auth';
-import { supabase } from '@/lib/supabaseClient';
+import { getCurrentUser, getAuthHeaders } from '../../lib/auth';
 
 interface UserProfile {
   id: string;
@@ -58,12 +57,12 @@ export default function ProfileSettings() {
 
         setUser(currentUser);
 
-        // Fetch full user data from database including Provinsi, Kota, Kode_pose
-        const { data: dbUser } = await supabase
-          .from('users')
-          .select('name, email, phone, address, "Provinsi", "Kota", "Kode_pose", user_avatar')
-          .eq('id', currentUser.id)
-          .single();
+        const response = await fetch(`/api/user?id=${encodeURIComponent(currentUser.id)}`, {
+          headers: getAuthHeaders(),
+          cache: 'no-store'
+        });
+        const result = await response.json();
+        const dbUser = result?.success ? result.data : null;
 
         const userProfile = {
           name: dbUser?.name || currentUser.name || '',
@@ -87,27 +86,13 @@ export default function ProfileSettings() {
         });
         // Handle avatar URL from database
         const rawAvatar = (dbUser as any)?.user_avatar as string | null;
+        const avatarPublicUrl = (dbUser as any)?.user_avatar_url as string | null;
         if (rawAvatar) {
-          // Jika sudah berupa URL penuh, langsung gunakan
-          if (/^https?:\/\//.test(rawAvatar)) {
-            setAvatarUrl(rawAvatar);
-            sessionStorage.setItem('user_avatar_url', rawAvatar);
-          } else {
-            // Asumsikan path berada di bucket 'product-images'
-            let path = rawAvatar;
-            if (path.startsWith('product-images/')) {
-              path = path.replace('product-images/', '');
-            }
-            const { data: urlData } = supabase.storage
-              .from('product-images')
-              .getPublicUrl(path);
-            if (urlData?.publicUrl) {
-              setAvatarUrl(urlData.publicUrl);
-              setAvatarPath(path);
-              sessionStorage.setItem('user_avatar_url', urlData.publicUrl);
-              sessionStorage.setItem('user_avatar_path', path);
-            }
-          }
+          const resolvedAvatar = avatarPublicUrl || rawAvatar;
+          setAvatarUrl(resolvedAvatar);
+          setAvatarPath(rawAvatar);
+          sessionStorage.setItem('user_avatar_url', resolvedAvatar);
+          sessionStorage.setItem('user_avatar_path', rawAvatar);
         }
         setLoading(false);
       } catch (error) {
@@ -141,6 +126,7 @@ export default function ProfileSettings() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           id: user.id,
@@ -207,102 +193,34 @@ export default function ProfileSettings() {
     if (!file) return;
     setUploadingAvatar(true);
     try {
-      // 1) Minta signed upload URL dari server (pakai service role)
-      const signRes = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folder: 'avatars', fileExt: file.name.split('.').pop() }),
-      });
-      const signText = await signRes.text();
-      let signData: any = null;
-      try { signData = JSON.parse(signText); } catch { /* non-JSON body */ }
-      if (!signRes.ok || !signData || !signData.success || !signData.path || !signData.token) {
-        // Fallback: coba unggah via server multipart/form-data jika pembuatan signed URL gagal
-        try {
-          const form = new FormData();
-          form.append('file', file);
-          form.append('folder', 'avatars');
-          const upRes = await fetch('/api/upload', { method: 'POST', body: form });
-          const upData = await upRes.json().catch(() => ({}));
-          if (!upRes.ok || !upData?.success || !upData?.path || !upData?.url) {
-            alert('Gagal membuat URL unggah. ' + (signData?.error || signText || ''));
-            return;
-          }
-          // Jika fallback berhasil, set avatar dan simpan path ke database
-          setAvatarUrl(upData.url);
-          setAvatarPath(upData.path);
-          sessionStorage.setItem('user_avatar_url', upData.url);
-          sessionStorage.setItem('user_avatar_path', upData.path);
-          
-          // Update user object in sessionStorage with avatar
-          const currentUser = getCurrentUser();
-          if (currentUser) {
-            const updatedUser = { ...currentUser, avatar_url: upData.url, avatar: upData.url };
-            sessionStorage.setItem('user', JSON.stringify(updatedUser));
-            // Dispatch custom event to notify other components
-            window.dispatchEvent(new CustomEvent('userAvatarUpdated', { detail: { avatarUrl: upData.url } }));
-          }
-          
-          try {
-            if (currentUser?.id) {
-              await fetch('/api/user', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: currentUser.id, user_avatar: upData.path })
-              });
-            }
-          } catch (saveErr) {
-            console.error('Save avatar path error:', saveErr);
-          }
-          return;
-        } catch (fErr) {
-          console.error('Fallback upload error:', fErr);
-          alert('Gagal membuat URL unggah. ' + (signData?.error || signText || ''));
-          return;
-        }
-      }
-
-      // 2) Unggah langsung dari browser ke Supabase Storage memakai signed URL
-      const BUCKET_NAME = 'product-images';
-      const { error: uploadErr } = await supabase.storage
-        .from(BUCKET_NAME)
-        .uploadToSignedUrl(signData.path, signData.token, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type,
-        });
-
-      if (uploadErr) {
-        alert('Gagal mengunggah foto. ' + (uploadErr.message || ''));
+      const form = new FormData();
+      form.append('file', file);
+      form.append('folder', 'avatars');
+      const upRes = await fetch('/api/upload', { method: 'POST', body: form });
+      const upData = await upRes.json().catch(() => ({}));
+      if (!upRes.ok || !upData?.success || !upData?.path || !upData?.url) {
+        alert('Gagal mengunggah foto. ' + (upData?.error || ''));
         return;
       }
 
-      // 3) Ambil public URL dari path
-      const { data: urlData } = supabase.storage
-        .from(BUCKET_NAME)
-        .getPublicUrl(signData.path);
-
-      setAvatarUrl(urlData.publicUrl);
-      setAvatarPath(signData.path);
-      sessionStorage.setItem('user_avatar_url', urlData.publicUrl);
-      sessionStorage.setItem('user_avatar_path', signData.path);
+      setAvatarUrl(upData.url);
+      setAvatarPath(upData.path);
+      sessionStorage.setItem('user_avatar_url', upData.url);
+      sessionStorage.setItem('user_avatar_path', upData.path);
       
-      // Update user object in sessionStorage with avatar
       const currentUser = getCurrentUser();
       if (currentUser) {
-        const updatedUser = { ...currentUser, avatar_url: urlData.publicUrl, avatar: urlData.publicUrl };
+        const updatedUser = { ...currentUser, avatar_url: upData.url, avatar: upData.url };
         sessionStorage.setItem('user', JSON.stringify(updatedUser));
-        // Dispatch custom event to notify other components
-        window.dispatchEvent(new CustomEvent('userAvatarUpdated', { detail: { avatarUrl: urlData.publicUrl } }));
+        window.dispatchEvent(new CustomEvent('userAvatarUpdated', { detail: { avatarUrl: upData.url } }));
       }
       
-      // Simpan path ke database users.user_avatar
       try {
         if (currentUser?.id) {
           await fetch('/api/user', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: currentUser.id, user_avatar: signData.path })
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({ id: currentUser.id, user_avatar: upData.path })
           });
         }
       } catch (saveErr) {
@@ -352,7 +270,7 @@ export default function ProfileSettings() {
         if (currentUser?.id) {
           await fetch('/api/user', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ id: currentUser.id, user_avatar: null })
           });
         }

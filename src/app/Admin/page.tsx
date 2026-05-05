@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../lib/supabaseClient';
 import PopupAlert from '../../components/PopupAlert';
 import { usePopupAlert } from '../../hooks/usePopupAlert';
 import { useToast } from '../../components/Toast';
 import { requireAdmin, getAuthHeaders } from '../../lib/auth';
 import { useAdminContext } from './AdminContext';
+import { resolveStoredAssetUrl } from '../../lib/storage-path';
 import { DollarSign, X, ShoppingCart, Package, TrendingUp, CheckCircle, ArrowUpRight, ShoppingBag, Pencil, Trash, Eye, Calendar, MapPin, CreditCard, Truck, Clock} from 'lucide-react';
 
 // Define types
@@ -79,37 +79,9 @@ const AdminPanel = () => {
   const resolveAvatarUrl = (avatar?: string | null): string | null => {
     console.log('[Admin] resolveAvatarUrl input:', avatar);
     if (!avatar) return null;
-    // Jika sudah berupa URL penuh, langsung gunakan
-    if (/^https?:\/\//.test(avatar)) {
-      // Deteksi URL salah yang menunjuk ke bucket 'avatars' yang tidak ada,
-      // lalu ubah ke bucket yang benar 'product-images/avatars/...'
-      const invalidBucketPattern = /\/storage\/v1\/object\/public\/avatars\//i;
-      if (invalidBucketPattern.test(avatar)) {
-        const fixed = avatar.replace(
-          /\/storage\/v1\/object\/public\/avatars\//i,
-          '/storage/v1/object/public/product-images/avatars/'
-        );
-        console.log('[Admin] resolveAvatarUrl: fixed invalid bucket URL', { before: avatar, after: fixed });
-        return fixed;
-      }
-      console.log('[Admin] resolveAvatarUrl: using direct URL', avatar);
-      return avatar;
-    }
-
-    // Jika string berformat "bucket/path/to/object"
-    const parts = avatar.split('/');
-    if (parts.length > 1 && (parts[0] === 'product-images' || parts[0] === 'avatars')) {
-      const bucket = parts[0];
-      const path = parts.slice(1).join('/');
-      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-      console.log('[Admin] resolveAvatarUrl: bucket-path', { bucket, path, publicUrl: data?.publicUrl });
-      return data?.publicUrl || null;
-    }
-
-    // Default: asumsikan path di bucket 'product-images'
-    const { data } = supabase.storage.from('product-images').getPublicUrl(avatar);
-    console.log('[Admin] resolveAvatarUrl: default bucket product-images', { path: avatar, publicUrl: data?.publicUrl });
-    return data?.publicUrl || null;
+    const resolved = resolveStoredAssetUrl(avatar, '/default-avatar.svg');
+    console.log('[Admin] resolveAvatarUrl: resolved local asset', { before: avatar, after: resolved });
+    return resolved || null;
   };
 
   // Helper untuk menentukan URL avatar yang ditampilkan.
@@ -332,20 +304,18 @@ const AdminPanel = () => {
 
   const loadProducts = async () => {
     try {
+      const response = await fetch('/api/product?limit=1000&page=1', {
+        cache: 'no-store'
+      });
+      const result = await response.json();
 
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading products:', error);
+      if (!result.success) {
+        console.error('Error loading products:', result.message);
         setProducts([]);
         return;
       }
 
-      // Transform data to match expected format
-      const transformedProducts = data?.map(product => ({
+      const transformedProducts = (result.data || []).map((product: any) => ({
         id: product.id,
         name: product.name,
         price: product.price,
@@ -449,19 +419,22 @@ const AdminPanel = () => {
 
   const loadCustomers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('role', 'pembeli');
+      const response = await fetch('/api/user', {
+        cache: 'no-store',
+        headers: getAuthHeaders()
+      });
+      const result = await response.json();
 
-      if (error) {
-        console.error('Error loading customers:', error);
+      if (!result.success) {
+        console.error('Error loading customers:', result.message);
         setCustomers([]);
         return;
       }
 
+      const data = (result.data || []).filter((customer: any) => customer.role !== 'admin');
+
       // Transform data untuk memastikan field names yang konsisten
-      const transformedCustomers = (data || []).map(customer => ({
+      const transformedCustomers = (data || []).map((customer: any) => ({
         id: customer.id,
         name: customer.name || customer.nama_lengkap || customer.full_name || 'N/A',
         email: customer.email,
@@ -482,19 +455,19 @@ const AdminPanel = () => {
 
   const loadCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await fetch('/api/categories', {
+        cache: 'no-store'
+      });
+      const result = await response.json();
 
-      if (error) {
-        console.error('Error loading categories:', error);
+      if (!result.success) {
+        console.error('Error loading categories:', result.message);
         setCategories([]);
         return;
       }
 
       // Transform data to match expected format
-      const transformedCategories = (data || []).map(category => ({
+      const transformedCategories = (result.data || []).map((category: any) => ({
         id: category.id,
         name: category.name
       }));
@@ -605,29 +578,30 @@ const AdminPanel = () => {
 
     try {
       // Secure authentication check
-      const user = requireAdmin();
-
-      // Use secure headers for API calls
       const authHeaders = getAuthHeaders();
 
-      const { data, error } = await supabase
-        .from('products')
-        .insert({
+      const response = await fetch('/api/product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify({
           name: productForm.name.trim(),
           price: parseFloat(productForm.price),
-          stock: parseInt(productForm.stock),
+          stock: parseInt(productForm.stock, 10),
           category: productForm.category,
-          image: productForm.image || 'https://via.placeholder.com/100',
+          image: productForm.image || '',
           description: productForm.description.trim() || ''
         })
-        .select()
-        .single();
+      });
+      const result = await response.json();
 
-      if (error) {
-        console.error('Error adding product:', error);
-        showError(`Gagal menambahkan produk: ${error.message}`);
+      if (!response.ok || !result.success) {
+        console.error('Error adding product:', result);
+        showError(`Gagal menambahkan produk: ${result.message || 'Unknown error'}`);
       } else {
-        setProducts([data, ...products]);
+        setProducts([result.data, ...products]);
         resetForm();
         setShowModal(false);
         showSuccess('Produk berhasil ditambahkan');
@@ -647,31 +621,31 @@ const AdminPanel = () => {
 
     try {
       // Secure authentication check
-      const user = requireAdmin();
-
-      // Use secure headers for API calls
       const authHeaders = getAuthHeaders();
-
-      const { data, error } = await supabase
-        .from('products')
-        .update({
+      const response = await fetch('/api/product', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify({
+          id: selectedItem.id,
           name: productForm.name.trim(),
           price: parseFloat(productForm.price),
-          stock: parseInt(productForm.stock),
+          stock: parseInt(productForm.stock, 10),
           category: productForm.category,
           image: productForm.image,
           description: productForm.description.trim() || ''
         })
-        .eq('id', selectedItem.id)
-        .select();
+      });
+      const result = await response.json();
 
-
-      if (error) {
-        console.error('Error updating product:', error);
-        showError(`Gagal mengupdate produk: ${error.message}`);
-      } else if (data && data.length > 0) {
+      if (!response.ok || !result.success) {
+        console.error('Error updating product:', result);
+        showError(`Gagal mengupdate produk: ${result.message || 'Unknown error'}`);
+      } else if (result.data) {
         setProducts(products.map(product =>
-          product.id === selectedItem.id ? data[0] : product
+          product.id === selectedItem.id ? result.data : product
         ));
         resetForm();
         setShowModal(false);
@@ -692,19 +666,15 @@ const AdminPanel = () => {
       'Konfirmasi Hapus',
       async () => {
         try {
-          // Secure authentication check
-          const user = requireAdmin();
-
-          // Use secure headers for API calls
           const authHeaders = getAuthHeaders();
+          const response = await fetch(`/api/product?id=${id}`, {
+            method: 'DELETE',
+            headers: authHeaders
+          });
+          const result = await response.json();
 
-          const { error } = await supabase
-            .from('products')
-            .delete()
-            .eq('id', id);
-
-          if (error) {
-            console.error('Error deleting product:', error);
+          if (!response.ok || !result.success) {
+            console.error('Error deleting product:', result);
             showError('Gagal menghapus produk');
           } else {
             setProducts(products.filter(product => product.id !== id));
@@ -827,13 +797,21 @@ const AdminPanel = () => {
   const handleUpdateStock = async () => {
     if (!selectedItem || !('id' in selectedItem)) return;
 
-    const { error } = await supabase
-      .from('products')
-      .update({ stock: parseInt(stockForm.stock, 10) })
-      .eq('id', selectedItem.id);
+    const response = await fetch('/api/product', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({
+        id: selectedItem.id,
+        stock: parseInt(stockForm.stock, 10)
+      })
+    });
+    const result = await response.json();
 
-    if (error) {
-      console.error('Gagal memperbarui stok:', error.message);
+    if (!response.ok || !result.success) {
+      console.error('Gagal memperbarui stok:', result.message);
       return;
     }
     // Perbarui state lokal
@@ -855,22 +833,25 @@ const AdminPanel = () => {
     }
 
     try {
-      const user = requireAdmin();
       const authHeaders = getAuthHeaders();
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify({ name: categoryForm.name.trim() })
+      });
+      const result = await response.json();
 
-      const { data, error } = await supabase
-        .from('categories')
-        .insert([{ name: categoryForm.name.trim() }])
-        .select();
-
-      if (error) {
-        console.error('Error adding category:', error);
-        showError(`Gagal menambahkan kategori: ${error.message}`);
-      } else if (data && data.length > 0) {
+      if (!response.ok || !result.success) {
+        console.error('Error adding category:', result);
+        showError(`Gagal menambahkan kategori: ${result.message || 'Unknown error'}`);
+      } else if (result.data) {
         // Transform data to match expected format
         const newCategory = {
-          id: data[0].id,
-          name: data[0].name
+          id: result.data.id,
+          name: result.data.name
         };
         setCategories((prev) => [...prev, newCategory]);
         resetFormCategory();
@@ -896,28 +877,28 @@ const AdminPanel = () => {
     }
 
     try {
-      // Secure authentication check
-      const user = requireAdmin();
-
-      // Use secure headers for API calls
       const authHeaders = getAuthHeaders();
-
-      const { data, error } = await supabase
-        .from('categories')
-        .update({
+      const response = await fetch('/api/categories', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify({
+          id: selectedItem.id,
           name: categoryForm.name.trim(),
         })
-        .eq('id', selectedItem.id)
-        .select();
+      });
+      const result = await response.json();
 
-      if (error) {
-        console.error('Error updating category:', error);
-        showError(`Gagal mengupdate kategori: ${error.message}`);
-      } else if (data && data.length > 0) {
+      if (!response.ok || !result.success) {
+        console.error('Error updating category:', result);
+        showError(`Gagal mengupdate kategori: ${result.message || 'Unknown error'}`);
+      } else if (result.data) {
         // Transform data to match expected format
         const updatedCategory = {
-          id: data[0].id,
-          name: data[0].name
+          id: result.data.id,
+          name: result.data.name
         };
         setCategories(categories.map(cat =>
           cat.id === selectedItem.id ? updatedCategory : cat
@@ -946,20 +927,15 @@ const AdminPanel = () => {
       'Konfirmasi Hapus',
       async () => {
         try {
-          // Pastikan hanya admin yang bisa hapus
-          const user = requireAdmin();
-
-          // Gunakan header autentikasi aman
           const authHeaders = getAuthHeaders();
+          const response = await fetch(`/api/categories?id=${id}`, {
+            method: 'DELETE',
+            headers: authHeaders
+          });
+          const result = await response.json();
 
-          // Hapus data kategori di Supabase
-          const { error } = await supabase
-            .from('categories')
-            .delete()
-            .eq('id', id);
-
-          if (error) {
-            console.error('Error deleting category:', error);
+          if (!response.ok || !result.success) {
+            console.error('Error deleting category:', result);
             showError('Gagal menghapus kategori');
           } else {
             // Update state kategori di sisi frontend

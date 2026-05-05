@@ -7,7 +7,6 @@ import useCart from '../../hooks/useCart'
 import { getCurrentUser, getAuthHeaders } from '../../lib/auth'
 import PopupAlert from '../../components/PopupAlert'
 import { usePopupAlert } from '../../hooks/usePopupAlert'
-import { supabase } from '@/lib/supabaseClient'
 
 
 export default function CheckoutPage() {
@@ -83,11 +82,13 @@ export default function CheckoutPage() {
             // Fetch address data from Supabase including Provinsi, Kota, Kode_pose
             const fetchUserAddressData = async () => {
                 try {
-                    const { data: dbUser } = await supabase
-                        .from('users')
-                        .select('address, "Provinsi", "Kota", "Kode_pose"')
-                        .eq('id', user.id)
-                        .single();
+                    const authHeaders = getAuthHeaders();
+                    const response = await fetch(`/api/user?id=${encodeURIComponent(user.id)}`, {
+                        headers: authHeaders,
+                        cache: 'no-store'
+                    });
+                    const result = await response.json();
+                    const dbUser = result?.success ? result.data : null;
 
                     if (dbUser) {
                         // Only set if not null/undefined

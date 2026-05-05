@@ -1,12 +1,18 @@
 import { NextRequest } from 'next/server';
 
+const normalizeRole = (role?: string | null) => {
+    return role === 'admin' ? 'admin' : 'user';
+};
+
 // Secure API authentication helper
 export const getApiUser = (request: NextRequest) => {
     try {
         // Get user data from headers (set by client)
-        const userId = request.headers.get('user-id');
-        const userRole = request.headers.get('user-role');
-        const userEmail = request.headers.get('user-email');
+        const authHeader = request.headers.get('authorization');
+        const bearerUserId = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+        const userId = request.headers.get('user-id') || bearerUserId;
+        const userRole = request.headers.get('user-role') || request.headers.get('x-user-role');
+        const userEmail = request.headers.get('user-email') || request.headers.get('x-user-email');
 
         if (!userId || !userRole) {
             return null;
@@ -14,7 +20,7 @@ export const getApiUser = (request: NextRequest) => {
 
         return {
             id: userId, // keep as string for Supabase UUID compatibility
-            role: userRole,
+            role: normalizeRole(userRole),
             email: userEmail || undefined,
         };
     } catch (error) {
@@ -53,7 +59,7 @@ export const getCookieUser = (request: NextRequest) => {
         const parsed: any = JSON.parse(rawToken);
 
         const id = typeof parsed.id === 'string' ? parsed.id : parsed.id;
-        const role = parsed.role;
+        const role = normalizeRole(parsed.role);
         const email = parsed.email || parsed.user?.email || undefined;
         const name = parsed.name || parsed.user?.user_metadata?.name || parsed.user?.user_metadata?.full_name || parsed.user?.email?.split('@')[0] || undefined;
 

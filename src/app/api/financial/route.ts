@@ -1,174 +1,147 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { query, toNumber } from '@/lib/db';
+import { getStoredAssetUrl } from '@/lib/supabase';
+
 export const dynamic = 'force-dynamic';
-import { supabase, supabaseAdmin } from '../../../lib/supabase';
 
 // GET endpoint untuk laporan keuangan
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
     const period = searchParams.get('period') || 'month';
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
-    const month = parseInt(searchParams.get('month') || new Date().getMonth().toString());
-    const quarter = parseInt(searchParams.get('quarter') || '1');
-    const semester = parseInt(searchParams.get('semester') || '1');
+    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString(), 10);
+    const month = parseInt(searchParams.get('month') || new Date().getMonth().toString(), 10);
+    const quarter = parseInt(searchParams.get('quarter') || '1', 10);
+    const semester = parseInt(searchParams.get('semester') || '1', 10);
 
-    // Calculate date range based on period
     let startDate: Date;
     let endDate: Date;
 
     switch (period) {
       case 'all':
-        // Show all data since store started (no date filtering)
-        startDate = new Date('2020-01-01'); // Store start date
-        endDate = new Date(); // Current date
+        startDate = new Date('2020-01-01');
+        endDate = new Date();
         break;
       case 'month':
         startDate = new Date(year, month, 1);
         endDate = new Date(year, month + 1, 0);
         break;
-      case 'quarter':
+      case 'quarter': {
         const quarterStartMonth = (quarter - 1) * 3;
         const quarterEndMonth = quarterStartMonth + 2;
         startDate = new Date(year, quarterStartMonth, 1);
         endDate = new Date(year, quarterEndMonth + 1, 0);
         break;
-      case 'semester':
+      }
+      case 'semester': {
         const semesterStartMonth = (semester - 1) * 6;
         const semesterEndMonth = semesterStartMonth + 5;
         startDate = new Date(year, semesterStartMonth, 1);
         endDate = new Date(year, semesterEndMonth + 1, 0);
         break;
+      }
       case 'year':
         startDate = new Date(year, 0, 1);
         endDate = new Date(year, 11, 31);
         break;
       default:
-        // Default to all data
         startDate = new Date('2020-01-01');
         endDate = new Date();
     }
 
-    // Debug: Log the date range
-    console.log('Financial Report Date Range:', {
-      period,
-      year,
-      month,
-      quarter,
-      semester,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString()
-    });
+    const ordersResult = await query(
+      `
+        select
+          o.id,
+          o.total_amount,
+          o.status,
+          o.created_at,
+          u.name as customer_name,
+          u.email as customer_email
+        from orders o
+        left join users u on u.id = o.user_id
+        where o.created_at >= $1
+          and o.created_at <= $2
+        order by o.created_at desc
+      `,
+      [startDate.toISOString(), endDate.toISOString()]
+    );
 
-    // Choose client: use service role when available to bypass RLS for server-side analytics
-    const client = supabaseAdmin || supabase;
+    const orders = ordersResult.rows.map((row) => ({
+      id: Number(row.id),
+      total_amount: toNumber(row.total_amount),
+      status: row.status,
+      created_at: row.created_at,
+      users: {
+        name: row.customer_name,
+        email: row.customer_email
+      }
+    }));
 
-    // Get orders within date range
-    const { data: orders, error: ordersError } = await client
-      .from('orders')
-      .select(`
-        id,
-        total_amount,
-        status,
-        created_at,
-        users!inner(name, email)
-      `)
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
-      .order('created_at', { ascending: false });
+    const productsResult = await query(`select * from products order by created_at desc`);
+    const products = productsResult.rows.map((row) => ({
+      id: Number(row.id),
+      name: row.name,
+      category: row.category,
+      price: toNumber(row.price),
+      image: getStoredAssetUrl(row.image, ''),
+      stock: Number(row.stock || 0),
+      created_at: row.created_at,
+    }));
 
-    console.log('Orders found:', orders?.length || 0, 'orders in date range');
+    const orderIds = orders.map((order) => order.id);
+    const orderItemsResult = orderIds.length > 0
+      ? await query(
+          `
+            select
+              oi.quantity,
+              oi.price,
+              oi.order_id,
+              oi.product_id,
+              p.name,
+              p.category,
+              p.image,
+              p.stock
+            from order_items oi
+            left join products p on p.id = oi.product_id
+            where oi.order_id = any($1::bigint[])
+          `,
+          [orderIds]
+        )
+      : { rows: [] as any[] };
 
-    if (ordersError) {
-      console.error('Error fetching orders:', ordersError);
-      return NextResponse.json(
-        { success: false, message: 'Failed to fetch orders' },
-        { status: 500 }
-      );
-    }
-
-    // Get all products for reference
-    const { data: products, error: productsError } = await client
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (productsError) {
-      console.error('Error fetching products:', productsError);
-      return NextResponse.json(
-        { success: false, message: 'Failed to fetch products' },
-        { status: 500 }
-      );
-    }
-
-    // Calculate financial metrics
-    const totalRevenue = orders?.reduce((sum, order) => {
-      // Only count completed orders for revenue
+    const totalRevenue = orders.reduce((sum, order) => {
       if (order.status === 'completed' || order.status === 'delivered') {
         return sum + (order.total_amount || 0);
       }
       return sum;
-    }, 0) || 0;
+    }, 0);
 
-    const totalOrders = orders?.length || 0;
-    const completedOrders = orders?.filter(order =>
+    const totalOrders = orders.length;
+    const completedOrders = orders.filter(order =>
       order.status === 'completed' || order.status === 'delivered'
-    ).length || 0;
+    ).length;
 
-    // Get order items to calculate actual product performance
-    let orderItems: any[] | null = null;
-    let orderItemsError = null;
-
-    if (orders && orders.length > 0) {
-      const { data, error } = await client
-        .from('order_items')
-        .select(`
-          quantity,
-          price,
-          order_id,
-          product_id,
-          products!inner(name, category, image, stock)
-        `)
-        .in('order_id', orders.map(order => order.id));
-
-      orderItems = data;
-      orderItemsError = error;
-    } else {
-      // No orders in range => nothing to fetch
-      orderItems = [];
-    }
-
-    if (orderItemsError) {
-      console.error('Error fetching order items:', orderItemsError);
-    }
-
-    console.log('Order items found:', orderItems?.length || 0);
-
-    // Restrict calculations to completed/delivered orders only
     const relevantStatuses = new Set(['completed', 'delivered']);
     const relevantOrderIds = new Set(
-      (orders || [])
+      orders
         .filter(order => relevantStatuses.has(order.status))
         .map(order => order.id)
     );
 
     let productPerformance: any[] = [];
 
-    if (orderItemsError || !orderItems || orderItems.length === 0 || relevantOrderIds.size === 0) {
-      console.log('Order items not available, using fallback calculation');
-      // Fallback: Calculate based on completed orders only
+    if (orderItemsResult.rows.length === 0 || relevantOrderIds.size === 0) {
       const completedOrdersCount = relevantOrderIds.size;
 
-      // Calculate product performance with realistic distribution
-      productPerformance = products?.map(product => {
-        // Distribute sales more realistically across products
-        const basePopularity = Math.random(); // Random popularity factor
+      productPerformance = products.map(product => {
+        const basePopularity = Math.random();
         const categoryMultiplier = product.category === 'Sepatu' ? 1.2 :
           product.category === 'Sandal' ? 0.8 : 1.0;
 
-        // Calculate estimated sales based on completed orders and product popularity
-        const estimatedSalesRatio = (basePopularity * categoryMultiplier) / products.length;
-        const totalSold = Math.floor(completedOrdersCount * estimatedSalesRatio * 2); // Average 2 items per relevant order
+        const estimatedSalesRatio = (basePopularity * categoryMultiplier) / Math.max(products.length, 1);
+        const totalSold = Math.floor(completedOrdersCount * estimatedSalesRatio * 2);
         const totalRevenue = totalSold * product.price;
         const ordersCount = Math.min(totalSold, completedOrdersCount);
 
@@ -183,16 +156,16 @@ export async function GET(request: NextRequest) {
           totalRevenue,
           ordersCount
         };
-      }).sort((a, b) => b.totalRevenue - a.totalRevenue) || [];
+      }).sort((a, b) => b.totalRevenue - a.totalRevenue);
     } else {
-      // Calculate actual product performance from order_items
-      const productSalesMap = new Map();
+      const productSalesMap = new Map<number, { totalSold: number; totalRevenue: number; ordersCount: Set<number> }>();
 
-      orderItems.forEach(item => {
-        if (!relevantOrderIds.has(item.order_id)) {
+      orderItemsResult.rows.forEach((item) => {
+        if (!relevantOrderIds.has(Number(item.order_id))) {
           return;
         }
-        const productId = item.product_id;
+
+        const productId = Number(item.product_id);
         if (!productSalesMap.has(productId)) {
           productSalesMap.set(productId, {
             totalSold: 0,
@@ -201,14 +174,13 @@ export async function GET(request: NextRequest) {
           });
         }
 
-        const current = productSalesMap.get(productId);
-        current.totalSold += item.quantity;
-        current.totalRevenue += item.quantity * item.price;
-        current.ordersCount.add(item.order_id);
+        const current = productSalesMap.get(productId)!;
+        current.totalSold += Number(item.quantity || 0);
+        current.totalRevenue += Number(item.quantity || 0) * toNumber(item.price);
+        current.ordersCount.add(Number(item.order_id));
       });
 
-      // Create product performance array with actual data
-      productPerformance = products?.map(product => {
+      productPerformance = products.map(product => {
         const salesData = productSalesMap.get(product.id);
 
         return {
@@ -222,12 +194,11 @@ export async function GET(request: NextRequest) {
           totalRevenue: salesData?.totalRevenue || 0,
           ordersCount: salesData?.ordersCount.size || 0
         };
-      }).sort((a, b) => b.totalRevenue - a.totalRevenue) || [];
+      }).sort((a, b) => b.totalRevenue - a.totalRevenue);
     }
 
     const totalUnitsSold = productPerformance.reduce((sum, product) => sum + product.totalSold, 0);
 
-    // Calculate category performance
     const categoryPerformance = productPerformance.reduce((acc, product) => {
       if (!acc[product.category]) {
         acc[product.category] = {
@@ -247,11 +218,10 @@ export async function GET(request: NextRequest) {
       (a: any, b: any) => b.totalRevenue - a.totalRevenue
     );
 
-    // Calculate order status distribution
-    const statusDistribution = orders?.reduce((acc, order) => {
+    const statusDistribution = orders.reduce((acc, order) => {
       acc[order.status] = (acc[order.status] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>) || {};
+    }, {} as Record<string, number>);
 
     return NextResponse.json({
       success: true,
@@ -273,19 +243,19 @@ export async function GET(request: NextRequest) {
             endFormatted: endDate.toLocaleDateString('id-ID')
           }
         },
-        productPerformance: productPerformance.slice(0, 10), // Top 10 products
+        productPerformance: productPerformance.slice(0, 10),
         categoryStats,
         statusDistribution,
-        orders: orders?.map(order => ({
+        orders: orders.map(order => ({
           id: order.id,
-          customerName: (order.users as any)?.name || 'Unknown',
+          customerName: order.users?.name || 'Unknown',
           total: order.total_amount,
           status: order.status,
           date: new Date(order.created_at).toLocaleDateString('id-ID')
-        })) || [],
+        })),
         debug: {
-          ordersFound: orders?.length || 0,
-          productsFound: products?.length || 0,
+          ordersFound: orders.length,
+          productsFound: products.length,
           dateRange: {
             start: startDate.toISOString(),
             end: endDate.toISOString()
@@ -294,7 +264,6 @@ export async function GET(request: NextRequest) {
       },
       message: `Financial report generated successfully for ${period === 'all' ? 'all data' : `${period} ${year}`}`
     });
-
   } catch (error) {
     console.error('Financial report error:', error);
     return NextResponse.json(

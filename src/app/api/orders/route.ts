@@ -1,87 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbHelpers, ApiResponse, supabase } from '../../../lib/supabase';
+
+import { dbHelpers, getStoredAssetUrl } from '../../../lib/supabase';
 import { getApiUser, getCookieUser } from '../../../lib/api-auth';
+import { query } from '@/lib/db';
+
 export const dynamic = 'force-dynamic';
 
-// Normalisasi URL/path avatar menjadi public URL yang valid dari bucket 'product-images'
-const resolveAvatarUrlForApi = (raw: string | null, name: string): string => {
-  if (!raw) {
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
-  }
+const getRequestUser = (request: NextRequest) => getApiUser(request) || getCookieUser(request);
 
-  const val = String(raw);
-  // Jika sudah full URL
-  if (/^https?:\/\//.test(val)) {
-    // Perbaiki URL yang mengarah ke bucket yang tidak ada ("/public/avatars/")
-    if (/\/storage\/v1\/object\/public\/avatars\//i.test(val)) {
-      return val.replace(
-        /\/storage\/v1\/object\/public\/avatars\//i,
-        '/storage/v1/object/public/product-images/avatars/'
-      );
-    }
-    return val;
-  }
-
-  // Jika berupa path relatif, asumsikan berada di bucket 'product-images'
-  // Contoh: 'avatars/filename.jpg' -> public URL pada bucket 'product-images'
-  const { data } = supabase.storage.from('product-images').getPublicUrl(val);
-  return data?.publicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+const resolveAvatarUrlForApi = (raw: string | null, _name: string) => {
+  return getStoredAssetUrl(raw, '/default-avatar.svg');
 };
 
-// Interface untuk pesanan response
-interface OrderResponse {
-  id: number;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  userId?: string;
-  userAvatar?: string | null;
-  items: {
-    productId: number;
-    productName: string;
-    quantity: number;
-    price: number;
-  }[];
-  totalAmount: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'cancelled';
-  shippingAddress: {
-    street: string;
-    city: string;
-    postalCode: string;
-    province: string;
-  };
-  paymentMethod: 'credit_card' | 'bank_transfer' | 'cash_on_delivery';
-  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
-  orderDate: string;
-  shippingDate?: string;
-  deliveryDate?: string;
-  notes?: string;
-}
+const transformOrderForApi = (order: any) => {
+  const user = order.users || {};
+  const name = user?.name || 'Unknown';
+  const avatarPath = user?.user_avatar || null;
+  const avatarUrl = resolveAvatarUrlForApi(avatarPath, name);
 
-// Data sekarang diambil dari database Supabase, bukan dummy data
+  return {
+    id: order.id,
+    order_number: order.order_number,
+    tracking_number: order.order_number,
+    customerName: name,
+    customerEmail: user?.email || '',
+    customerPhone: user?.phone || '',
+    userId: user?.id || order.user_id || undefined,
+    userAvatar: avatarUrl,
+    items: order.order_items || [],
+    order_items: order.order_items || [],
+    totalAmount: order.total_amount,
+    status: order.status,
+    shippingAddress: {
+      street: order.shipping_address || '',
+      city: user?.Kota || '',
+      postalCode: user?.Kode_pose || '',
+      province: user?.Provinsi || ''
+    },
+    paymentMethod: order.payment_method,
+    paymentStatus: order.payment_status || 'pending',
+    orderDate: order.created_at,
+    shippingDate: order.shipping_date || null,
+    deliveryDate: order.delivery_date || null,
+    notes: order.notes || null
+  };
+};
 
 // GET endpoint untuk mengambil semua pesanan
 export async function GET(request: NextRequest) {
   try {
-    // Verifikasi bahwa request berasal dari admin untuk akses ke semua pesanan
-    const authHeader = request.headers.get('authorization');
-    const userRole = request.headers.get('x-user-role');
-
+    const requestUser = getRequestUser(request);
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const customerEmail = searchParams.get('customerEmail');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
     const id = searchParams.get('id');
 
     if (id) {
-      // Jika ada ID, ambil pesanan spesifik
-      // Untuk pesanan spesifik, verifikasi admin atau pemilik pesanan
-      const { data: order, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', parseInt(id))
-        .single();
+      const { data } = await dbHelpers.getOrders({ limit: 1000, page: 1 });
+      const order = (data || []).find((item: any) => String(item.id) === String(id));
 
       if (!order) {
         return NextResponse.json(
@@ -90,9 +68,16 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      if (requestUser && requestUser.role !== 'admin' && String(order.user_id) !== String(requestUser.id)) {
+        return NextResponse.json(
+          { success: false, message: 'Forbidden' },
+          { status: 403 }
+        );
+      }
+
       return NextResponse.json({
         success: true,
-        data: order,
+        data: transformOrderForApi(order),
         message: 'Order retrieved successfully'
       });
     }
@@ -112,49 +97,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Transform data dari database ke format yang diharapkan frontend
-    const transformedOrders = data?.map(order => {
-      const user = (order.users as any) || {};
-      const name = user?.name || 'Unknown';
-      const avatarPath = user?.user_avatar || null;
-      const avatarUrl = resolveAvatarUrlForApi(avatarPath, name);
-
-      return {
-        id: order.id,
-        order_number: order.order_number,
-        customerName: name,
-        customerEmail: user?.email || '',
-        customerPhone: '', // Phone tidak tersedia di tabel users
-        userId: user?.id || undefined,
-        userAvatar: avatarUrl,
-        items: order.order_items || [], // Use the order_items dari join
-        order_items: order.order_items || [],
-        totalAmount: order.total_amount,
-        status: order.status,
-        shippingAddress: {
-          street: order.shipping_address || '',
-          city: '',
-          postalCode: '',
-          province: ''
-        },
-        paymentMethod: order.payment_method,
-        paymentStatus: 'pending', // TODO: tambahkan field payment_status jika tersedia
-        orderDate: order.created_at,
-        shippingDate: null,
-        deliveryDate: null,
-        notes: null
-      };
-    }) || [];
-
-    // Pagination
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedOrders = transformedOrders.slice(startIndex, endIndex);
-
+    const transformedOrders = (data || []).map(transformOrderForApi);
 
     return NextResponse.json({
       success: true,
-      data: paginatedOrders,
+      data: transformedOrders,
       pagination: {
         page,
         limit,
@@ -163,7 +110,6 @@ export async function GET(request: NextRequest) {
       },
       message: 'Orders retrieved successfully from database'
     });
-
   } catch (error) {
     console.error('Get orders error:', error);
     return NextResponse.json(
@@ -183,10 +129,11 @@ export async function POST(request: NextRequest) {
       customerPhone,
       items,
       shippingAddress,
-      paymentMethod
+      paymentMethod,
+      notes
     } = body;
 
-    const sessionUser = getApiUser(request) || getCookieUser(request);
+    const sessionUser = getRequestUser(request);
     if (!sessionUser) {
       return NextResponse.json(
         { success: false, message: 'Authentication required' },
@@ -218,7 +165,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validasi input
     if (!customerName || !customerEmail || !customerPhone || !items || !shippingAddress || !userId) {
       return NextResponse.json(
         { success: false, message: 'Required fields are missing' },
@@ -233,16 +179,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hitung total amount
     const totalAmount = items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
-    // Reduce product stock before creating order
     const stockItems = items.map(item => ({
       productId: item.productId,
       quantity: item.quantity
     }));
 
-    const { data: stockUpdateResult, error: stockError } = await dbHelpers.reduceMultipleProductsStock(stockItems);
+    const { error: stockError } = await dbHelpers.reduceMultipleProductsStock(stockItems);
 
     if (stockError) {
       console.error('Stock reduction error:', stockError);
@@ -252,14 +196,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Buat pesanan baru di database
     const { data: newOrder, error } = await dbHelpers.createOrder({
       user_id: String(userId),
       order_number: `ORD-${Date.now()}`,
       total_amount: totalAmount,
       status: 'pending',
-      shipping_address: `${shippingAddress.street}, ${shippingAddress.city}`,
-      payment_method: paymentMethod || 'cash_on_delivery'
+      shipping_address: `${shippingAddress.street}, ${shippingAddress.city}, ${shippingAddress.province} ${shippingAddress.postalCode}`,
+      payment_method: paymentMethod || 'cash_on_delivery',
+      notes: notes || undefined,
+      payment_status: 'pending'
     }, items);
 
     if (error) {
@@ -276,7 +221,6 @@ export async function POST(request: NextRequest) {
       data: newOrder,
       message: 'Order created successfully'
     }, { status: 201 });
-
   } catch (error) {
     console.error('Create order error:', error);
     return NextResponse.json(
@@ -289,13 +233,8 @@ export async function POST(request: NextRequest) {
 // PUT endpoint untuk update status pesanan
 export async function PUT(request: NextRequest) {
   try {
-    console.log('=== API PUT /api/orders DEBUG ===');
-
-    // Verifikasi bahwa request berasal dari admin
-    const authHeader = request.headers.get('authorization');
-    const userRole = request.headers.get('x-user-role');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ') || userRole !== 'admin') {
+    const requestUser = getRequestUser(request);
+    if (!requestUser || requestUser.role !== 'admin') {
       return NextResponse.json(
         { success: false, message: 'Unauthorized: Admin access required' },
         { status: 403 }
@@ -303,50 +242,34 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log('Request body:', body);
-
     const { id, status, paymentStatus, shippingDate, deliveryDate, notes } = body;
 
-    // Validasi input
     if (!id) {
-      console.log('Missing required field - id:', id);
       return NextResponse.json(
         { success: false, message: 'Order ID is required' },
         { status: 400 }
       );
     }
 
-    // Validasi status
     const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'completed', 'cancelled'];
     if (status && !validStatuses.includes(status)) {
-      console.log('Invalid status:', status);
       return NextResponse.json(
         { success: false, message: 'Invalid status value' },
         { status: 400 }
       );
     }
 
-    // Pastikan id adalah angka
     const orderId = typeof id === 'string' ? parseInt(id, 10) : id;
+    const { data: currentOrder } = await dbHelpers.getOrderById(orderId);
 
-    // ✅ CONSTRAINT: Validasi status transition untuk SHIPPED
+    if (!currentOrder) {
+      return NextResponse.json(
+        { success: false, message: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
     if (status === 'shipped') {
-      // Get current order untuk cek status saat ini
-      const { data: currentOrder, error: fetchError } = await supabase
-        .from('orders')
-        .select('id, status, order_number')
-        .eq('id', orderId)
-        .single();
-
-      if (fetchError || !currentOrder) {
-        console.error('Order not found:', fetchError);
-        return NextResponse.json(
-          { success: false, message: 'Order not found' },
-          { status: 404 }
-        );
-      }
-
-      // ✅ CONSTRAINT 1: Hanya dari status 'processing' yang bisa jadi 'shipped'
       if (currentOrder.status !== 'processing') {
         return NextResponse.json(
           {
@@ -357,42 +280,24 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      // ✅ CONSTRAINT 2: Validasi order_number harus ada (akan digunakan sebagai resi)
       if (!currentOrder.order_number) {
-        console.error('Order number is missing for order:', orderId);
         return NextResponse.json(
           { success: false, message: 'Order number is missing. Cannot generate tracking number.' },
           { status: 500 }
         );
       }
-
-      console.log(`✅ Order ${orderId} ready to ship. Tracking number: ${currentOrder.order_number}`);
     }
 
-    console.log('Updating order in database - ID:', id, 'Status:', status);
-
-    // Update data di database
     const updateData: any = {};
     if (status) updateData.status = status;
     if (paymentStatus) updateData.payment_status = paymentStatus;
     if (shippingDate) updateData.shipping_date = shippingDate;
     if (deliveryDate) updateData.delivery_date = deliveryDate;
     if (notes !== undefined) updateData.notes = notes;
-
-    // Auto-set shipping_date jika status shipped
-    if (status === 'shipped' && !shippingDate) {
-      updateData.shipping_date = new Date().toISOString();
-    }
-
-    // Auto-set delivery_date jika status delivered
-    if (status === 'delivered' && !deliveryDate) {
-      updateData.delivery_date = new Date().toISOString();
-    }
-
-    console.log('Updating order with ID:', orderId, 'Data:', updateData);
+    if (status === 'shipped' && !shippingDate) updateData.shipping_date = new Date().toISOString();
+    if (status === 'delivered' && !deliveryDate) updateData.delivery_date = new Date().toISOString();
 
     const { data, error } = await dbHelpers.updateOrder(orderId, updateData);
-    console.log('Database update result - data:', data, 'error:', error);
 
     if (error) {
       console.error('Database update error:', error);
@@ -403,8 +308,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Periksa apakah data ditemukan
-    // Jika data adalah null atau undefined, maka order tidak ditemukan
     if (!data) {
       return NextResponse.json(
         { success: false, message: 'Order not found' },
@@ -412,77 +315,49 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Jika data adalah array kosong, maka order mungkin ditemukan tapi tidak ada perubahan
-    if (Array.isArray(data) && data.length === 0) {
-      // Coba ambil data order untuk memastikan order ada (tanpa .single())
-      const { data: orderCheck } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId);
+    const refreshed = await query(
+      `
+        select
+          o.*,
+          u.id as user_ref_id,
+          u.name as user_name,
+          u.email as user_email,
+          u.phone as user_phone,
+          u.user_avatar as user_avatar,
+          u."Provinsi" as "Provinsi",
+          u."Kota" as "Kota",
+          u."Kode_pose" as "Kode_pose"
+        from orders o
+        left join users u on u.id = o.user_id
+        where o.id = $1
+        limit 1
+      `,
+      [orderId]
+    );
 
-      if (!orderCheck || orderCheck.length === 0) {
-        return NextResponse.json(
-          { success: false, message: 'Order not found' },
-          { status: 404 }
-        );
-      }
-
-      // Order ada tapi tidak ada perubahan, anggap sukses
-      return NextResponse.json({
-        success: true,
-        message: 'No changes were made to the order',
-        data: {
-          id: orderCheck[0].id,
-          status: orderCheck[0].status
-        }
-      });
-    }
-
-    // Ambil data pertama dari array hasil
-    const orderData = Array.isArray(data) ? data : data;
-
-    // Transform data untuk response
-    const transformedOrder = {
-      id: orderData.id,
-      order_number: orderData.order_number,
-      tracking_number: orderData.order_number, // order_number digunakan sebagai resi/tracking number
-      customerName: (orderData.users as any)?.name || 'Unknown',
-      customerEmail: (orderData.users as any)?.email || '',
-      customerPhone: (orderData.users as any)?.phone || '',
-      items: [], // TODO: Implement order items relationship
-      totalAmount: orderData.total_amount,
-      status: orderData.status,
-      shippingAddress: {
-        street: orderData.shipping_address || '',
-        city: '',
-        postalCode: '',
-        province: ''
-      },
-      paymentMethod: orderData.payment_method,
-      paymentStatus: orderData.payment_status || 'pending',
-      orderDate: orderData.created_at,
-      shippingDate: orderData.shipping_date || null,
-      deliveryDate: orderData.delivery_date || null,
-      notes: orderData.notes || null
+    const orderRow = refreshed.rows[0];
+    const orderData = {
+      ...data,
+      users: orderRow ? {
+        id: orderRow.user_ref_id,
+        name: orderRow.user_name,
+        email: orderRow.user_email,
+        phone: orderRow.user_phone,
+        user_avatar: orderRow.user_avatar,
+        Provinsi: orderRow.Provinsi,
+        Kota: orderRow.Kota,
+        Kode_pose: orderRow.Kode_pose,
+      } : null,
+      order_items: []
     };
-
-    console.log('Order updated successfully:', transformedOrder);
-
-    // Log khusus untuk status shipped
-    if (orderData.status === 'shipped') {
-      console.log(`📦 Order ${orderData.id} has been shipped with tracking number: ${orderData.order_number}`);
-    }
-
-    console.log('=== API PUT /api/orders DEBUG END ===');
 
     return NextResponse.json({
       success: true,
-      message: orderData.status === 'shipped'
-        ? `Order shipped successfully. Tracking number: ${orderData.order_number}`
+      message: data.status === 'shipped'
+        ? `Order shipped successfully. Tracking number: ${data.order_number}`
         : 'Order updated successfully',
-      data: transformedOrder
+      data: transformOrderForApi(orderData)
     });
-
   } catch (error) {
     console.error('Update order error:', error);
     return NextResponse.json(
@@ -495,6 +370,14 @@ export async function PUT(request: NextRequest) {
 // DELETE endpoint untuk menghapus pesanan
 export async function DELETE(request: NextRequest) {
   try {
+    const requestUser = getRequestUser(request);
+    if (!requestUser || requestUser.role !== 'admin') {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized: Admin access required' },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -505,9 +388,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-
-    // Hapus dari database
-    const { data, error } = await dbHelpers.deleteOrder(parseInt(id));
+    const { data, error } = await dbHelpers.deleteOrder(parseInt(id, 10));
 
     if (error) {
       console.error('Database delete error:', error);
@@ -524,13 +405,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-
     return NextResponse.json({
       success: true,
-      data: data,
+      data,
       message: 'Order deleted successfully from database'
     });
-
   } catch (error) {
     console.error('Delete order error:', error);
     return NextResponse.json(
